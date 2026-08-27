@@ -51,12 +51,12 @@
 ## Epic 2 — Identity Service — Spring Boot
 
 ### 2.1 Bootstrap service
-- [ ] Create Spring Boot project.
-- [ ] Add Spring Web.
-- [ ] Add Spring Security.
-- [ ] Add persistence dependencies.
-- [ ] Configure PostgreSQL.
-- [ ] Add Flyway or Liquibase migrations.
+- [x] Create Spring Boot project.
+- [x] Add Spring Web.
+- [x] Add Spring Security.
+- [x] Add persistence dependencies.
+- [x] Configure PostgreSQL.
+- [x] Add Flyway or Liquibase migrations.
 
 ### 2.2 User model
 - [ ] Create User entity.
