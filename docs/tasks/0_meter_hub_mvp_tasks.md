@@ -28,11 +28,11 @@
 ## Epic 1 — Local Infrastructure
 
 ### 1.1 Docker Compose
-- [ ] Create Docker Compose base file.
-- [ ] Add PostgreSQL.
-- [ ] Create persistent PostgreSQL volume.
-- [ ] Add environment variable configuration.
-- [ ] Add health checks.
+- [x] Create Docker Compose base file.
+- [x] Add PostgreSQL.
+- [x] Create persistent PostgreSQL volume.
+- [x] Add environment variable configuration.
+- [x] Add health checks.
 
 ### 1.2 Service networking
 - [ ] Create internal Docker network.
