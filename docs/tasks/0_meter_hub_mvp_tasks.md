@@ -35,9 +35,9 @@
 - [x] Add health checks.
 
 ### 1.2 Service networking
-- [ ] Create internal Docker network.
-- [ ] Define stable service DNS names.
-- [ ] Document external vs internal ports.
+- [x] Create internal Docker network.
+- [x] Define stable service DNS names.
+- [x] Document external vs internal ports.
 
 ### 1.3 Database initialization
 - [ ] Create Identity database/schema.
