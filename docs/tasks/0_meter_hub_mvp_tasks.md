@@ -40,11 +40,11 @@
 - [x] Document external vs internal ports.
 
 ### 1.3 Database initialization
-- [ ] Create Identity database/schema.
-- [ ] Create Household database/schema.
-- [ ] Create Meter database/schema.
-- [ ] Create Reading database/schema.
-- [ ] Ensure each service only uses its own database/schema credentials.
+- [x] Create Identity database/schema.
+- [x] Create Household database/schema.
+- [x] Create Meter database/schema.
+- [x] Create Reading database/schema.
+- [x] Ensure each service only uses its own database/schema credentials.
 
 ---
 
