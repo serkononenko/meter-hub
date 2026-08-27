@@ -9,11 +9,11 @@
 - [x] Add basic `../../.gitignore`, `.editorconfig`, and environment example files.
 
 ### 0.2 Define service boundaries
-- [ ] Document responsibility of Identity Service.
-- [ ] Document responsibility of Household Service.
-- [ ] Document responsibility of Meter Service.
-- [ ] Document responsibility of Reading Service.
-- [ ] Document database ownership rules.
+- [x] Document responsibility of Identity Service.
+- [x] Document responsibility of Household Service.
+- [x] Document responsibility of Meter Service.
+- [x] Document responsibility of Reading Service.
+- [x] Document database ownership rules.
 
 ### 0.3 Define shared API conventions
 - [ ] Define API versioning convention.
