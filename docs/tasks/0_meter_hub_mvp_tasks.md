@@ -16,12 +16,12 @@
 - [x] Document database ownership rules.
 
 ### 0.3 Define shared API conventions
-- [ ] Define API versioning convention.
-- [ ] Define UUID format for IDs.
-- [ ] Define timestamp format and UTC requirement.
-- [ ] Define common error response.
-- [ ] Define correlation/request ID header.
-- [ ] Create initial OpenAPI contract structure.
+- [x] Define API versioning convention.
+- [x] Define UUID format for IDs.
+- [x] Define timestamp format and UTC requirement.
+- [x] Define common error response.
+- [x] Define correlation/request ID header.
+- [x] Create initial OpenAPI contract structure.
 
 ---
 

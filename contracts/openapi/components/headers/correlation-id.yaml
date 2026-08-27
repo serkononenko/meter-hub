@@ -1,0 +1,5 @@
+description: Identifier used to trace a request across MeterHub services.
+schema:
+  type: string
+  format: uuid
+example: 7d6f5f2c-0a49-4e10-8ef7-7c3d2b1f4a10

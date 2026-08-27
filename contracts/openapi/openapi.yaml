@@ -1,0 +1,114 @@
+openapi: 3.0.3
+info:
+  title: MeterHub API
+  description: Shared initial contract structure for MeterHub HTTP APIs.
+  version: 1.0.0
+servers:
+  - url: http://localhost:8080
+    description: Local API Gateway
+
+tags:
+  - name: Health
+    description: Service health endpoints
+
+paths:
+  /api/v1/health:
+    get:
+      tags: [Health]
+      operationId: getHealth
+      summary: Check API availability
+      responses:
+        '200':
+          description: API is available
+          headers:
+            X-Correlation-ID:
+              $ref: './components/headers/correlation-id.yaml'
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [status]
+                properties:
+                  status:
+                    type: string
+                    example: UP
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+components:
+  parameters:
+    CorrelationId:
+      name: X-Correlation-ID
+      in: header
+      required: false
+      description: Identifier used to trace a request across MeterHub services.
+      schema:
+        type: string
+        format: uuid
+      example: 7d6f5f2c-0a49-4e10-8ef7-7c3d2b1f4a10
+
+  schemas:
+    UUID:
+      type: string
+      format: uuid
+      description: UUID v4 in canonical lowercase form.
+      example: 550e8400-e29b-41d4-a716-446655440000
+
+    Timestamp:
+      type: string
+      format: date-time
+      description: RFC 3339 timestamp in UTC. Must use the Z suffix.
+      example: 2026-08-27T08:30:00Z
+
+    Problem:
+      $ref: './components/schemas/problem.yaml'
+
+  responses:
+    BadRequest:
+      description: Invalid request or validation error.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+
+    Unauthorized:
+      description: Authentication is required or credentials are invalid.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+
+    Forbidden:
+      description: The authenticated caller is not allowed to perform the operation.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+
+    NotFound:
+      description: Requested resource was not found.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+
+    Conflict:
+      description: Request conflicts with current resource state.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+
+    TooManyRequests:
+      description: Rate limit exceeded.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+
+    InternalServerError:
+      description: Unexpected server-side error.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
