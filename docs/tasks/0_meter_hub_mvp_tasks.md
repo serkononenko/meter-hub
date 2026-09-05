@@ -59,10 +59,10 @@
 - [x] Add Flyway or Liquibase migrations.
 
 ### 2.2 User model
-- [ ] Create User entity.
-- [ ] Add unique email/username constraint.
-- [ ] Add account status.
-- [ ] Add created/updated timestamps.
+- [x] Create User entity.
+- [x] Add unique email/username constraint.
+- [x] Add account status.
+- [x] Add created/updated timestamps.
 
 ### 2.3 Registration
 - [ ] Implement `POST /api/v1/auth/register`.

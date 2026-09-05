@@ -18,7 +18,8 @@ services:
       start_period: 10s
 
   identity-service:
-    image: meterhub/identity-service:latest
+    build:
+      context: ./services/identity-service
     environment:
       DB_HOST: postgres
       DB_NAME: ${IDENTITY_DB}
