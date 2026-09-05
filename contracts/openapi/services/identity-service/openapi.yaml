@@ -1,0 +1,131 @@
+openapi: 3.0.3
+info:
+  title: MeterHub Identity Service API
+  description: Identity Service HTTP API. Covers user registration, authentication, and token management.
+  version: 1.0.0
+
+tags:
+  - name: Auth
+    description: Registration and authentication endpoints
+
+paths:
+  /api/v1/auth/register:
+    post:
+      tags: [Auth]
+      operationId: registerUser
+      summary: Register a new user account
+      description: Creates a user account with a hashed password. The account is active immediately.
+      parameters:
+        - $ref: '../../openapi.yaml#/components/parameters/CorrelationId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+            example:
+              email: jane.doe@example.com
+              username: jane.doe
+              password: correct-horse-battery
+      responses:
+        '201':
+          description: User account created.
+          headers:
+            X-Correlation-ID:
+              $ref: '../../components/headers/correlation-id.yaml'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+              example:
+                id: 550e8400-e29b-41d4-a716-446655440000
+                email: jane.doe@example.com
+                username: jane.doe
+                status: ACTIVE
+                createdAt: '2026-08-27T08:30:00Z'
+        '400':
+          $ref: '../../openapi.yaml#/components/responses/BadRequest'
+        '409':
+          description: An account with the same email or username already exists.
+          headers:
+            X-Correlation-ID:
+              $ref: '../../components/headers/correlation-id.yaml'
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../../openapi.yaml#/components/schemas/Problem'
+              examples:
+                emailAlreadyExists:
+                  summary: Email is already registered
+                  value:
+                    type: https://api.meterhub.local/problems/email-already-exists
+                    title: Account already exists
+                    status: 409
+                    code: EMAIL_ALREADY_EXISTS
+                    detail: An account with this email already exists.
+                    correlationId: 7d6f5f2c-0a49-4e10-8ef7-7c3d2b1f4a10
+                usernameAlreadyExists:
+                  summary: Username is already taken
+                  value:
+                    type: https://api.meterhub.local/problems/username-already-exists
+                    title: Account already exists
+                    status: 409
+                    code: USERNAME_ALREADY_EXISTS
+                    detail: An account with this username already exists.
+                    correlationId: 7d6f5f2c-0a49-4e10-8ef7-7c3d2b1f4a10
+        '500':
+          $ref: '../../openapi.yaml#/components/responses/InternalServerError'
+
+components:
+  schemas:
+    RegisterRequest:
+      type: object
+      additionalProperties: false
+      required: [email, username, password]
+      properties:
+        email:
+          type: string
+          format: email
+          maxLength: 320
+          description: Email address. Uniqueness is case-insensitive.
+        username:
+          type: string
+          minLength: 3
+          maxLength: 100
+          pattern: '^[A-Za-z0-9._-]+$'
+          description: Username. Letters, digits, dots, underscores, and hyphens.
+        password:
+          type: string
+          writeOnly: true
+          minLength: 8
+          maxLength: 128
+          description: Plain-text password. Hashed before storage and never returned.
+
+    User:
+      type: object
+      additionalProperties: false
+      required: [id, email, username, status, createdAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: UUID v4 in canonical lowercase form.
+          example: 550e8400-e29b-41d4-a716-446655440000
+        email:
+          type: string
+          format: email
+        username:
+          type: string
+        status:
+          type: string
+          enum: [ACTIVE, DISABLED, LOCKED]
+        createdAt:
+          type: string
+          format: date-time
+          description: RFC 3339 timestamp in UTC. Must use the Z suffix.
+          example: '2026-08-27T08:30:00Z'
+        updatedAt:
+          type: string
+          format: date-time
+          description: RFC 3339 timestamp in UTC. Must use the Z suffix.
+          example: '2026-08-27T08:30:00Z'

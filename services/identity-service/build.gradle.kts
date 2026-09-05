@@ -3,6 +3,7 @@ plugins {
 	id("org.springframework.boot") version "4.1.1"
 	id("io.spring.dependency-management") version "1.1.7"
 	id("org.jooq.jooq-codegen-gradle") version "3.21.7"
+	id("org.openapi.generator") version "7.14.0"
 }
 
 group = "com.meterhub"
@@ -24,10 +25,13 @@ dependencies {
 	implementation("org.springframework.boot:spring-boot-starter")
     implementation("org.springframework.boot:spring-boot-starter-web")
     implementation("org.springframework.boot:spring-boot-starter-security")
+    implementation("org.bouncycastle:bcprov-jdk18on:1.84")
+    implementation("org.springframework.boot:spring-boot-starter-validation")
     implementation("org.springframework.boot:spring-boot-starter-jooq")
     implementation("org.springframework.boot:spring-boot-flyway")
     implementation("org.flywaydb:flyway-core")
     implementation("org.flywaydb:flyway-database-postgresql")
+    implementation("io.swagger.core.v3:swagger-annotations-jakarta:2.2.55")
 
     runtimeOnly("org.postgresql:postgresql")
 
@@ -49,8 +53,42 @@ sourceSets.main {
         srcDir(jooqCodegenTask.map { task -> task.outputDirectory.first().get() })
     }
 }
+
+// OpenAPI codegen: contract-first inbound HTTP surface.
+// The generated API interface is the HTTP port signature only — the controller
+// adapter implements it. Spec lives in the shared contracts directory and
+// reuses the shared problem/correlation-id components.
+val openApiSpec = layout.projectDirectory.file("../../contracts/openapi/services/identity-service/openapi.yaml")
+val openApiGenerateTask = tasks.openApiGenerate
+
+openApiGenerateTask {
+    generatorName = "spring"
+    inputSpec = openApiSpec.asFile.absolutePath
+    outputDir = layout.buildDirectory.dir("generated/openapi").get().asFile.absolutePath
+    apiPackage = "com.meterhub.identity.adapters.inbound.web.api"
+    modelPackage = "com.meterhub.identity.adapters.inbound.web.dto"
+    modelNameSuffix = "Dto"
+    configOptions = mapOf(
+        "useSpringBoot3" to "true",
+        "interfaceOnly" to "true",
+        "skipDefaultInterface" to "true",
+        "requestMappingMode" to "api_interface",
+        "openApiNullable" to "false",
+        "enumPropertyNaming" to "original",
+        "serializableModel" to "true",
+        "hideGenerationTimestamp" to "true",
+        "useTags" to "true",
+    )
+}
+
+sourceSets.main {
+    java {
+        srcDir(openApiGenerateTask.map { task -> task.outputDir.get() + "/src/main/java" })
+    }
+}
+
 tasks.compileJava {
-    dependsOn(jooqCodegenTask)
+    dependsOn(jooqCodegenTask, openApiGenerateTask)
 }
 
 jooq {
@@ -69,10 +107,12 @@ jooq {
 						key = "sort"
 						value = "flyway"
 					}
-					// Unquoted identifiers keep their lowercase spelling (PostgreSQL convention)
+					// Unquoted identifiers keep their lowercase spelling (PostgreSQL convention).
+					// Must be exactly "AS_IS": the DDLDatabase visitor only skips name
+					// transformation when the property matches this constant verbatim.
 					property {
 						key = "defaultNameCase"
-						value = "as_is"
+						value = "AS_IS"
 					}
 					// Skip statements H2 can't handle (e.g. expression indexes); Flyway still applies them.
 					// Markers are matched against the CONTENT of a /* ... */ comment, so the SQL writes /*[ignore]*/

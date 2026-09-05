@@ -65,11 +65,11 @@
 - [x] Add created/updated timestamps.
 
 ### 2.3 Registration
-- [ ] Implement `POST /api/v1/auth/register`.
-- [ ] Validate input.
-- [ ] Hash password.
-- [ ] Persist user.
-- [ ] Handle duplicate identity errors.
+- [x] Implement `POST /api/v1/auth/register`.
+- [x] Validate input.
+- [x] Hash password.
+- [x] Persist user.
+- [x] Handle duplicate identity errors.
 
 ### 2.4 Login
 - [ ] Implement `POST /api/v1/auth/login`.
