@@ -7,12 +7,17 @@ This directory contains the initial shared OpenAPI contract structure for MeterH
 ```text
 openapi/
 ├── openapi.yaml
-└── components/
-    ├── headers/
-    │   └── correlation-id.yaml
-    └── schemas/
-        └── problem.yaml
+├── components/
+│   ├── headers/
+│   │   └── correlation-id.yaml
+│   └── schemas/
+│       └── problem.yaml
+└── services/
+    └── identity-service/
+        └── openapi.yaml
 ```
+
+Each service keeps its own contract under `services/<service-name>/openapi.yaml`. Service contracts may reference the shared components in `components/` and the root document, but should define their domain-specific schemas locally.
 
 ## Rules
 

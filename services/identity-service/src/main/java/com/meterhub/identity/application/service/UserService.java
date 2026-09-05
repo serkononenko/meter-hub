@@ -1,12 +1,14 @@
 package com.meterhub.identity.application.service;
 
 import com.meterhub.identity.application.command.CreateUserCommand;
+import com.meterhub.identity.domain.exception.DuplicateIdentityException;
 import com.meterhub.identity.domain.model.AccountStatus;
 import com.meterhub.identity.domain.model.User;
 import com.meterhub.identity.ports.inbound.CreateUserUseCase;
 import com.meterhub.identity.ports.outbound.UserRepository;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.OffsetDateTime;
 import java.util.UUID;
@@ -22,14 +24,24 @@ public class UserService implements CreateUserUseCase {
     }
 
     @Override
+    @Transactional
     public User create(CreateUserCommand command) {
+        userRepository.findByEmail(command.email()).ifPresent(_ -> {
+            throw new DuplicateIdentityException("email");
+        });
+        userRepository.findByUsername(command.username()).ifPresent(_ -> {
+            throw new DuplicateIdentityException("username");
+        });
+
+        OffsetDateTime now = OffsetDateTime.now();
         User user = User.builder()
             .id(UUID.randomUUID())
             .email(command.email())
             .username(command.username())
             .passwordHash(passwordEncoder.encode(command.password()))
             .status(AccountStatus.ACTIVE)
-            .createdAt(OffsetDateTime.now())
+            .createdAt(now)
+            .updatedAt(now)
             .build();
 
         return userRepository.save(user);
