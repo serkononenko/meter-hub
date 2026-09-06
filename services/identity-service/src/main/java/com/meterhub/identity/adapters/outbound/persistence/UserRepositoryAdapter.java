@@ -44,7 +44,7 @@ public class UserRepositoryAdapter implements UserRepository {
     @Override
     public Optional<User> findByUsername(String username) {
         return dsl.selectFrom(Tables.USERS)
-            .where(Tables.USERS.USERNAME.eq(username))
+            .where(Tables.USERS.USERNAME.equalIgnoreCase(username))
             .fetchOptional(this::convert);
     }
 

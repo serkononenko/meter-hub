@@ -95,6 +95,17 @@ class RegistrationIntegrationTest {
     }
 
     @Test
+    void duplicateUsernameIsCaseInsensitiveConflict() {
+        register("first@example.com", "taken.name");
+        EntityExchangeResult<byte[]> result = register("second@example.com", "TAKEN.NAME");
+
+        assertThat(result.getStatus().value()).isEqualTo(409);
+        assertThat(bodyOf(result))
+            .contains("\"code\":\"USERNAME_ALREADY_EXISTS\"")
+            .contains("\"correlationId\"");
+    }
+
+    @Test
     void validationErrorsReturn400WithFieldDetails() {
         EntityExchangeResult<byte[]> result = register("not-an-email", "x", "short");
 
