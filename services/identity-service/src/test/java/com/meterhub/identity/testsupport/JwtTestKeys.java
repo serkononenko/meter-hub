@@ -6,6 +6,7 @@ import java.nio.charset.StandardCharsets;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.NoSuchAlgorithmException;
+import java.security.interfaces.RSAPrivateKey;
 import java.security.interfaces.RSAPublicKey;
 import java.util.Base64;
 import java.util.Map;
@@ -35,6 +36,10 @@ public final class JwtTestKeys {
 
     public static RSAPublicKey publicKey() {
         return (RSAPublicKey) KEY_PAIR.getPublic();
+    }
+
+    public static RSAPrivateKey privateKey() {
+        return (RSAPrivateKey) KEY_PAIR.getPrivate();
     }
 
     private static KeyPair generate() {

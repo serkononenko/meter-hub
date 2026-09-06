@@ -88,10 +88,10 @@
 - [x] Return stable user identity information.
 
 ### 2.7 Security tests
-- [ ] Test password hashing.
-- [ ] Test invalid login.
-- [ ] Test expired/invalid token.
-- [ ] Test refresh token revocation.
+- [x] Test password hashing.
+- [x] Test invalid login.
+- [x] Test expired/invalid token.
+- [x] Test refresh token revocation.
 
 ---
 
