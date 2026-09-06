@@ -108,6 +108,7 @@ paths:
                 $ref: '#/components/schemas/LoginResponse'
               example:
                 accessToken: eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI1NTBlODQwMC1lMjliLTQxZDQtYTcxNi00NDY2NTU0NDAwMDAifQ.signature
+                refreshToken: q8Xf2kLm9pR7vB3nZ6cH1wD4yT0sJ5uE8gA2iM7oQeN
                 tokenType: Bearer
                 expiresIn: 900
                 user:
@@ -137,6 +138,101 @@ paths:
                     code: INVALID_CREDENTIALS
                     detail: Email or password is incorrect.
                     correlationId: 7d6f5f2c-0a49-4e10-8ef7-7c3d2b1f4a10
+        '500':
+          $ref: '../../openapi.yaml#/components/responses/InternalServerError'
+
+  /api/v1/auth/refresh:
+    post:
+      tags: [Auth]
+      operationId: refreshToken
+      summary: Exchange a refresh token for a new token pair
+      description: >-
+        Validates the refresh token and issues a fresh access/refresh pair.
+        Refresh tokens rotate: the presented token is consumed and can never be
+        reused. The response is identical for unknown, expired, and revoked
+        tokens so clients cannot infer token state.
+      parameters:
+        - $ref: '../../openapi.yaml#/components/parameters/CorrelationId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefreshRequest'
+            example:
+              refreshToken: q8Xf2kLm9pR7vB3nZ6cH1wD4yT0sJ5uE8gA2iM7oQeN
+      responses:
+        '200':
+          description: Token pair refreshed. The old refresh token is now invalid.
+          headers:
+            X-Correlation-ID:
+              $ref: '../../components/headers/correlation-id.yaml'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+              example:
+                accessToken: eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI1NTBlODQwMC1lMjliLTQxZDQtYTcxNi00NDY2NTU0NDAwMDAifQ.signature
+                refreshToken: r4Yg3mLn0qS8wC5tD7xE2vF6zH9kJ1pU3bA6iN8oQdM
+                tokenType: Bearer
+                expiresIn: 900
+                user:
+                  id: 550e8400-e29b-41d4-a716-446655440000
+                  email: jane.doe@example.com
+                  username: jane.doe
+                  status: ACTIVE
+                  createdAt: '2026-08-27T08:30:00Z'
+        '400':
+          $ref: '../../openapi.yaml#/components/responses/BadRequest'
+        '401':
+          description: The refresh token is unknown, expired, or revoked.
+          headers:
+            X-Correlation-ID:
+              $ref: '../../components/headers/correlation-id.yaml'
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../../openapi.yaml#/components/schemas/Problem'
+              examples:
+                invalidRefreshToken:
+                  summary: The refresh token is unknown, expired, or revoked
+                  value:
+                    type: https://api.meterhub.local/problems/invalid-refresh-token
+                    title: Refresh failed
+                    status: 401
+                    code: INVALID_REFRESH_TOKEN
+                    detail: The refresh token is invalid, expired, or revoked.
+                    correlationId: 7d6f5f2c-0a49-4e10-8ef7-7c3d2b1f4a10
+        '500':
+          $ref: '../../openapi.yaml#/components/responses/InternalServerError'
+
+  /api/v1/auth/logout:
+    post:
+      tags: [Auth]
+      operationId: logoutUser
+      summary: Revoke a refresh token
+      description: >-
+        Revokes the supplied refresh token so it can no longer be used to
+        refresh. Idempotent — revoking an unknown, expired, or already revoked
+        token succeeds the same way.
+      parameters:
+        - $ref: '../../openapi.yaml#/components/parameters/CorrelationId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LogoutRequest'
+            example:
+              refreshToken: q8Xf2kLm9pR7vB3nZ6cH1wD4yT0sJ5uE8gA2iM7oQeN
+      responses:
+        '204':
+          description: Refresh token revoked (or already invalid). Nothing is returned.
+          headers:
+            X-Correlation-ID:
+              $ref: '../../components/headers/correlation-id.yaml'
+        '400':
+          $ref: '../../openapi.yaml#/components/responses/BadRequest'
         '500':
           $ref: '../../openapi.yaml#/components/responses/InternalServerError'
 
@@ -181,14 +277,41 @@ components:
           maxLength: 128
           description: Plain-text password. Never returned or logged.
 
+    RefreshRequest:
+      type: object
+      additionalProperties: false
+      required: [refreshToken]
+      properties:
+        refreshToken:
+          type: string
+          minLength: 1
+          maxLength: 256
+          description: Opaque refresh token previously issued by login or refresh.
+
+    LogoutRequest:
+      type: object
+      additionalProperties: false
+      required: [refreshToken]
+      properties:
+        refreshToken:
+          type: string
+          minLength: 1
+          maxLength: 256
+          description: Opaque refresh token to revoke. Invalid tokens are ignored.
+
     LoginResponse:
       type: object
       additionalProperties: false
-      required: [accessToken, tokenType, expiresIn, user]
+      required: [accessToken, refreshToken, tokenType, expiresIn, user]
       properties:
         accessToken:
           type: string
           description: Signed JWT access token. Finite lifetime; keep it client-side only.
+        refreshToken:
+          type: string
+          description: >
+            Opaque refresh token. Single use — presenting it to /auth/refresh
+            returns a new pair and invalidates this token. Store it securely.
         tokenType:
           type: string
           enum: [Bearer]
