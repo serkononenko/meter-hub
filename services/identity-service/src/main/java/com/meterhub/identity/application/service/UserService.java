@@ -1,9 +1,11 @@
 package com.meterhub.identity.application.service;
 
 import com.meterhub.identity.domain.exception.DuplicateIdentityException;
+import com.meterhub.identity.domain.exception.InvalidAccessTokenException;
 import com.meterhub.identity.domain.model.AccountStatus;
 import com.meterhub.identity.domain.model.User;
 import com.meterhub.identity.ports.inbound.CreateUserUseCase;
+import com.meterhub.identity.ports.inbound.GetUserUseCase;
 import com.meterhub.identity.ports.model.CreateUserCommand;
 import com.meterhub.identity.ports.outbound.UserRepository;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -14,7 +16,7 @@ import java.time.OffsetDateTime;
 import java.util.UUID;
 
 @Service
-public class UserService implements CreateUserUseCase {
+public class UserService implements CreateUserUseCase, GetUserUseCase {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
 
@@ -45,5 +47,12 @@ public class UserService implements CreateUserUseCase {
             .build();
 
         return userRepository.save(user);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public User getUser(UUID userId) {
+        return userRepository.findById(userId)
+            .orElseThrow(InvalidAccessTokenException::new);
     }
 }

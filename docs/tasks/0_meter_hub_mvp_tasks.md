@@ -84,8 +84,8 @@
 - [x] Implement `POST /api/v1/auth/logout`.
 
 ### 2.6 Current user
-- [ ] Implement `GET /api/v1/users/me`.
-- [ ] Return stable user identity information.
+- [x] Implement `GET /api/v1/users/me`.
+- [x] Return stable user identity information.
 
 ### 2.7 Security tests
 - [ ] Test password hashing.
