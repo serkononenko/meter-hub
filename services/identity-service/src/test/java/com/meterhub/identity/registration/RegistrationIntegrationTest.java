@@ -66,8 +66,12 @@ class RegistrationIntegrationTest {
             .where(com.meterhub.identity.jooq.tables.Users.USERS.USERNAME.eq("jane.doe"))
             .fetchOne();
         assertThat(record).isNotNull();
-        assertThat(record.getPasswordHash()).isNotEqualTo("correct-horse-battery");
+        // Argon2id digest in PHC string format, never the plain text
+        assertThat(record.getPasswordHash())
+            .isNotEqualTo("correct-horse-battery")
+            .contains("$argon2id$");
         assertThat(passwordEncoder.matches("correct-horse-battery", record.getPasswordHash())).isTrue();
+        assertThat(passwordEncoder.matches("wrong-password", record.getPasswordHash())).isFalse();
     }
 
     @Test
