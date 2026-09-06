@@ -1,9 +1,9 @@
 package com.meterhub.identity;
 
+import com.meterhub.identity.testsupport.IdentityIntegrationTest;
 import org.junit.jupiter.api.Test;
-import org.springframework.boot.test.context.SpringBootTest;
 
-@SpringBootTest
+@IdentityIntegrationTest
 class IdentityApplicationTests {
 
 	@Test

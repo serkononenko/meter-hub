@@ -20,11 +20,16 @@ services:
   identity-service:
     build:
       context: ./services/identity-service
+      additional_contexts:
+        - contracts=./contracts
     environment:
       DB_HOST: postgres
       DB_NAME: ${IDENTITY_DB}
       DB_USERNAME: ${IDENTITY_DB_USER}
       DB_PASSWORD: ${IDENTITY_DB_PASSWORD}
+    secrets:
+      - identity.jwt.private-key
+      - identity.jwt.public-key
     expose:
       - "8081"
     networks:
@@ -32,6 +37,12 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+
+secrets:
+  identity.jwt.private-key:
+    file: ./services/identity-service/certs/identity.jwt.private-key
+  identity.jwt.public-key:
+    file: ./services/identity-service/certs/identity.jwt.public-key
 
 volumes:
   postgres_data:

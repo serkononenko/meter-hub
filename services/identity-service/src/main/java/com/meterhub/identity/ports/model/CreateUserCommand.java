@@ -1,4 +1,4 @@
-package com.meterhub.identity.application.command;
+package com.meterhub.identity.ports.model;
 
 public record CreateUserCommand(
     String email,

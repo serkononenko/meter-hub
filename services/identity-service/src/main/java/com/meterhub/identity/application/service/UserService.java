@@ -1,10 +1,10 @@
 package com.meterhub.identity.application.service;
 
-import com.meterhub.identity.application.command.CreateUserCommand;
 import com.meterhub.identity.domain.exception.DuplicateIdentityException;
 import com.meterhub.identity.domain.model.AccountStatus;
 import com.meterhub.identity.domain.model.User;
 import com.meterhub.identity.ports.inbound.CreateUserUseCase;
+import com.meterhub.identity.ports.model.CreateUserCommand;
 import com.meterhub.identity.ports.outbound.UserRepository;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;

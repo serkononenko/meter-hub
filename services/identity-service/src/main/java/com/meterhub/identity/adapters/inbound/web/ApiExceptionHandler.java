@@ -3,6 +3,7 @@ package com.meterhub.identity.adapters.inbound.web;
 import com.meterhub.identity.adapters.inbound.web.dto.ProblemDto;
 import com.meterhub.identity.adapters.inbound.web.dto.ProblemErrorsInnerDto;
 import com.meterhub.identity.domain.exception.DuplicateIdentityException;
+import com.meterhub.identity.domain.exception.InvalidCredentialsException;
 import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -36,6 +37,19 @@ public class ApiExceptionHandler {
             : "An account with this username already exists.";
         log.info("Registration conflict: {}", code);
         return problem(HttpStatus.CONFLICT, code, "Account already exists", detail, request, List.of());
+    }
+
+    @ExceptionHandler(InvalidCredentialsException.class)
+    public ResponseEntity<ProblemDto> handleInvalidCredentials(InvalidCredentialsException e, HttpServletRequest request) {
+        log.info("Login rejected for request");
+        return problem(
+            HttpStatus.UNAUTHORIZED,
+            "INVALID_CREDENTIALS",
+            "Authentication failed",
+            "Email or password is incorrect.",
+            request,
+            List.of()
+        );
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)

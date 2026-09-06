@@ -72,10 +72,10 @@
 - [x] Handle duplicate identity errors.
 
 ### 2.4 Login
-- [ ] Implement `POST /api/v1/auth/login`.
-- [ ] Validate credentials.
-- [ ] Generate access token.
-- [ ] Return token metadata.
+- [x] Implement `POST /api/v1/auth/login`.
+- [x] Validate credentials.
+- [x] Generate access token.
+- [x] Return token metadata.
 
 ### 2.5 Refresh tokens
 - [ ] Create refresh token model.

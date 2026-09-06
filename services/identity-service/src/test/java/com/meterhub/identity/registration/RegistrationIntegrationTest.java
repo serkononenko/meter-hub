@@ -2,12 +2,12 @@ package com.meterhub.identity.registration;
 
 import com.meterhub.identity.adapters.inbound.web.CorrelationIdFilter;
 import com.meterhub.identity.jooq.tables.records.UsersRecord;
+import com.meterhub.identity.testsupport.IdentityIntegrationTest;
 import org.jooq.DSLContext;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.http.MediaType;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -23,7 +23,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * Integration tests for POST /api/v1/auth/register (task 2.3).
  * Runs against the local PostgreSQL instance started by Docker Compose.
  */
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@IdentityIntegrationTest
 class RegistrationIntegrationTest {
 
     @LocalServerPort
