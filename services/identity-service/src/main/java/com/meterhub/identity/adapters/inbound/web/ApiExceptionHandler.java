@@ -3,6 +3,7 @@ package com.meterhub.identity.adapters.inbound.web;
 import com.meterhub.identity.adapters.inbound.web.dto.ProblemDto;
 import com.meterhub.identity.adapters.inbound.web.dto.ProblemErrorsInnerDto;
 import com.meterhub.identity.domain.exception.DuplicateIdentityException;
+import com.meterhub.identity.domain.exception.InvalidAccessTokenException;
 import com.meterhub.identity.domain.exception.InvalidCredentialsException;
 import com.meterhub.identity.domain.exception.InvalidRefreshTokenException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -61,6 +62,19 @@ public class ApiExceptionHandler {
             "INVALID_REFRESH_TOKEN",
             "Refresh failed",
             "The refresh token is invalid, expired, or revoked.",
+            request,
+            List.of()
+        );
+    }
+
+    @ExceptionHandler(InvalidAccessTokenException.class)
+    public ResponseEntity<ProblemDto> handleInvalidAccessToken(InvalidAccessTokenException e, HttpServletRequest request) {
+        log.info("Request rejected with INVALID_TOKEN");
+        return problem(
+            HttpStatus.UNAUTHORIZED,
+            "INVALID_TOKEN",
+            "Invalid access token",
+            "The access token is invalid or expired.",
             request,
             List.of()
         );

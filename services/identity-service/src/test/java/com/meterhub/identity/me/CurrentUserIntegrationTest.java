@@ -122,6 +122,54 @@ class CurrentUserIntegrationTest {
             .isEqualTo(withoutCorrelationId(bodyOf(me(wronglySignedToken()))));
     }
 
+    @Test
+    void wrongIssuerReturnsInvalidTokenProblem() {
+        String wrongIssuer = signedToken(
+            "some-other-service", List.of("meterhub-api"), Instant.now(), Instant.now().plusSeconds(300));
+
+        EntityExchangeResult<byte[]> result = me(wrongIssuer);
+
+        assertThat(result.getStatus().value()).isEqualTo(401);
+        assertThat(bodyOf(result))
+            .contains("\"code\":\"INVALID_TOKEN\"")
+            .contains("\"title\":\"Invalid access token\"");
+        assertThat(withoutCorrelationId(bodyOf(result)))
+            .isEqualTo(withoutCorrelationId(bodyOf(me(wronglySignedToken()))));
+    }
+
+    @Test
+    void wrongAudienceReturnsInvalidTokenProblem() {
+        String wrongAudience = signedToken(
+            "identity-service", List.of("some-other-audience"), Instant.now(), Instant.now().plusSeconds(300));
+
+        EntityExchangeResult<byte[]> result = me(wrongAudience);
+
+        assertThat(result.getStatus().value()).isEqualTo(401);
+        assertThat(bodyOf(result)).contains("\"code\":\"INVALID_TOKEN\"");
+        assertThat(withoutCorrelationId(bodyOf(result)))
+            .isEqualTo(withoutCorrelationId(bodyOf(me(wronglySignedToken()))));
+    }
+
+    @Test
+    void deletedUserReturnsInvalidTokenProblem() {
+        register("jane.doe@example.com", "jane.doe", "correct-horse-battery");
+        String loginBody = bodyOf(login("jane.doe@example.com", "correct-horse-battery"));
+        String accessToken = JsonPath.read(loginBody, "$.accessToken");
+        String userId = JsonPath.read(loginBody, "$.user.id");
+
+        // The token is still perfectly valid — its subject is simply gone
+        dsl.deleteFrom(Users.USERS).where(Users.USERS.ID.eq(UUID.fromString(userId))).execute();
+
+        EntityExchangeResult<byte[]> result = me(accessToken);
+
+        assertThat(result.getStatus().value()).isEqualTo(401);
+        assertThat(bodyOf(result))
+            .contains("\"code\":\"INVALID_TOKEN\"")
+            .doesNotContain("\"code\":\"INTERNAL_ERROR\"");
+        assertThat(withoutCorrelationId(bodyOf(result)))
+            .isEqualTo(withoutCorrelationId(bodyOf(me(wronglySignedToken()))));
+    }
+
     /**
      * Signs a JWT with the very keys the service accepts, but with an
      * expiration in the past — proving the resource server validates exp,
@@ -129,12 +177,25 @@ class CurrentUserIntegrationTest {
      */
     private String expiredAccessToken() {
         Instant now = Instant.now();
+        return signedToken(
+            "identity-service",
+            List.of("meterhub-api"),
+            now.minusSeconds(3600),
+            now.minusSeconds(1800)
+        );
+    }
+
+    /**
+     * Signs a token with our key pair and arbitrary claims, so tests can
+     * violate one claim at a time (issuer, audience, expiry, subject).
+     */
+    private String signedToken(String issuer, List<String> audience, Instant issuedAt, Instant expiresAt) {
         JwtClaimsSet claims = JwtClaimsSet.builder()
-            .issuer("identity-service")
+            .issuer(issuer)
             .subject(UUID.randomUUID().toString())
-            .audience(List.of("meterhub-api"))
-            .issuedAt(now.minusSeconds(3600))
-            .expiresAt(now.minusSeconds(1800))
+            .audience(audience)
+            .issuedAt(issuedAt)
+            .expiresAt(expiresAt)
             .build();
         return new NimbusJwtEncoder(new ImmutableJWKSet<>(new JWKSet(testRsaKey())))
             .encode(JwtEncoderParameters.from(JwsHeader.with(SignatureAlgorithm.RS256).build(), claims))
