@@ -25,10 +25,12 @@ dependencies {
 	implementation("org.springframework.boot:spring-boot-starter")
     implementation("org.springframework.boot:spring-boot-starter-web")
     implementation("org.springframework.boot:spring-boot-starter-security")
-    implementation("org.bouncycastle:bcprov-jdk18on:1.84")
+    implementation("org.springframework.security:spring-security-oauth2-jose")
     implementation("org.springframework.boot:spring-boot-starter-validation")
     implementation("org.springframework.boot:spring-boot-starter-jooq")
     implementation("org.springframework.boot:spring-boot-flyway")
+    implementation("org.bouncycastle:bcprov-jdk18on:1.84")
+    implementation("org.bouncycastle:bcpkix-jdk18on:1.84")
     implementation("org.flywaydb:flyway-core")
     implementation("org.flywaydb:flyway-database-postgresql")
     implementation("io.swagger.core.v3:swagger-annotations-jakarta:2.2.55")
@@ -54,16 +56,13 @@ sourceSets.main {
     }
 }
 
-// OpenAPI codegen: contract-first inbound HTTP surface.
-// The generated API interface is the HTTP port signature only — the controller
-// adapter implements it. Spec lives in the shared contracts directory and
-// reuses the shared problem/correlation-id components.
-val openApiSpec = layout.projectDirectory.file("../../contracts/openapi/services/identity-service/openapi.yaml")
+val openApiSpec = providers.environmentVariable("OPENAPI_SPEC")
+    .orElse(layout.projectDirectory.file("../../contracts/openapi/services/identity-service/openapi.yaml").asFile.absolutePath)
 val openApiGenerateTask = tasks.openApiGenerate
 
 openApiGenerateTask {
     generatorName = "spring"
-    inputSpec = openApiSpec.asFile.absolutePath
+    inputSpec = openApiSpec.get()
     outputDir = layout.buildDirectory.dir("generated/openapi").get().asFile.absolutePath
     apiPackage = "com.meterhub.identity.adapters.inbound.web.api"
     modelPackage = "com.meterhub.identity.adapters.inbound.web.dto"

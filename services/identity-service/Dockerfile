@@ -9,7 +9,10 @@ COPY gradle gradle
 RUN ./gradlew --no-daemon dependencies --quiet || true
 
 COPY src src
-RUN ./gradlew --no-daemon bootJar -x test && cp build/libs/*.jar /app.jar
+
+COPY --from=contracts . /contracts
+
+RUN OPENAPI_SPEC=/contracts/openapi/services/identity-service/openapi.yaml ./gradlew --no-daemon bootJar -x test && cp build/libs/*.jar /app.jar
 
 FROM eclipse-temurin:25-jre
 WORKDIR /app
