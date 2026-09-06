@@ -4,6 +4,7 @@ import com.meterhub.identity.adapters.inbound.web.dto.ProblemDto;
 import com.meterhub.identity.adapters.inbound.web.dto.ProblemErrorsInnerDto;
 import com.meterhub.identity.domain.exception.DuplicateIdentityException;
 import com.meterhub.identity.domain.exception.InvalidCredentialsException;
+import com.meterhub.identity.domain.exception.InvalidRefreshTokenException;
 import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -47,6 +48,19 @@ public class ApiExceptionHandler {
             "INVALID_CREDENTIALS",
             "Authentication failed",
             "Email or password is incorrect.",
+            request,
+            List.of()
+        );
+    }
+
+    @ExceptionHandler(InvalidRefreshTokenException.class)
+    public ResponseEntity<ProblemDto> handleInvalidRefreshToken(InvalidRefreshTokenException e, HttpServletRequest request) {
+        log.info("Refresh rejected for request");
+        return problem(
+            HttpStatus.UNAUTHORIZED,
+            "INVALID_REFRESH_TOKEN",
+            "Refresh failed",
+            "The refresh token is invalid, expired, or revoked.",
             request,
             List.of()
         );

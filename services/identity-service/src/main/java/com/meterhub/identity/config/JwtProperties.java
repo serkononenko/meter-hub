@@ -18,6 +18,7 @@ public record JwtProperties(
     String issuer,
     String audience,
     Duration accessTokenTtl,
+    Duration refreshTokenTtl,
     String privateKey,
     String publicKey
 ) {
@@ -31,6 +32,9 @@ public record JwtProperties(
         }
         if (accessTokenTtl == null || accessTokenTtl.isZero() || accessTokenTtl.isNegative()) {
             throw new IllegalStateException("identity.jwt.access-token-ttl must be positive");
+        }
+        if (refreshTokenTtl == null || refreshTokenTtl.isZero() || refreshTokenTtl.isNegative()) {
+            throw new IllegalStateException("identity.jwt.refresh-token-ttl must be positive");
         }
     }
 }

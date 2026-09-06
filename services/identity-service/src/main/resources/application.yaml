@@ -24,3 +24,4 @@ identity:
     issuer: ${IDENTITY_JWT_ISSUER:identity-service}
     audience: ${IDENTITY_JWT_AUDIENCE:meterhub-api}
     access-token-ttl: ${IDENTITY_JWT_ACCESS_TOKEN_TTL:15m}
+    refresh-token-ttl: ${IDENTITY_JWT_REFRESH_TOKEN_TTL:30d}

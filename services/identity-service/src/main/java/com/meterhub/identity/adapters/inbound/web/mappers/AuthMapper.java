@@ -2,6 +2,8 @@ package com.meterhub.identity.adapters.inbound.web.mappers;
 
 import com.meterhub.identity.adapters.inbound.web.dto.LoginRequestDto;
 import com.meterhub.identity.adapters.inbound.web.dto.LoginResponseDto;
+import com.meterhub.identity.adapters.inbound.web.dto.LogoutRequestDto;
+import com.meterhub.identity.adapters.inbound.web.dto.RefreshRequestDto;
 import com.meterhub.identity.adapters.inbound.web.dto.RegisterRequestDto;
 import com.meterhub.identity.adapters.inbound.web.dto.UserDto;
 import com.meterhub.identity.domain.model.AccountStatus;
@@ -9,10 +11,11 @@ import com.meterhub.identity.domain.model.User;
 import com.meterhub.identity.ports.model.CreateUserCommand;
 import com.meterhub.identity.ports.model.LoginCommand;
 import com.meterhub.identity.ports.model.LoginResult;
+import com.meterhub.identity.ports.model.RefreshCommand;
 
-public final class UserMapper {
+public final class AuthMapper {
 
-    private UserMapper() {
+    private AuthMapper() {
     }
 
     public static CreateUserCommand toCommand(RegisterRequestDto request) {
@@ -21,6 +24,14 @@ public final class UserMapper {
 
     public static LoginCommand toCommand(LoginRequestDto request) {
         return new LoginCommand(request.getEmail(), request.getPassword());
+    }
+
+    public static RefreshCommand toCommand(RefreshRequestDto request) {
+        return new RefreshCommand(request.getRefreshToken());
+    }
+
+    public static RefreshCommand toCommand(LogoutRequestDto request) {
+        return new RefreshCommand(request.getRefreshToken());
     }
 
     public static UserDto toDto(User user) {
@@ -38,9 +49,10 @@ public final class UserMapper {
     public static LoginResponseDto toDto(LoginResult result) {
         return new LoginResponseDto(
             result.accessToken(),
+            result.refreshToken(),
             LoginResponseDto.TokenTypeEnum.Bearer,
             result.expiresIn(),
-            UserMapper.toDto(result.user())
+            AuthMapper.toDto(result.user())
         );
     }
 

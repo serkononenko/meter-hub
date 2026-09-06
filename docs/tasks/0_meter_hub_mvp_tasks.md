@@ -78,10 +78,10 @@
 - [x] Return token metadata.
 
 ### 2.5 Refresh tokens
-- [ ] Create refresh token model.
-- [ ] Implement refresh token rotation or revocation strategy.
-- [ ] Implement `POST /api/v1/auth/refresh`.
-- [ ] Implement `POST /api/v1/auth/logout`.
+- [x] Create refresh token model.
+- [x] Implement refresh token rotation or revocation strategy.
+- [x] Implement `POST /api/v1/auth/refresh`.
+- [x] Implement `POST /api/v1/auth/logout`.
 
 ### 2.6 Current user
 - [ ] Implement `GET /api/v1/users/me`.
