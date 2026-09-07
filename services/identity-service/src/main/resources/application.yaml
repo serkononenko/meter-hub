@@ -30,3 +30,10 @@ identity:
     audience: ${IDENTITY_JWT_AUDIENCE:meterhub-api}
     access-token-ttl: ${IDENTITY_JWT_ACCESS_TOKEN_TTL:15m}
     refresh-token-ttl: ${IDENTITY_JWT_REFRESH_TOKEN_TTL:30d}
+
+logging:
+  # Every log line carries the request's correlation ID from the MDC (set by
+  # CorrelationIdFilter), so a request can be followed from the gateway's
+  # logs into this service's logs (conventions §9)
+  pattern:
+    level: "%5p [%X{correlationId:-}]"

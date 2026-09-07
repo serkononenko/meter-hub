@@ -7,7 +7,10 @@ import org.jooq.DSLContext;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.system.CapturedOutput;
+import org.springframework.boot.test.system.OutputCaptureExtension;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.http.MediaType;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -142,6 +145,25 @@ class RegistrationIntegrationTest {
         assertThat(bodyOf(result)).contains("\"email\":\"echo@example.com\"");
         assertThat(result.getResponseHeaders().getFirst(CorrelationIdFilter.HEADER))
             .isEqualTo("123e4567-e89b-42d3-a456-426614174000");
+    }
+
+    @Test
+    @ExtendWith(OutputCaptureExtension.class)
+    void logLinesEmittedDuringTheRequestCarryTheCorrelationId(CapturedOutput output) {
+        String correlationId = "123e4567-e89b-42d3-a456-426614174001";
+
+        register("mdc@example.com", "mdc.user");
+        EntityExchangeResult<byte[]> conflict = client.post().uri("/api/v1/auth/register")
+            .contentType(MediaType.APPLICATION_JSON)
+            .header(CorrelationIdFilter.HEADER, correlationId)
+            .body(Map.of("email", "MDC@example.com", "username", "mdc.other", "password", "correct-horse-battery"))
+            .exchange()
+            .returnResult(byte[].class);
+
+        assertThat(conflict.getStatus().value()).isEqualTo(409);
+        // The conflict handler logs during the request; its line must carry
+        // the ID from the MDC so logs can be joined with the gateway's
+        assertThat(output.getAll()).contains("[" + correlationId + "]");
     }
 
     private EntityExchangeResult<byte[]> register(String email, String username) {
