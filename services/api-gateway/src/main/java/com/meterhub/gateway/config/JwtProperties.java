@@ -9,7 +9,7 @@ import java.time.Duration;
  * validates tokens, so no TTLs and no private key are needed here.
  *
  * <p>The public key arrives as a file via {@code spring.config.import} of a
- * {@code configtree} (local {@code ./certs/} directory in development, Docker
+ * {@code configtree} (the shared repo-root {@code certs/} directory in development, Docker
  * Compose secrets under {@code /run/secrets/} in containerized environments);
  * file names map to property names, so {@code identity.jwt.public-key}
  * contains the PEM text.

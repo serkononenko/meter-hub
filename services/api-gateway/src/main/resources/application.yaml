@@ -7,8 +7,12 @@ spring:
 
   config:
     import:
-      # Public key PEM arrives as a file: ./certs/ locally, /run/secrets/ in Docker
-      - "optional:configtree:./certs/"
+      # Public key PEM arrives as a file. Local dev: the per-service `certs`
+      # symlink -> the shared repo-root certs/ dir (create with:
+      # ln -sfn ../../certs certs; a relative ../-style path is not usable here,
+      # Spring's configtree silently drops files under ".." path elements).
+      # Docker: /run/secrets/ (the private key is only mounted into identity)
+      - "optional:configtree:certs/"
       - "optional:configtree:/run/secrets/"
 
   cloud:

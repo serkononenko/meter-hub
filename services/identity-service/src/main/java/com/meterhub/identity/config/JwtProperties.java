@@ -10,8 +10,8 @@ import java.time.Duration;
  * IDENTITY_JWT_AUDIENCE, IDENTITY_JWT_ACCESS_TOKEN_TTL. The PEM key material
  * is not an env var — it arrives as files named after these properties
  * (identity.jwt.private-key / identity.jwt.public-key) via the configtree
- * imports in application.yaml, from secret mounts in production or ./certs
- * locally (never committed to source control).
+ * imports in application.yaml, from secret mounts in production or the shared
+ * repo-root certs/ directory locally (never committed to source control).
  */
 @ConfigurationProperties(prefix = "identity.jwt")
 public record JwtProperties(
