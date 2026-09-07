@@ -43,6 +43,8 @@ services:
       context: ./services/api-gateway
     environment:
       IDENTITY_SERVICE_URL: http://identity-service:8081
+    secrets:
+      - identity.jwt.public-key
     ports:
       - "8080:8080"
     networks:
