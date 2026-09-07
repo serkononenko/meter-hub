@@ -1,3 +1,10 @@
+# JWT contract values shared by the token producer (identity-service) and the
+# token consumer (api-gateway) — they must stay in sync, so they are defined
+# once here. Override in .env to change.
+x-identity-jwt-env: &identity-jwt-env
+  IDENTITY_JWT_ISSUER: ${IDENTITY_JWT_ISSUER:-identity-service}
+  IDENTITY_JWT_AUDIENCE: ${IDENTITY_JWT_AUDIENCE:-meterhub-api}
+
 services:
   postgres:
     image: postgres:17
@@ -23,6 +30,7 @@ services:
       additional_contexts:
         - contracts=./contracts
     environment:
+      <<: *identity-jwt-env
       DB_HOST: postgres
       DB_NAME: ${IDENTITY_DB}
       DB_USERNAME: ${IDENTITY_DB_USER}
@@ -42,6 +50,7 @@ services:
     build:
       context: ./services/api-gateway
     environment:
+      <<: *identity-jwt-env
       IDENTITY_SERVICE_URL: http://identity-service:8081
     secrets:
       - identity.jwt.public-key
