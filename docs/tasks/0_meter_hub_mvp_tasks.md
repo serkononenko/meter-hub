@@ -98,9 +98,9 @@
 ## Epic 3 — API Gateway — Spring Cloud Gateway
 
 ### 3.1 Bootstrap gateway
-- [ ] Create Spring Cloud Gateway project.
-- [ ] Configure service routes.
-- [ ] Add Docker image.
+- [x] Create Spring Cloud Gateway project.
+- [x] Configure service routes.
+- [x] Add Docker image.
 
 ### 3.2 Routing
 - [ ] Route `/api/v1/auth/**` to Identity Service.

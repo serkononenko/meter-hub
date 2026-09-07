@@ -38,6 +38,19 @@ services:
       postgres:
         condition: service_healthy
 
+  api-gateway:
+    build:
+      context: ./services/api-gateway
+    environment:
+      IDENTITY_SERVICE_URL: http://identity-service:8081
+    ports:
+      - "8080:8080"
+    networks:
+      - meter-hub
+    depends_on:
+      identity-service:
+        condition: service_started
+
 secrets:
   identity.jwt.private-key:
     file: ./services/identity-service/certs/identity.jwt.private-key
