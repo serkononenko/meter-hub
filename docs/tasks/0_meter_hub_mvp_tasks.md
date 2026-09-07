@@ -103,11 +103,11 @@
 - [x] Add Docker image.
 
 ### 3.2 Routing
-- [ ] Route `/api/v1/auth/**` to Identity Service.
-- [ ] Route `/api/v1/users/**` to Identity Service.
-- [ ] Route `/api/v1/households/**` to Household Service.
-- [ ] Route `/api/v1/meters/**` to Meter Service.
-- [ ] Route `/api/v1/readings/**` to Reading Service.
+- [x] Route `/api/v1/auth/**` to Identity Service.
+- [x] Route `/api/v1/users/**` to Identity Service.
+- [x] Route `/api/v1/households/**` to Household Service.
+- [x] Route `/api/v1/meters/**` to Meter Service.
+- [x] Route `/api/v1/readings/**` to Reading Service.
 
 ### 3.3 Authentication
 - [ ] Configure JWT validation at the gateway.
