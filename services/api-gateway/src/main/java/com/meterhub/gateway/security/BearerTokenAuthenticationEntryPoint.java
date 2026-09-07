@@ -12,9 +12,12 @@ import org.springframework.security.oauth2.server.resource.web.DefaultBearerToke
 import org.springframework.security.web.AuthenticationEntryPoint;
 import tools.jackson.databind.ObjectMapper;
 
+import com.meterhub.gateway.web.CorrelationIdFilter;
+
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.util.Optional;
 import java.util.UUID;
 
 /**
@@ -64,8 +67,11 @@ public class BearerTokenAuthenticationEntryPoint implements AuthenticationEntryP
             response.setHeader("WWW-Authenticate", "Bearer");
         }
 
-        // TODO(3.4): use the gateway-wide correlation ID filter once it exists
-        UUID correlationId = UUID.randomUUID();
+        // The CorrelationIdFilter always sets the attribute first, so this
+        // only falls back for direct invocations (e.g. unit tests)
+        UUID correlationId = Optional
+            .ofNullable((UUID) request.getAttribute(CorrelationIdFilter.REQUEST_ATTRIBUTE))
+            .orElseGet(UUID::randomUUID);
         ProblemDto problem = new ProblemDto(
             PROBLEM_BASE_URI + code.toLowerCase().replace('_', '-'),
             title,

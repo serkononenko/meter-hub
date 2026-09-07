@@ -116,11 +116,11 @@
 - [x] Propagate authenticated identity where required.
 
 ### 3.4 Cross-cutting concerns
-- [ ] Generate or propagate request/correlation ID.
-- [ ] Add access logging.
-- [ ] Configure CORS.
-- [ ] Configure request timeouts.
-- [ ] Add basic rate limiting design; implementation may be deferred.
+- [x] Generate or propagate request/correlation ID.
+- [x] Add access logging.
+- [x] Configure CORS.
+- [x] Configure request timeouts.
+- [x] Add basic rate limiting design; implementation may be deferred.
 
 ---
 

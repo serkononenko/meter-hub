@@ -139,6 +139,27 @@ It is responsible for infrastructure-level concerns such as:
 
 Business authorization should remain in the service that owns the relevant business context.
 
+### Rate limiting (design)
+
+Rate limiting is a gateway concern; per-client limits protect the downstream
+services from abusive traffic and accidental loops.
+
+- **Scope:** all `/api/v1/**` routes at the gateway.
+- **Key:** access token `sub` claim for authenticated requests; client IP for
+  public requests (registration, login, refresh — these are the
+  credential-stuffing/brute-force targets, so they get the tightest limits).
+- **Algorithm:** token bucket per key — allows short bursts while capping the
+  sustained rate. Implemented in-process at the gateway (single instance for
+  the MVP); a shared store (e.g. Redis) is only needed once the gateway
+  scales out.
+- **Library hook:** `Bucket4jFilterFunctions.rateLimit(...)` from
+  spring-cloud-gateway-server-webmvc (requires adding the `bucket4j`
+  dependency).
+- **Behavior on limit:** HTTP 429 with the standard problem+json body and the
+  `Retry-After` header; the correlation ID filter still runs.
+- **Status:** implementation deferred — design agreed here, wiring planned
+  after the MVP routes are stable.
+
 ---
 
 # 2. Identity Service

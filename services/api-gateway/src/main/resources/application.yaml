@@ -5,6 +5,15 @@ spring:
   application:
     name: gateway
 
+  http:
+    clients:
+      # Timeouts for the gateway's downstream proxy calls (RestClient): fail
+      # fast instead of tying up a servlet thread on a hung service.
+      # connect-timeout: how long establishing the downstream connection may take
+      # read-timeout: how long a downstream may stay silent mid-response
+      connect-timeout: 2s
+      read-timeout: 10s
+
   config:
     import:
       # Public key PEM arrives as a file. Local dev: the per-service `certs`
@@ -42,6 +51,12 @@ spring:
               uri: ${READING_SERVICE_URL:http://localhost:8084}
               predicates:
                 - Path=/api/v1/readings/**
+
+logging:
+  # Every log line (access log included) carries the request's correlation ID
+  # from the MDC, so a request can be followed through the gateway's logs
+  pattern:
+    level: "%5p [%X{correlationId:-}]"
 
 identity:
   jwt:

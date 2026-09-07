@@ -1,7 +1,10 @@
 package com.meterhub.gateway.config;
 
 import com.meterhub.gateway.security.BearerTokenAuthenticationEntryPoint;
+import com.meterhub.gateway.web.CorrelationIdFilter;
+
 import jakarta.servlet.DispatcherType;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -14,6 +17,12 @@ import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.jwt.JwtValidators;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+
+import java.time.Duration;
+import java.util.List;
 
 /**
  * JWT validation at the gateway edge. Every request carries a bearer token
@@ -28,11 +37,15 @@ public class SecurityConfig {
         HttpSecurity http,
         JwtProperties jwtProperties,
         RsaKeyMaterial rsaKeyMaterial,
-        BearerTokenAuthenticationEntryPoint authenticationEntryPoint
+        BearerTokenAuthenticationEntryPoint authenticationEntryPoint,
+        CorsConfigurationSource corsConfigurationSource
     ) {
         http
             // Stateless token-based API: CSRF protection does not apply
             .csrf(AbstractHttpConfigurer::disable)
+            // The web client is a separate origin; browsers enforce CORS here
+            // at the gateway so preflights never reach a downstream service
+            .cors(cors -> cors.configurationSource(corsConfigurationSource))
             .authorizeHttpRequests(auth -> auth
                 // Container ERROR dispatches (proxy failures rendered as /error)
                 // carry no Authorization header, so they must not re-run the
@@ -50,6 +63,27 @@ public class SecurityConfig {
             );
 
         return http.build();
+    }
+
+    /**
+     * Allows the browser client to call the API from another origin. Allowed
+     * origins are explicit, not "*", because the API reads the Authorization
+     * header; they are configurable so non-local environments can list their
+     * own client origins.
+     */
+    @Bean
+    CorsConfigurationSource corsConfigurationSource(
+        @Value("${CORS_ALLOWED_ORIGINS:http://localhost:3000,http://127.0.0.1:3000}") List<String> allowedOrigins
+    ) {
+        CorsConfiguration config = new CorsConfiguration();
+        config.setAllowedOrigins(allowedOrigins);
+        config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE"));
+        config.setAllowedHeaders(List.of("*"));
+        config.setExposedHeaders(List.of(CorrelationIdFilter.HEADER));
+        config.setMaxAge(Duration.ofHours(1));
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", config);
+        return source;
     }
 
     private JwtDecoder jwtDecoder(JwtProperties jwtProperties, RsaKeyMaterial rsaKeyMaterial) {
