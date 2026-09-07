@@ -7,7 +7,12 @@ spring:
 
   config:
     import:
-      - "optional:configtree:./certs/"
+      # Local dev: the per-service `certs` symlink -> the shared repo-root certs/
+      # dir (create with: ln -sfn ../../certs certs). A relative ../-style path is
+      # not usable here: Spring's configtree silently drops every file whose path
+      # contains a ".." element. Docker: secrets written as
+      # /run/secrets/<property-name> by compose / the platform
+      - "optional:configtree:certs/"
       - "optional:configtree:/run/secrets/"
 
   datasource:

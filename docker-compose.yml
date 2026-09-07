@@ -55,9 +55,9 @@ services:
 
 secrets:
   identity.jwt.private-key:
-    file: ./services/identity-service/certs/identity.jwt.private-key
+    file: ./certs/identity.jwt.private-key
   identity.jwt.public-key:
-    file: ./services/identity-service/certs/identity.jwt.public-key
+    file: ./certs/identity.jwt.public-key
 
 volumes:
   postgres_data:

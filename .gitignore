@@ -1,3 +1,7 @@
 .idea
 .env
 .DS_Store
+
+# Local development key material — never commit (dev-generated key pair; real
+# environments deliver keys from a secret manager, not this repo)
+/certs/
