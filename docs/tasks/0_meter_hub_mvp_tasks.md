@@ -110,10 +110,10 @@
 - [x] Route `/api/v1/readings/**` to Reading Service.
 
 ### 3.3 Authentication
-- [ ] Configure JWT validation at the gateway.
-- [ ] Allow public access to registration/login/refresh endpoints.
-- [ ] Require authentication for protected routes.
-- [ ] Propagate authenticated identity where required.
+- [x] Configure JWT validation at the gateway.
+- [x] Allow public access to registration/login/refresh endpoints.
+- [x] Require authentication for protected routes.
+- [x] Propagate authenticated identity where required.
 
 ### 3.4 Cross-cutting concerns
 - [ ] Generate or propagate request/correlation ID.

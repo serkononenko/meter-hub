@@ -1,9 +1,9 @@
 package com.meterhub.gateway;
 
+import com.meterhub.gateway.testsupport.GatewayIntegrationTest;
 import org.junit.jupiter.api.Test;
-import org.springframework.boot.test.context.SpringBootTest;
 
-@SpringBootTest
+@GatewayIntegrationTest
 class GatewayApplicationTests {
 
 	@Test

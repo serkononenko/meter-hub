@@ -5,6 +5,12 @@ spring:
   application:
     name: gateway
 
+  config:
+    import:
+      # Public key PEM arrives as a file: ./certs/ locally, /run/secrets/ in Docker
+      - "optional:configtree:./certs/"
+      - "optional:configtree:/run/secrets/"
+
   cloud:
     gateway:
       server:
@@ -32,3 +38,9 @@ spring:
               uri: ${READING_SERVICE_URL:http://localhost:8084}
               predicates:
                 - Path=/api/v1/readings/**
+
+identity:
+  jwt:
+    # Must match what the identity service signs tokens with
+    issuer: ${IDENTITY_JWT_ISSUER:identity-service}
+    audience: ${IDENTITY_JWT_AUDIENCE:meterhub-api}
