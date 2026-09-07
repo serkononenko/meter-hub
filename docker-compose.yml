@@ -24,6 +24,25 @@ services:
       retries: 5
       start_period: 10s
 
+  api-gateway:
+    build:
+      context: ./services/api-gateway
+    environment:
+      <<: *identity-jwt-env
+      IDENTITY_SERVICE_URL: http://identity-service:8081
+      HOUSEHOLD_SERVICE_URL: http://household-service:8082
+    secrets:
+      - identity.jwt.public-key
+    ports:
+      - "8080:8080"
+    networks:
+      - meter-hub
+    depends_on:
+      identity-service:
+        condition: service_started
+      household-service:
+        condition: service_started
+
   identity-service:
     build:
       context: ./services/identity-service
@@ -46,21 +65,26 @@ services:
       postgres:
         condition: service_healthy
 
-  api-gateway:
+  household-service:
     build:
-      context: ./services/api-gateway
+      context: ./services/household-service
+      additional_contexts:
+        - contracts=./contracts
     environment:
       <<: *identity-jwt-env
-      IDENTITY_SERVICE_URL: http://identity-service:8081
+      DB_HOST: postgres
+      DB_NAME: ${HOUSEHOLD_DB}
+      DB_USERNAME: ${HOUSEHOLD_DB_USER}
+      DB_PASSWORD: ${HOUSEHOLD_DB_PASSWORD}
     secrets:
       - identity.jwt.public-key
-    ports:
-      - "8080:8080"
+    expose:
+      - "8082"
     networks:
       - meter-hub
     depends_on:
-      identity-service:
-        condition: service_started
+      postgres:
+        condition: service_healthy
 
 secrets:
   identity.jwt.private-key:

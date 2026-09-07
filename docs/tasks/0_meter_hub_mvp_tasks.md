@@ -127,10 +127,10 @@
 ## Epic 4 — Household Service — Spring Boot
 
 ### 4.1 Bootstrap service
-- [ ] Create Spring Boot project.
-- [ ] Configure PostgreSQL.
-- [ ] Configure migration tool.
-- [ ] Add service health endpoint.
+- [x] Create Spring Boot project.
+- [x] Configure PostgreSQL.
+- [x] Configure migration tool.
+- [x] Add service health endpoint.
 
 ### 4.2 Household model
 - [ ] Create Household entity.
