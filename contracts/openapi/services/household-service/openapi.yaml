@@ -1,0 +1,262 @@
+openapi: 3.0.3
+info:
+  title: MeterHub Household Service API
+  description: Household Service HTTP API. Covers household creation and lookup for the authenticated user.
+  version: 1.0.0
+
+tags:
+  - name: Households
+    description: Household management endpoints
+
+paths:
+  /api/v1/households:
+    post:
+      tags: [Households]
+      operationId: createHousehold
+      summary: Create a household owned by the authenticated user
+      description: >-
+        Creates a household with the authenticated user as its owner.
+        The caller's identity is taken from the presented access token.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '../../openapi.yaml#/components/parameters/CorrelationId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateHouseholdRequest'
+            example:
+              name: Home
+      responses:
+        '201':
+          description: Household created.
+          headers:
+            X-Correlation-ID:
+              $ref: '../../components/headers/correlation-id.yaml'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Household'
+              example:
+                id: 3f9c1a2e-8d4b-4a1f-9e2c-5b7d6a8e1c30
+                name: Home
+                createdAt: '2026-08-27T08:30:00Z'
+        '400':
+          $ref: '../../openapi.yaml#/components/responses/BadRequest'
+        '401':
+          description: No access token was supplied, or it is invalid or expired.
+          headers:
+            X-Correlation-ID:
+              $ref: '../../components/headers/correlation-id.yaml'
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../../openapi.yaml#/components/schemas/Problem'
+              examples:
+                missingToken:
+                  summary: No access token was supplied
+                  value:
+                    type: https://api.meterhub.local/problems/unauthorized
+                    title: Authentication required
+                    status: 401
+                    code: UNAUTHORIZED
+                    detail: A valid Bearer access token is required.
+                    correlationId: 7d6f5f2c-0a49-4e10-8ef7-7c3d2b1f4a10
+                invalidToken:
+                  summary: The access token is invalid or expired
+                  value:
+                    type: https://api.meterhub.local/problems/invalid-token
+                    title: Invalid access token
+                    status: 401
+                    code: INVALID_TOKEN
+                    detail: The access token is invalid or expired.
+                    correlationId: 7d6f5f2c-0a49-4e10-8ef7-7c3d2b1f4a10
+        '500':
+          $ref: '../../openapi.yaml#/components/responses/InternalServerError'
+
+    get:
+      tags: [Households]
+      operationId: listHouseholds
+      summary: List households owned by the authenticated user
+      description: >-
+        Returns the households of the user that owns the presented access token,
+        most recently created first.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '../../openapi.yaml#/components/parameters/CorrelationId'
+      responses:
+        '200':
+          description: The authenticated user's households.
+          headers:
+            X-Correlation-ID:
+              $ref: '../../components/headers/correlation-id.yaml'
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Household'
+              example:
+                - id: 3f9c1a2e-8d4b-4a1f-9e2c-5b7d6a8e1c30
+                  name: Home
+                  createdAt: '2026-08-27T08:30:00Z'
+        '401':
+          description: No access token was supplied, or it is invalid or expired.
+          headers:
+            X-Correlation-ID:
+              $ref: '../../components/headers/correlation-id.yaml'
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../../openapi.yaml#/components/schemas/Problem'
+              examples:
+                missingToken:
+                  summary: No access token was supplied
+                  value:
+                    type: https://api.meterhub.local/problems/unauthorized
+                    title: Authentication required
+                    status: 401
+                    code: UNAUTHORIZED
+                    detail: A valid Bearer access token is required.
+                    correlationId: 7d6f5f2c-0a49-4e10-8ef7-7c3d2b1f4a10
+                invalidToken:
+                  summary: The access token is invalid or expired
+                  value:
+                    type: https://api.meterhub.local/problems/invalid-token
+                    title: Invalid access token
+                    status: 401
+                    code: INVALID_TOKEN
+                    detail: The access token is invalid or expired.
+                    correlationId: 7d6f5f2c-0a49-4e10-8ef7-7c3d2b1f4a10
+        '500':
+          $ref: '../../openapi.yaml#/components/responses/InternalServerError'
+
+  /api/v1/households/{householdId}:
+    get:
+      tags: [Households]
+      operationId: getHousehold
+      summary: Return a single household
+      description: >-
+        Returns the household with the given identifier when it is owned by the
+        authenticated user. Households of other users are not visible.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: householdId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Identifier of the household to return.
+        - $ref: '../../openapi.yaml#/components/parameters/CorrelationId'
+      responses:
+        '200':
+          description: The household.
+          headers:
+            X-Correlation-ID:
+              $ref: '../../components/headers/correlation-id.yaml'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Household'
+              example:
+                id: 3f9c1a2e-8d4b-4a1f-9e2c-5b7d6a8e1c30
+                name: Home
+                createdAt: '2026-08-27T08:30:00Z'
+        '401':
+          description: No access token was supplied, or it is invalid or expired.
+          headers:
+            X-Correlation-ID:
+              $ref: '../../components/headers/correlation-id.yaml'
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../../openapi.yaml#/components/schemas/Problem'
+              examples:
+                missingToken:
+                  summary: No access token was supplied
+                  value:
+                    type: https://api.meterhub.local/problems/unauthorized
+                    title: Authentication required
+                    status: 401
+                    code: UNAUTHORIZED
+                    detail: A valid Bearer access token is required.
+                    correlationId: 7d6f5f2c-0a49-4e10-8ef7-7c3d2b1f4a10
+                invalidToken:
+                  summary: The access token is invalid or expired
+                  value:
+                    type: https://api.meterhub.local/problems/invalid-token
+                    title: Invalid access token
+                    status: 401
+                    code: INVALID_TOKEN
+                    detail: The access token is invalid or expired.
+                    correlationId: 7d6f5f2c-0a49-4e10-8ef7-7c3d2b1f4a10
+        '404':
+          description: No household with this identifier is visible to the authenticated user.
+          headers:
+            X-Correlation-ID:
+              $ref: '../../components/headers/correlation-id.yaml'
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../../openapi.yaml#/components/schemas/Problem'
+              examples:
+                householdNotFound:
+                  summary: Household does not exist or belongs to another user
+                  value:
+                    type: https://api.meterhub.local/problems/household-not-found
+                    title: Household not found
+                    status: 404
+                    code: HOUSEHOLD_NOT_FOUND
+                    detail: No household with this identifier is visible to the authenticated user.
+                    correlationId: 7d6f5f2c-0a49-4e10-8ef7-7c3d2b1f4a10
+        '500':
+          $ref: '../../openapi.yaml#/components/responses/InternalServerError'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Access token issued by POST /api/v1/auth/login or /api/v1/auth/refresh.
+
+  schemas:
+    CreateHouseholdRequest:
+      type: object
+      additionalProperties: false
+      required: [name]
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 200
+          description: Display name of the household.
+
+    Household:
+      type: object
+      additionalProperties: false
+      required: [id, name, createdAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: UUID v4 in canonical lowercase form.
+          example: 3f9c1a2e-8d4b-4a1f-9e2c-5b7d6a8e1c30
+        name:
+          type: string
+          description: Display name of the household.
+        createdAt:
+          type: string
+          format: date-time
+          description: RFC 3339 timestamp in UTC. Must use the Z suffix.
+          example: '2026-08-27T08:30:00Z'
+        updatedAt:
+          type: string
+          format: date-time
+          description: RFC 3339 timestamp in UTC. Must use the Z suffix.
+          example: '2026-08-27T08:30:00Z'

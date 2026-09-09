@@ -138,9 +138,9 @@
 - [x] Add created/updated timestamps.
 
 ### 4.3 APIs
-- [ ] Implement `POST /api/v1/households`.
-- [ ] Implement `GET /api/v1/households`.
-- [ ] Implement `GET /api/v1/households/{householdId}`.
+- [x] Implement `POST /api/v1/households`.
+- [x] Implement `GET /api/v1/households`.
+- [x] Implement `GET /api/v1/households/{householdId}`.
 
 ### 4.4 Authorization
 - [ ] Extract user identity from JWT/security context.
