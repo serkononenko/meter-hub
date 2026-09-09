@@ -1,0 +1,14 @@
+node_modules
+dist
+test
+coverage
+.git
+.env
+.env.*
+*.log
+.DS_Store
+.agents
+.claude
+.cursor
+.devin
+tsconfig.build.tsbuildinfo

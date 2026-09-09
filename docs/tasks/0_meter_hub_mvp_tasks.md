@@ -152,11 +152,11 @@
 ## Epic 5 — Meter Service — NestJS
 
 ### 5.1 Bootstrap service
-- [ ] Create NestJS project.
-- [ ] Configure PostgreSQL.
-- [ ] Select and configure ORM/query library.
-- [ ] Configure database migrations.
-- [ ] Add health endpoint.
+- [x] Create NestJS project.
+- [x] Configure PostgreSQL.
+- [x] Select and configure ORM/query library.
+- [x] Configure database migrations.
+- [x] Add health endpoint.
 
 ### 5.2 Meter model
 - [ ] Create Meter entity/model.
