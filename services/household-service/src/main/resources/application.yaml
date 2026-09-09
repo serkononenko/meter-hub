@@ -5,6 +5,15 @@ spring:
   application:
     name: household-service
 
+  # Local dev: the repo-root certs/ directory is symlinked into the working
+  # directory as certs/ (ln -sfn ../../certs certs). In Docker the entrypoint
+  # symlinks the /run/secrets mount into /config/certs. Spring's configtree
+  # support silently drops files whose path contains "..", hence the symlink.
+  config:
+    import:
+      - optional:configtree:certs/
+      - optional:configtree:/run/secrets/
+
   datasource:
     url: jdbc:postgresql://${DB_HOST:localhost}:5432/${DB_NAME:household_db}
     username: ${DB_USERNAME:household_user}
@@ -13,3 +22,12 @@ spring:
   flyway:
     enabled: true
     locations: classpath:db/migration
+
+identity:
+  jwt:
+    issuer: ${IDENTITY_JWT_ISSUER:identity-service}
+    audience: ${IDENTITY_JWT_AUDIENCE:meterhub-api}
+
+logging:
+  pattern:
+    level: "%5p [%X{correlationId:-}]"
