@@ -143,9 +143,9 @@
 - [x] Implement `GET /api/v1/households/{householdId}`.
 
 ### 4.4 Authorization
-- [ ] Extract user identity from JWT/security context.
-- [ ] Restrict household queries to the authenticated user.
-- [ ] Add unauthorized access tests.
+- [x] Extract user identity from JWT/security context.
+- [x] Restrict household queries to the authenticated user.
+- [x] Add unauthorized access tests.
 
 ---
 
