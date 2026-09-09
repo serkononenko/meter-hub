@@ -86,6 +86,21 @@ services:
       postgres:
         condition: service_healthy
 
+  meter-service:
+    build:
+      context: ./services/meter-service
+    environment:
+      # Prisma (client + migrate deploy) reads a single connection URL;
+      # credentials flow from .env, never committed (conventions §12).
+      DATABASE_URL: postgresql://${METER_DB_USER}:${METER_DB_PASSWORD}@postgres:5432/${METER_DB}
+    expose:
+      - "8083"
+    networks:
+      - meter-hub
+    depends_on:
+      postgres:
+        condition: service_healthy
+
 secrets:
   identity.jwt.private-key:
     file: ./certs/identity.jwt.private-key
