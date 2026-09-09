@@ -17,4 +17,10 @@ import * as Prisma from './internal/prismaNamespaceBrowser.js'
 export { Prisma }
 export * as $Enums from './enums.js'
 export * from './enums.js';
-
+/**
+ * Model Meter
+ * A physical utility meter registered under a household.
+ * The household lives in Household Service's database, so household_id is a
+ * plain UUID reference without a foreign key (no cross-service DB access).
+ */
+export type Meter = Prisma.MeterModel

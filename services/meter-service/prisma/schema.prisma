@@ -6,3 +6,45 @@ generator client {
 datasource db {
   provider = "postgresql"
 }
+
+/// A physical utility meter registered under a household.
+/// The household lives in Household Service's database, so household_id is a
+/// plain UUID reference without a foreign key (no cross-service DB access).
+model Meter {
+  id           String      @id @default(uuid()) @db.Uuid
+  householdId  String      @map("household_id") @db.Uuid
+  type         MeterType
+  name         String      @db.VarChar(200)
+  serialNumber String      @map("serial_number") @db.VarChar(100)
+  unit         MeterUnit
+  status       MeterStatus @default(ACTIVE)
+  createdAt    DateTime    @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt    DateTime    @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@index([householdId])
+  @@map("meters")
+}
+
+enum MeterType {
+  ELECTRICITY
+  GAS
+  COLD_WATER
+  HOT_WATER
+
+  @@map("meter_type")
+}
+
+enum MeterUnit {
+  KWH
+  M3
+  L
+
+  @@map("meter_unit")
+}
+
+enum MeterStatus {
+  ACTIVE
+  ARCHIVED
+
+  @@map("meter_status")
+}
