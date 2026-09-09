@@ -33,11 +33,13 @@ public class HouseholdService implements CreateHouseholdUseCase, ListHouseholdsU
     @Override
     @Transactional
     public Household create(CreateHouseholdCommand command) {
+        OffsetDateTime now = OffsetDateTime.now();
         Household household = Household.builder()
             .id(command.householdId())
             .ownerUserId(command.ownerUserId())
             .name(command.name())
-            .createdAt(OffsetDateTime.now())
+            .createdAt(now)
+            .updatedAt(now)
             .build();
         householdRepository.save(household);
 
@@ -46,7 +48,7 @@ public class HouseholdService implements CreateHouseholdUseCase, ListHouseholdsU
             .householdId(household.id())
             .userId(command.ownerUserId())
             .role(MembershipRole.OWNER)
-            .createdAt(OffsetDateTime.now())
+            .createdAt(now)
             .build();
         householdMemberRepository.save(owner);
 
