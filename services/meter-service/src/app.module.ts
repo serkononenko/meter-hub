@@ -1,8 +1,12 @@
-import { Module } from '@nestjs/common';
+import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
+import { APP_FILTER } from '@nestjs/core';
 import { createObserveModule } from '@nestjs/observe';
+import { AuthModule } from './auth/auth.module.js';
 import { DatabaseModule } from './database/database.module.js';
+import { CorrelationIdMiddleware } from './correlation/correlation.middleware.js';
 import { HealthModule } from './health/health.module.js';
 import { MeterModule } from './meter/meter.module.js';
+import { ProblemExceptionFilter } from './http/problem-exception.filter.js';
 
 export const { ObserveModule, ObserveInstrument } = createObserveModule();
 
@@ -16,8 +20,15 @@ export const { ObserveModule, ObserveInstrument } = createObserveModule();
       serviceId: 'meter-service',
     }),
     DatabaseModule,
+    AuthModule,
     HealthModule,
     MeterModule,
   ],
+  providers: [{ provide: APP_FILTER, useClass: ProblemExceptionFilter }],
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer): void {
+    // Correlation first, so 401 problem bodies can echo the id.
+    consumer.apply(CorrelationIdMiddleware).forRoutes('*');
+  }
+}

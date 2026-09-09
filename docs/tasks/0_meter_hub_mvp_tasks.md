@@ -169,10 +169,10 @@
 - [x] Add timestamps.
 
 ### 5.3 APIs
-- [ ] Implement `POST /api/v1/meters`.
-- [ ] Implement `GET /api/v1/meters` by household.
-- [ ] Implement `GET /api/v1/meters/{meterId}`.
-- [ ] Implement `PATCH /api/v1/meters/{meterId}`.
+- [x] Implement `POST /api/v1/meters`.
+- [x] Implement `GET /api/v1/meters` by household.
+- [x] Implement `GET /api/v1/meters/{meterId}`.
+- [x] Implement `PATCH /api/v1/meters/{meterId}`.
 
 ### 5.4 Authorization
 - [ ] Validate JWT or propagated authentication context.
