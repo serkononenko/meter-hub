@@ -175,9 +175,9 @@
 - [x] Implement `PATCH /api/v1/meters/{meterId}`.
 
 ### 5.4 Authorization
-- [ ] Validate JWT or propagated authentication context.
-- [ ] Verify that the current user owns the referenced household.
-- [ ] Prevent access to another user's meter.
+- [x] Validate JWT or propagated authentication context.
+- [x] Verify that the current user owns the referenced household.
+- [x] Prevent access to another user's meter.
 
 ### 5.5 Validation
 - [ ] Validate supported meter types.

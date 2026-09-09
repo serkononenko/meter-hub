@@ -49,13 +49,22 @@ export class ProblemExceptionFilter implements ExceptionFilter {
     } else if (exception instanceof HttpException) {
       status = exception.getStatus();
       const body = exception.getResponse();
-      if (status === HttpStatus.NOT_FOUND) {
+      const problem =
+        typeof body === 'object' && body !== null
+          ? (body as Record<string, unknown>)
+          : ({ detail: body } as Record<string, unknown>);
+      if (typeof problem.code === 'string') {
+        // Services raise their own typed problems (HOUSEHOLD_NOT_FOUND,
+        // HOUSEHOLD_SERVICE_UNAVAILABLE, ...); the filter only fills gaps.
+        code = problem.code;
+        title = typeof problem.title === 'string' ? problem.title : title;
+        detail = typeof problem.detail === 'string' ? problem.detail : detail;
+      } else if (status === HttpStatus.NOT_FOUND) {
         code = 'METER_NOT_FOUND';
         title = 'Meter not found';
         detail = 'No meter with this identifier is visible to the authenticated user.';
-      } else if (typeof body === 'object' && body !== null) {
-        const problem = body as Record<string, unknown>;
-        code = typeof problem.code === 'string' ? problem.code : codeFromStatus(status);
+      } else {
+        code = codeFromStatus(status);
         title = typeof problem.title === 'string' ? problem.title : title;
         detail = typeof problem.detail === 'string' ? problem.detail : detail;
       }

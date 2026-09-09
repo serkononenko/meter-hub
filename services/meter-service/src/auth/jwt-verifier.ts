@@ -5,6 +5,11 @@ import type { JwtConfig } from './jwt-config.js';
 /** Verified identity of the caller, taken from the access token's `sub`. */
 export interface AuthenticatedUser {
   userId: string;
+  /**
+   * The raw token as presented, so downstream ownership checks can act on
+   * behalf of the caller (identity propagation, service-boundaries).
+   */
+  accessToken: string;
 }
 
 /** Why a presented token was rejected; drives the 401 problem code. */
@@ -69,7 +74,7 @@ export class JwtVerifier {
     if (typeof subject !== 'string' || subject.length === 0) {
       throw TokenRejection.INVALID_TOKEN;
     }
-    return { userId: subject };
+    return { userId: subject, accessToken: token };
   }
 }
 
