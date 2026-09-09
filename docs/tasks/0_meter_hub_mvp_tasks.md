@@ -133,9 +133,9 @@
 - [x] Add service health endpoint.
 
 ### 4.2 Household model
-- [ ] Create Household entity.
-- [ ] Create household owner/membership model.
-- [ ] Add created/updated timestamps.
+- [x] Create Household entity.
+- [x] Create household owner/membership model.
+- [x] Add created/updated timestamps.
 
 ### 4.3 APIs
 - [ ] Implement `POST /api/v1/households`.
