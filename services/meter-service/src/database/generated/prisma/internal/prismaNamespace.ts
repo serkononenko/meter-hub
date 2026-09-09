@@ -397,7 +397,7 @@ type FieldRefInputType<Model, FieldType> = Model extends never ? never : FieldRe
 
 
 export const ModelName = {
-
+  Meter: 'Meter'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -413,10 +413,85 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: never
+    modelProps: "meter"
     txIsolationLevel: TransactionIsolationLevel
   }
-  model: {}
+  model: {
+    Meter: {
+      payload: Prisma.$MeterPayload<ExtArgs>
+      fields: Prisma.MeterFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.MeterFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MeterPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.MeterFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MeterPayload>
+        }
+        findFirst: {
+          args: Prisma.MeterFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MeterPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.MeterFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MeterPayload>
+        }
+        findMany: {
+          args: Prisma.MeterFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MeterPayload>[]
+        }
+        create: {
+          args: Prisma.MeterCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MeterPayload>
+        }
+        createMany: {
+          args: Prisma.MeterCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.MeterCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MeterPayload>[]
+        }
+        delete: {
+          args: Prisma.MeterDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MeterPayload>
+        }
+        update: {
+          args: Prisma.MeterUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MeterPayload>
+        }
+        deleteMany: {
+          args: Prisma.MeterDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.MeterUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.MeterUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MeterPayload>[]
+        }
+        upsert: {
+          args: Prisma.MeterUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MeterPayload>
+        }
+        aggregate: {
+          args: Prisma.MeterAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateMeter>
+        }
+        groupBy: {
+          args: Prisma.MeterGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.MeterGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.MeterCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.MeterCountAggregateOutputType> | number
+        }
+      }
+    }
+  }
 } & {
   other: {
     payload: any
@@ -455,7 +530,125 @@ export const TransactionIsolationLevel = runtime.makeStrictEnum({
 export type TransactionIsolationLevel = (typeof TransactionIsolationLevel)[keyof typeof TransactionIsolationLevel]
 
 
+export const MeterScalarFieldEnum = {
+  id: 'id',
+  householdId: 'householdId',
+  type: 'type',
+  name: 'name',
+  serialNumber: 'serialNumber',
+  unit: 'unit',
+  status: 'status',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
 
+export type MeterScalarFieldEnum = (typeof MeterScalarFieldEnum)[keyof typeof MeterScalarFieldEnum]
+
+
+export const SortOrder = {
+  asc: 'asc',
+  desc: 'desc'
+} as const
+
+export type SortOrder = (typeof SortOrder)[keyof typeof SortOrder]
+
+
+export const QueryMode = {
+  default: 'default',
+  insensitive: 'insensitive'
+} as const
+
+export type QueryMode = (typeof QueryMode)[keyof typeof QueryMode]
+
+
+
+/**
+ * Field references
+ */
+
+
+/**
+ * Reference to a field of type 'String'
+ */
+export type StringFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'String'>
+    
+
+
+/**
+ * Reference to a field of type 'String[]'
+ */
+export type ListStringFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'String[]'>
+    
+
+
+/**
+ * Reference to a field of type 'MeterType'
+ */
+export type EnumMeterTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'MeterType'>
+    
+
+
+/**
+ * Reference to a field of type 'MeterType[]'
+ */
+export type ListEnumMeterTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'MeterType[]'>
+    
+
+
+/**
+ * Reference to a field of type 'MeterUnit'
+ */
+export type EnumMeterUnitFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'MeterUnit'>
+    
+
+
+/**
+ * Reference to a field of type 'MeterUnit[]'
+ */
+export type ListEnumMeterUnitFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'MeterUnit[]'>
+    
+
+
+/**
+ * Reference to a field of type 'MeterStatus'
+ */
+export type EnumMeterStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'MeterStatus'>
+    
+
+
+/**
+ * Reference to a field of type 'MeterStatus[]'
+ */
+export type ListEnumMeterStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'MeterStatus[]'>
+    
+
+
+/**
+ * Reference to a field of type 'DateTime'
+ */
+export type DateTimeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'DateTime'>
+    
+
+
+/**
+ * Reference to a field of type 'DateTime[]'
+ */
+export type ListDateTimeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'DateTime[]'>
+    
+
+
+/**
+ * Reference to a field of type 'Int'
+ */
+export type IntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Int'>
+    
+
+
+/**
+ * Reference to a field of type 'Int[]'
+ */
+export type ListIntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Int[]'>
+    
 
 /**
  * Batch Payload for updateMany & deleteMany & createMany
@@ -607,7 +800,9 @@ export interface PrismaClientOptionsWithAdapter extends PrismaClientBaseOptions 
  * Learn more about driver adapters: https://pris.ly/d/driver-adapters
  */
 export type PrismaClientOptions = PrismaClientOptionsWithAccelerateUrl | PrismaClientOptionsWithAdapter
-export type GlobalOmitConfig = {}
+export type GlobalOmitConfig = {
+  meter?: Prisma.MeterOmit
+}
 
 /* Types for Logging */
 export type LogLevel = 'info' | 'query' | 'warn' | 'error'

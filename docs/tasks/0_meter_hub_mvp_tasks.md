@@ -159,14 +159,14 @@
 - [x] Add health endpoint.
 
 ### 5.2 Meter model
-- [ ] Create Meter entity/model.
-- [ ] Add household ID.
-- [ ] Add meter type.
-- [ ] Add name/label.
-- [ ] Add serial number.
-- [ ] Add unit.
-- [ ] Add status.
-- [ ] Add timestamps.
+- [x] Create Meter entity/model.
+- [x] Add household ID.
+- [x] Add meter type.
+- [x] Add name/label.
+- [x] Add serial number.
+- [x] Add unit.
+- [x] Add status.
+- [x] Add timestamps.
 
 ### 5.3 APIs
 - [ ] Implement `POST /api/v1/meters`.

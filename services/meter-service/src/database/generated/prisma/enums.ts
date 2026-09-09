@@ -9,7 +9,28 @@
 * 🟢 You can import this file directly.
 */
 
+export const MeterType = {
+  ELECTRICITY: 'ELECTRICITY',
+  GAS: 'GAS',
+  COLD_WATER: 'COLD_WATER',
+  HOT_WATER: 'HOT_WATER'
+} as const
+
+export type MeterType = (typeof MeterType)[keyof typeof MeterType]
 
 
-// This file is empty because there are no enums in the schema.
-export {}
+export const MeterUnit = {
+  KWH: 'KWH',
+  M3: 'M3',
+  L: 'L'
+} as const
+
+export type MeterUnit = (typeof MeterUnit)[keyof typeof MeterUnit]
+
+
+export const MeterStatus = {
+  ACTIVE: 'ACTIVE',
+  ARCHIVED: 'ARCHIVED'
+} as const
+
+export type MeterStatus = (typeof MeterStatus)[keyof typeof MeterStatus]
