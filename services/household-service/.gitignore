@@ -35,3 +35,7 @@ out/
 
 ### VS Code ###
 .vscode/
+
+### Local dev keys (certs is a symlink to the shared repo-root certs/ dir) ###
+/certs
+/certs.bak-old/
