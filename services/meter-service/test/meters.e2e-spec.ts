@@ -3,7 +3,7 @@ import { Test } from '@nestjs/testing';
 import request from 'supertest';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { AppModule } from '../src/app.module.js';
-import { mintToken } from './global-setup.js';
+import { ALICE_HOUSEHOLD, mintToken } from './global-setup.js';
 
 const ALICE = '11111111-1111-4111-8111-111111111111';
 
@@ -27,7 +27,7 @@ describe('Meters (e2e)', () => {
   it('rejects unauthenticated requests with the UNAUTHORIZED problem', async () => {
     const response = await request(app.getHttpServer())
       .post('/api/v1/meters')
-      .send({ householdId: ALICE, type: 'ELECTRICITY', name: 'X', serialNumber: 'S', unit: 'KWH' });
+      .send({ householdId: ALICE_HOUSEHOLD, type: 'ELECTRICITY', name: 'X', serialNumber: 'S', unit: 'KWH' });
 
     expect(response.status).toBe(401);
     expect(response.headers['content-type']).toContain('application/problem+json');
@@ -42,7 +42,7 @@ describe('Meters (e2e)', () => {
   it('rejects invalid tokens with the INVALID_TOKEN problem', async () => {
     const response = await request(app.getHttpServer())
       .get('/api/v1/meters')
-      .query({ householdId: ALICE })
+      .query({ householdId: ALICE_HOUSEHOLD })
       .set('Authorization', 'Bearer not-a-jwt');
 
     expect(response.status).toBe(401);
@@ -56,7 +56,7 @@ describe('Meters (e2e)', () => {
       .post('/api/v1/meters')
       .set('Authorization', `Bearer ${token}`)
       .send({
-        householdId: ALICE,
+        householdId: ALICE_HOUSEHOLD,
         type: 'ELECTRICITY',
         name: 'Main electricity meter',
         serialNumber: 'EL-123456',
@@ -65,7 +65,7 @@ describe('Meters (e2e)', () => {
 
     expect(created.status).toBe(201);
     expect(created.body).toMatchObject({
-      householdId: ALICE,
+      householdId: ALICE_HOUSEHOLD,
       type: 'ELECTRICITY',
       name: 'Main electricity meter',
       serialNumber: 'EL-123456',
@@ -124,7 +124,7 @@ describe('Meters (e2e)', () => {
       .post('/api/v1/meters')
       .set('Authorization', `Bearer ${token}`)
       .send({
-        householdId: ALICE,
+        householdId: ALICE_HOUSEHOLD,
         type: 'GAS',
         name: 'Gas meter',
         serialNumber: 'GAS-1',

@@ -25,9 +25,9 @@ import type { Meter } from './meter.model.js';
 /**
  * Meter API (contract: contracts/openapi/services/meter-service/openapi.yaml).
  *
- * The caller identity comes from the verified access token; 5.4 adds
- * household-ownership verification on top of these endpoints. Creation
- * timestamps are generated here, never trusted from the client.
+ * The caller identity comes from the verified access token; ownership of the
+ * referenced household is enforced in the service layer (5.4), using the
+ * caller's token so household-service scopes the check to them.
  */
 @Controller('api/v1/meters')
 export class MeterController {
@@ -50,8 +50,7 @@ export class MeterController {
       createdAt: new Date(),
       updatedAt: new Date(),
     };
-    void user; // ownership of dto.householdId is verified in 5.4
-    return toMeterDto(await this.meterService.create(meter));
+    return toMeterDto(await this.meterService.create(meter, user.accessToken));
   }
 
   @Get()
@@ -60,8 +59,10 @@ export class MeterController {
     @CurrentUser() user: AuthenticatedUser,
   ): Promise<MeterDto[]> {
     const householdIdParam = parseUuidParam(householdId ?? '', 'householdId');
-    void user; // ownership of householdIdParam is verified in 5.4
-    const meters = await this.meterService.listByHousehold(householdIdParam);
+    const meters = await this.meterService.listByHousehold(
+      householdIdParam,
+      user.accessToken,
+    );
     return meters.map(toMeterDto);
   }
 
@@ -71,8 +72,7 @@ export class MeterController {
     @CurrentUser() user: AuthenticatedUser,
   ): Promise<MeterDto> {
     const id = parseUuidParam(meterId, 'meterId');
-    void user; // household ownership of the meter is verified in 5.4
-    return toMeterDto(await this.meterService.getById(id));
+    return toMeterDto(await this.meterService.getById(id, user.accessToken));
   }
 
   @Patch(':meterId')
@@ -84,7 +84,6 @@ export class MeterController {
   ): Promise<MeterDto> {
     const id = parseUuidParam(meterId, 'meterId');
     const changes: UpdateMeterDto = parseUpdateMeter(body);
-    void user; // household ownership of the meter is verified in 5.4
-    return toMeterDto(await this.meterService.update(id, changes));
+    return toMeterDto(await this.meterService.update(id, changes, user.accessToken));
   }
 }

@@ -31,6 +31,7 @@ services:
       <<: *identity-jwt-env
       IDENTITY_SERVICE_URL: http://identity-service:8081
       HOUSEHOLD_SERVICE_URL: http://household-service:8082
+      METER_SERVICE_URL: http://meter-service:8083
     secrets:
       - identity.jwt.public-key
     ports:
