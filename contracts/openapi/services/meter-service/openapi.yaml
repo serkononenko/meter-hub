@@ -1,0 +1,401 @@
+openapi: 3.0.3
+info:
+  title: MeterHub Meter Service API
+  description: Meter Service HTTP API. Covers meter registration and lifecycle for households owned by the authenticated user.
+  version: 1.0.0
+
+tags:
+  - name: Meters
+    description: Meter management endpoints
+
+paths:
+  /api/v1/meters:
+    post:
+      tags: [Meters]
+      operationId: createMeter
+      summary: Register a meter in a household owned by the authenticated user
+      description: >-
+        Creates a meter under the given household. The household must exist and
+        be owned by the user that owns the presented access token; households
+        of other users are not addressable and return the same not-found
+        problem as unknown ones.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '../../openapi.yaml#/components/parameters/CorrelationId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateMeterRequest'
+            example:
+              householdId: 3f9c1a2e-8d4b-4a1f-9e2c-5b7d6a8e1c30
+              type: ELECTRICITY
+              name: Main electricity meter
+              serialNumber: EL-123456
+              unit: KWH
+      responses:
+        '201':
+          description: Meter created.
+          headers:
+            X-Correlation-ID:
+              $ref: '../../components/headers/correlation-id.yaml'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Meter'
+              example:
+                id: 0d7f8a26-6f6f-4a55-9a71-3bd11c0a1f01
+                householdId: 3f9c1a2e-8d4b-4a1f-9e2c-5b7d6a8e1c30
+                type: ELECTRICITY
+                name: Main electricity meter
+                serialNumber: EL-123456
+                unit: KWH
+                status: ACTIVE
+                createdAt: '2026-08-27T08:30:00Z'
+                updatedAt: '2026-08-27T08:30:00Z'
+        '400':
+          $ref: '../../openapi.yaml#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/UnauthorizedProblem'
+        '404':
+          description: No household with this identifier is visible to the authenticated user.
+          headers:
+            X-Correlation-ID:
+              $ref: '../../components/headers/correlation-id.yaml'
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../../openapi.yaml#/components/schemas/Problem'
+              examples:
+                householdNotFound:
+                  summary: Household does not exist or belongs to another user
+                  value:
+                    type: https://api.meterhub.local/problems/household-not-found
+                    title: Household not found
+                    status: 404
+                    code: HOUSEHOLD_NOT_FOUND
+                    detail: No household with this identifier is visible to the authenticated user.
+                    correlationId: 7d6f5f2c-0a49-4e10-8ef7-7c3d2b1f4a10
+        '500':
+          $ref: '../../openapi.yaml#/components/responses/InternalServerError'
+
+    get:
+      tags: [Meters]
+      operationId: listMeters
+      summary: List meters of a household owned by the authenticated user
+      description: >-
+        Returns the meters registered under the given household, oldest first.
+        The household must exist and be owned by the user that owns the
+        presented access token.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: householdId
+          in: query
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Identifier of the household whose meters to return.
+        - $ref: '../../openapi.yaml#/components/parameters/CorrelationId'
+      responses:
+        '200':
+          description: The household's meters.
+          headers:
+            X-Correlation-ID:
+              $ref: '../../components/headers/correlation-id.yaml'
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Meter'
+              example:
+                - id: 0d7f8a26-6f6f-4a55-9a71-3bd11c0a1f01
+                  householdId: 3f9c1a2e-8d4b-4a1f-9e2c-5b7d6a8e1c30
+                  type: ELECTRICITY
+                  name: Main electricity meter
+                  serialNumber: EL-123456
+                  unit: KWH
+                  status: ACTIVE
+                  createdAt: '2026-08-27T08:30:00Z'
+                  updatedAt: '2026-08-27T08:30:00Z'
+        '400':
+          $ref: '../../openapi.yaml#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/UnauthorizedProblem'
+        '404':
+          description: No household with this identifier is visible to the authenticated user.
+          headers:
+            X-Correlation-ID:
+              $ref: '../../components/headers/correlation-id.yaml'
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../../openapi.yaml#/components/schemas/Problem'
+              examples:
+                householdNotFound:
+                  summary: Household does not exist or belongs to another user
+                  value:
+                    type: https://api.meterhub.local/problems/household-not-found
+                    title: Household not found
+                    status: 404
+                    code: HOUSEHOLD_NOT_FOUND
+                    detail: No household with this identifier is visible to the authenticated user.
+                    correlationId: 7d6f5f2c-0a49-4e10-8ef7-7c3d2b1f4a10
+        '500':
+          $ref: '../../openapi.yaml#/components/responses/InternalServerError'
+
+  /api/v1/meters/{meterId}:
+    get:
+      tags: [Meters]
+      operationId: getMeter
+      summary: Return a single meter
+      description: >-
+        Returns the meter with the given identifier when its household is
+        owned by the authenticated user. Meters of other users are not visible.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: meterId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Identifier of the meter to return.
+        - $ref: '../../openapi.yaml#/components/parameters/CorrelationId'
+      responses:
+        '200':
+          description: The meter.
+          headers:
+            X-Correlation-ID:
+              $ref: '../../components/headers/correlation-id.yaml'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Meter'
+        '401':
+          $ref: '#/components/responses/UnauthorizedProblem'
+        '404':
+          description: No meter with this identifier is visible to the authenticated user.
+          headers:
+            X-Correlation-ID:
+              $ref: '../../components/headers/correlation-id.yaml'
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../../openapi.yaml#/components/schemas/Problem'
+              examples:
+                meterNotFound:
+                  summary: Meter does not exist or belongs to another user
+                  value:
+                    type: https://api.meterhub.local/problems/meter-not-found
+                    title: Meter not found
+                    status: 404
+                    code: METER_NOT_FOUND
+                    detail: No meter with this identifier is visible to the authenticated user.
+                    correlationId: 7d6f5f2c-0a49-4e10-8ef7-7c3d2b1f4a10
+        '500':
+          $ref: '../../openapi.yaml#/components/responses/InternalServerError'
+
+    patch:
+      tags: [Meters]
+      operationId: updateMeter
+      summary: Update mutable fields of a meter
+      description: >-
+        Partially updates the meter with the given identifier when its
+        household is owned by the authenticated user. Only the provided fields
+        are changed; the household of an existing meter cannot be reassigned.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: meterId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Identifier of the meter to update.
+        - $ref: '../../openapi.yaml#/components/parameters/CorrelationId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateMeterRequest'
+            example:
+              name: Renovated electricity meter
+              status: ARCHIVED
+      responses:
+        '200':
+          description: The updated meter.
+          headers:
+            X-Correlation-ID:
+              $ref: '../../components/headers/correlation-id.yaml'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Meter'
+        '400':
+          $ref: '../../openapi.yaml#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/UnauthorizedProblem'
+        '404':
+          description: No meter with this identifier is visible to the authenticated user.
+          headers:
+            X-Correlation-ID:
+              $ref: '../../components/headers/correlation-id.yaml'
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../../openapi.yaml#/components/schemas/Problem'
+              examples:
+                meterNotFound:
+                  summary: Meter does not exist or belongs to another user
+                  value:
+                    type: https://api.meterhub.local/problems/meter-not-found
+                    title: Meter not found
+                    status: 404
+                    code: METER_NOT_FOUND
+                    detail: No meter with this identifier is visible to the authenticated user.
+                    correlationId: 7d6f5f2c-0a49-4e10-8ef7-7c3d2b1f4a10
+        '500':
+          $ref: '../../openapi.yaml#/components/responses/InternalServerError'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Access token issued by POST /api/v1/auth/login or /api/v1/auth/refresh.
+
+  schemas:
+    MeterType:
+      type: string
+      enum: [ELECTRICITY, GAS, COLD_WATER, HOT_WATER]
+      description: Physical kind of the meter.
+
+    MeterUnit:
+      type: string
+      enum: [KWH, M3, L]
+      description: Unit the meter's readings are recorded in.
+
+    MeterStatus:
+      type: string
+      enum: [ACTIVE, ARCHIVED]
+      description: Lifecycle status. Archiving keeps historical readings addressable.
+
+    CreateMeterRequest:
+      type: object
+      additionalProperties: false
+      required: [householdId, type, name, serialNumber, unit]
+      properties:
+        householdId:
+          type: string
+          format: uuid
+          description: Household the meter belongs to. Must be owned by the authenticated user.
+        type:
+          $ref: '#/components/schemas/MeterType'
+        name:
+          type: string
+          minLength: 1
+          maxLength: 200
+          description: Display name of the meter.
+        serialNumber:
+          type: string
+          minLength: 1
+          maxLength: 100
+          description: Manufacturer serial number of the meter.
+        unit:
+          $ref: '#/components/schemas/MeterUnit'
+
+    UpdateMeterRequest:
+      type: object
+      additionalProperties: false
+      minProperties: 1
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 200
+          description: Display name of the meter.
+        serialNumber:
+          type: string
+          minLength: 1
+          maxLength: 100
+          description: Manufacturer serial number of the meter.
+        unit:
+          $ref: '#/components/schemas/MeterUnit'
+        status:
+          $ref: '#/components/schemas/MeterStatus'
+
+    Meter:
+      type: object
+      additionalProperties: false
+      required: [id, householdId, type, name, serialNumber, unit, status, createdAt, updatedAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: UUID v4 in canonical lowercase form.
+          example: 0d7f8a26-6f6f-4a55-9a71-3bd11c0a1f01
+        householdId:
+          type: string
+          format: uuid
+          description: Household the meter belongs to.
+        type:
+          $ref: '#/components/schemas/MeterType'
+        name:
+          type: string
+          description: Display name of the meter.
+        serialNumber:
+          type: string
+          description: Manufacturer serial number of the meter.
+        unit:
+          $ref: '#/components/schemas/MeterUnit'
+        status:
+          $ref: '#/components/schemas/MeterStatus'
+        createdAt:
+          type: string
+          format: date-time
+          description: RFC 3339 timestamp in UTC. Must use the Z suffix.
+          example: '2026-08-27T08:30:00Z'
+        updatedAt:
+          type: string
+          format: date-time
+          description: RFC 3339 timestamp in UTC. Must use the Z suffix.
+          example: '2026-08-27T08:30:00Z'
+
+  responses:
+    UnauthorizedProblem:
+      description: No access token was supplied, or it is invalid or expired.
+      headers:
+        X-Correlation-ID:
+          $ref: '../../components/headers/correlation-id.yaml'
+      content:
+        application/problem+json:
+          schema:
+            $ref: '../../openapi.yaml#/components/schemas/Problem'
+          examples:
+            missingToken:
+              summary: No access token was supplied
+              value:
+                type: https://api.meterhub.local/problems/unauthorized
+                title: Authentication required
+                status: 401
+                code: UNAUTHORIZED
+                detail: A valid Bearer access token is required.
+                correlationId: 7d6f5f2c-0a49-4e10-8ef7-7c3d2b1f4a10
+            invalidToken:
+              summary: The access token is invalid or expired
+              value:
+                type: https://api.meterhub.local/problems/invalid-token
+                title: Invalid access token
+                status: 401
+                code: INVALID_TOKEN
+                detail: The access token is invalid or expired.
+                correlationId: 7d6f5f2c-0a49-4e10-8ef7-7c3d2b1f4a10

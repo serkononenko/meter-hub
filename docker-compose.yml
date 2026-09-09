@@ -90,9 +90,16 @@ services:
     build:
       context: ./services/meter-service
     environment:
+      <<: *identity-jwt-env
       # Prisma (client + migrate deploy) reads a single connection URL;
       # credentials flow from .env, never committed (conventions §12).
       DATABASE_URL: postgresql://${METER_DB_USER}:${METER_DB_PASSWORD}@postgres:5432/${METER_DB}
+      # Where the Identity Service public key PEM lives (5.4 adds the
+      # household-service base URL for ownership checks).
+      IDENTITY_JWT_PUBLIC_KEY_PATH: /run/secrets/identity.jwt.public-key
+      HOUSEHOLD_SERVICE_URL: http://household-service:8082
+    secrets:
+      - identity.jwt.public-key
     expose:
       - "8083"
     networks:
