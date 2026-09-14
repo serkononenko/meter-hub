@@ -1,0 +1,16 @@
+{
+  "supportsES6": true,
+  "importFileExtension": ".js",
+  "typescriptThreePlus": true,
+  "modelPropertyNaming": "camelCase",
+  "paramNaming": "camelCase",
+  "enumPropertyNaming": "UPPERCASE",
+  "sortParamsByRequiredFlag": true,
+  "sortModelPropertiesByRequiredFlag": true,
+  "ensureUniqueParams": true,
+  "allowUnicodeIdentifiers": false,
+  "prependFormOrBodyParameters": false,
+  "useSingleRequestParameter": true,
+  "withInterfaces": true,
+  "withoutRuntimeChecks": false
+}

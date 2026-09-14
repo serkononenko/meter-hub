@@ -19,10 +19,12 @@
     "test:watch": "vitest",
     "test:cov": "vitest run --coverage",
     "test:debug": "vitest --inspect-brk --no-file-parallelism",
-    "test:e2e": "vitest run --config ./vitest.config.e2e.ts"
+    "test:e2e": "vitest run --config ./vitest.config.e2e.ts",
+    "api:gen-client": "./openapi-config/generate-client.sh"
   },
   "dependencies": {
     "@nestjs/common": "^12.0.1",
+    "@nestjs/config": "^12.0.0",
     "@nestjs/core": "^12.0.1",
     "@nestjs/observe": "^0.1.8",
     "@nestjs/platform-express": "^12.0.1",
@@ -37,6 +39,7 @@
     "@nestjs/mau": "^0.2.6",
     "@nestjs/schematics": "^12.0.0",
     "@nestjs/testing": "^12.0.1",
+    "@openapitools/openapi-generator-cli": "^2.15.0",
     "@types/express": "^5.0.0",
     "@types/node": "^24.0.0",
     "@types/supertest": "^7.2.1",
