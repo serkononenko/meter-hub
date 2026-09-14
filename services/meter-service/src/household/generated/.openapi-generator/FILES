@@ -1,0 +1,15 @@
+.openapi-generator-ignore
+apis/HouseholdsApi.ts
+apis/index.ts
+docs/CreateHouseholdRequest.md
+docs/Household.md
+docs/HouseholdsApi.md
+docs/Problem.md
+docs/ProblemErrorsInner.md
+index.ts
+models/CreateHouseholdRequest.ts
+models/Household.ts
+models/Problem.ts
+models/ProblemErrorsInner.ts
+models/index.ts
+runtime.ts
