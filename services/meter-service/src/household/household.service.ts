@@ -1,6 +1,6 @@
 import {Injectable} from "@nestjs/common";
 import {HouseholdsApi} from './generated/index.js';
-import {HouseholdAccessException} from './household-access.exception.js';
+import {HouseholdAccessException} from '../exceptions/household-access.exception.js';
 
 
 @Injectable()
