@@ -1,6 +1,7 @@
 import {ExceptionFilter, Catch, ArgumentsHost, UnauthorizedException} from '@nestjs/common';
 import {Request, Response} from 'express';
 import {TokenRejection} from "../exceptions/unauthorized.exception.js";
+import {CORRELATION_ID_HEADER} from "../constants.js";
 
 
 const PROBLEM_BASE_URI = 'https://api.meterhub.local/problems/';
@@ -40,7 +41,7 @@ export class UnauthorizedExceptionFilter implements ExceptionFilter {
                 code: problem.code,
                 detail: problem.detail,
                 instance: request.url,
-                correlationId: response.getHeader('X-Correlation-ID') ?? undefined,
+                correlationId: response.getHeader(CORRELATION_ID_HEADER) ?? undefined,
             });
     }
 }

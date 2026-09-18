@@ -4,8 +4,8 @@ import { MeterService } from './meter.service.js';
 import type { Meter, MeterRepository } from './meter.repository.js';
 import {
   HouseholdAccessException,
-  type HouseholdAccessPort,
-} from '../household/household-access.port.js';
+  type HouseholdAccessException,
+} from '../exceptions/household-access.exception.js';
 
 const ALICE_TOKEN = 'alice-token';
 const BOB_TOKEN = 'bob-token';
@@ -33,7 +33,7 @@ function repositoryStub(): MeterRepository {
 }
 
 /** Stub ownership port: Alice owns the test household, Bob does not. */
-function accessStub(overrides: Partial<HouseholdAccessPort> = {}): HouseholdAccessPort {
+function accessStub(overrides: Partial<HouseholdAccessException> = {}): HouseholdAccessException {
   return {
     canAccess: vi.fn(async (_householdId: string, token: string) => token === ALICE_TOKEN),
     ...overrides,
