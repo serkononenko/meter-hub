@@ -35,9 +35,11 @@ export class UnauthorizedExceptionFilter implements ExceptionFilter {
 
         response
             .status(status)
+            .header('Content-Type', 'application/problem+json')
             .json({
                 type: `${PROBLEM_BASE_URI}${problem.code.toLowerCase().replace('_', '-')}`,
                 title: problem.title,
+                status,
                 code: problem.code,
                 detail: problem.detail,
                 instance: request.url,

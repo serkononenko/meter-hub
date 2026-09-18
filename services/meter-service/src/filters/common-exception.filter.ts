@@ -6,7 +6,6 @@ import {
     HttpStatus,
 } from '@nestjs/common';
 import {CORRELATION_ID_HEADER} from '../constants.js';
-import {RequestValidationException} from "../exceptions/request-validation.exception.js";
 
 import type {Request, Response} from 'express';
 
@@ -40,15 +39,8 @@ export class CommonExceptionFilter implements ExceptionFilter {
         let code = 'INTERNAL_ERROR';
         let title = 'Internal server error';
         let detail = 'An unexpected error occurred.';
-        let errors: ProblemBody['errors'];
 
-        if (exception instanceof RequestValidationException) {
-            status = HttpStatus.BAD_REQUEST;
-            code = 'VALIDATION_ERROR';
-            title = 'Validation failed';
-            detail = 'One or more request fields are invalid.';
-            // errors = exception.errors;
-        } else if (exception instanceof HttpException) {
+        if (exception instanceof HttpException) {
             status = exception.getStatus();
             const body = exception.getResponse();
             const problem =
@@ -85,9 +77,6 @@ export class CommonExceptionFilter implements ExceptionFilter {
             instance: request.originalUrl,
             correlationId: response.getHeader(CORRELATION_ID_HEADER)?.toString(),
         };
-        if (errors) {
-            problem.errors = errors;
-        }
 
         response.status(status);
         response.setHeader('Content-Type', 'application/problem+json');
