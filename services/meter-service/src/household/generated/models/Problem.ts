@@ -13,13 +13,13 @@
  */
 
 import { mapValues } from '../runtime.js';
-import type { ProblemErrorsInner } from './ProblemErrorsInner.js';
+import type { ProblemErrorsInner } from './problem-errors-inner.js';
 import {
     ProblemErrorsInnerFromJSON,
     ProblemErrorsInnerFromJSONTyped,
     ProblemErrorsInnerToJSON,
     ProblemErrorsInnerToJSONTyped,
-} from './ProblemErrorsInner.js';
+} from './problem-errors-inner.js';
 
 /**
  * 

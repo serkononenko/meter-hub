@@ -1,19 +1,26 @@
 import {Module} from '@nestjs/common';
-import {PrismaMeterRepository} from './meter.repository.js';
-import {MeterController} from './meter.controller.js';
+import {MeterRepository} from './meter.repository.js';
 import {MeterService} from './meter.service.js';
-import {METER_REPOSITORY} from './meter.tokens.js';
-import {HouseholdModule} from '../household/household.module.js';
+import {ApiImplementations, ApiModule} from "./generated/index.js";
+import {HouseholdService} from "../household/household.service.js";
+import {HouseholdApiProvider} from "../household/household-api.provider.js";
 
+
+const apiImplementations: ApiImplementations = {
+    metersApi: MeterService
+}
 
 @Module({
-    imports: [HouseholdModule],
-    controllers: [MeterController],
-    providers: [
-        MeterService,
-        {provide: METER_REPOSITORY, useClass: PrismaMeterRepository},
+    imports: [
+        ApiModule.forRoot({
+            apiImplementations: apiImplementations,
+            providers: [
+                MeterRepository,
+                HouseholdApiProvider,
+                HouseholdService
+            ]
+        })
     ],
-    exports: [METER_REPOSITORY],
 })
 export class MeterModule {
 }

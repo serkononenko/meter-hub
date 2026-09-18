@@ -2,6 +2,7 @@
   "supportsES6": true,
   "importFileExtension": ".js",
   "typescriptThreePlus": true,
+  "fileNaming": "kebab-case",
   "modelPropertyNaming": "camelCase",
   "paramNaming": "camelCase",
   "enumPropertyNaming": "UPPERCASE",

@@ -1,3 +1,3 @@
 /* tslint:disable */
 /* eslint-disable */
-export * from './HouseholdsApi.js';
+export * from './households-api.js';

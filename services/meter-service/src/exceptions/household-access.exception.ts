@@ -1,6 +1,8 @@
-export class HouseholdAccessException extends Error {
-    constructor(message: string, public readonly cause?: unknown) {
-        super(message, {cause});
-        this.name = 'HouseholdAccessException';
+import {ForbiddenException} from "@nestjs/common";
+
+
+export class HouseholdAccessException extends ForbiddenException {
+    constructor(householdId: string, cause?: unknown) {
+        super(`Access to household ${householdId} is forbidden`, {cause});
     }
 }

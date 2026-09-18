@@ -1,94 +1,73 @@
-import {HttpException, Inject, Injectable, NotFoundException, HttpStatus} from '@nestjs/common';
-import {METER_REPOSITORY} from './meter.tokens.js';
-import {HouseholdAccessException} from '../exceptions/household-access.exception.js';
+import {Injectable} from '@nestjs/common';
+import {MeterNotFoundException} from "../exceptions/meter-not-found.exception.js";
+import {MetersApi} from "./generated/api/index.js";
+import {MeterRepository} from './meter.repository.js';
 import {HouseholdService} from '../household/household.service.js';
 
-import type {MeterRepository} from './meter.repository.js';
-import type {MeterUpdate} from './meter.repository.js';
-import type {Meter} from './meter.model.js';
+import type {CreateMeterRequest} from "./generated/models/index.js";
+import type {UpdateMeterRequest} from "./generated/models/index.js";
 
-
-const householdNotFound = () => {
-    return new HttpException(
-        {
-            statusCode: HttpStatus.NOT_FOUND,
-            code: 'HOUSEHOLD_NOT_FOUND',
-            title: 'Household not found',
-            detail: 'No household with this identifier is visible to the authenticated user.',
-        },
-        HttpStatus.NOT_FOUND,
-    );
-}
-
-const meterNotFound = () => {
-    return new NotFoundException('Meter not found');
-}
 
 @Injectable()
-export class MeterService {
+export class MeterService extends MetersApi {
     constructor(
-        @Inject(METER_REPOSITORY) private readonly meters: MeterRepository,
+        readonly repository: MeterRepository,
         private readonly householdService: HouseholdService,
     ) {
+        super();
     }
 
-    async create(meter: Meter): Promise<Meter> {
-        await this.requireHouseholdVisibleToCaller(meter.householdId, householdNotFound());
-        return this.meters.save(meter);
+    async createMeter(createMeterRequest: CreateMeterRequest) {
+        const {householdId, type, name, serialNumber, unit} = createMeterRequest;
+
+        await this.canAccess(householdId);
+
+        return this.repository.save({
+            id: crypto.randomUUID(),
+            householdId,
+            type,
+            name,
+            serialNumber,
+            unit,
+            status: 'ACTIVE',
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+        })
     }
 
-    async listByHousehold(householdId: string): Promise<Meter[]> {
-        await this.requireHouseholdVisibleToCaller(householdId, householdNotFound());
-        return this.meters.findByHouseholdId(householdId);
-    }
+    async getMeter(meterId: string) {
+        const meter = await this.repository.findById(meterId);
 
-    async getById(id: string): Promise<Meter> {
-        const meter = await this.meters.findById(id);
         if (!meter) {
-            throw meterNotFound();
+            throw new MeterNotFoundException(meterId);
         }
-        await this.requireHouseholdVisibleToCaller(meter.householdId, meterNotFound());
+
+        await this.canAccess(meter.householdId);
+
         return meter;
     }
 
-    async update(id: string, changes: MeterUpdate): Promise<Meter> {
-        const owned = await this.meters.findById(id);
-        if (!owned) {
-            throw meterNotFound();
-        }
-        await this.requireHouseholdVisibleToCaller(owned.householdId, meterNotFound());
-        const updated = await this.meters.update(id, changes);
-        if (!updated) {
-            throw meterNotFound();
-        }
-        return updated;
+    async listMeters(householdId: string) {
+        await this.canAccess(householdId);
+
+        return this.repository.findByHouseholdId(householdId);
     }
 
-    /**
-     * Verifies the caller can see the household; on any other outcome the
-     * caller's problem is raised. Household-service failures fail closed as
-     * 502, never as a successful access grant.
-     */
-    private async requireHouseholdVisibleToCaller(householdId: string, callerProblem: HttpException) {
-        let visible: boolean;
-        try {
-            visible = !!await this.householdService.getHousehold(householdId);
-        } catch (error) {
-            if (error instanceof HouseholdAccessException) {
-                throw new HttpException(
-                    {
-                        statusCode: HttpStatus.BAD_GATEWAY,
-                        code: 'HOUSEHOLD_SERVICE_UNAVAILABLE',
-                        title: 'Household service unavailable',
-                        detail: 'Ownership could not be verified; try again later.',
-                    },
-                    HttpStatus.BAD_GATEWAY,
-                );
-            }
-            throw error;
+    async updateMeter(meterId: string, updateMeterRequest: UpdateMeterRequest) {
+        const prevMeter = await this.getMeter(meterId);
+
+        await this.canAccess(prevMeter.householdId);
+
+        const meter = await this.repository.update(prevMeter.id, updateMeterRequest);
+
+        if (!meter) {
+            throw new MeterNotFoundException(meterId);
         }
-        if (!visible) {
-            throw callerProblem;
-        }
+
+        return meter;
+    }
+
+    private async canAccess(householdId: string) {
+        return !!await this.householdService.getHousehold(householdId);
     }
 }
