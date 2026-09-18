@@ -12,7 +12,7 @@ export class HouseholdService {
         try {
             return await this.householdApi.getHousehold({householdId});
         } catch (error) {
-            throw new HouseholdAccessException(`Household service did not answer for household ${householdId}`, error);
+            throw new HouseholdAccessException(householdId, error);
         }
     }
 }

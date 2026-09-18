@@ -17,17 +17,17 @@ import {
     type CreateHouseholdRequest,
     CreateHouseholdRequestFromJSON,
     CreateHouseholdRequestToJSON,
-} from '../models/CreateHouseholdRequest.js';
+} from '../models/create-household-request.js';
 import {
     type Household,
     HouseholdFromJSON,
     HouseholdToJSON,
-} from '../models/Household.js';
+} from '../models/household.js';
 import {
     type Problem,
     ProblemFromJSON,
     ProblemToJSON,
-} from '../models/Problem.js';
+} from '../models/problem.js';
 
 export interface CreateHouseholdOperationRequest {
     /**

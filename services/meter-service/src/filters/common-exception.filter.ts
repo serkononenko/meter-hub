@@ -5,9 +5,11 @@ import {
     HttpException,
     HttpStatus,
 } from '@nestjs/common';
-import type {Request, Response} from 'express';
-import {RequestValidationError} from '../meter/meter.dto.js';
 import {CORRELATION_ID_HEADER} from '../constants.js';
+import {RequestValidationException} from "../exceptions/request-validation.exception.js";
+
+import type {Request, Response} from 'express';
+
 
 const PROBLEM_BASE_URI = 'https://api.meterhub.local/problems/';
 
@@ -40,12 +42,12 @@ export class CommonExceptionFilter implements ExceptionFilter {
         let detail = 'An unexpected error occurred.';
         let errors: ProblemBody['errors'];
 
-        if (exception instanceof RequestValidationError) {
+        if (exception instanceof RequestValidationException) {
             status = HttpStatus.BAD_REQUEST;
             code = 'VALIDATION_ERROR';
             title = 'Validation failed';
             detail = 'One or more request fields are invalid.';
-            errors = exception.errors;
+            // errors = exception.errors;
         } else if (exception instanceof HttpException) {
             status = exception.getStatus();
             const body = exception.getResponse();

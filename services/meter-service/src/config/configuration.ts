@@ -4,7 +4,7 @@ export default () => ({
         url: process.env.DATABASE_URL ?? 'postgresql://meter_user:meter_dev@localhost:5432/meter_db',
     },
     household: {
-        url: process.env.HOUSEHOLD_SERVICE_URL ?? 'localhost:8082'
+        url: process.env.HOUSEHOLD_SERVICE_URL ?? 'http://localhost:8082'
     },
     identity: {
         jwt: {

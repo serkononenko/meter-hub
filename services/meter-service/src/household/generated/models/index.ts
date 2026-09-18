@@ -1,6 +1,6 @@
 /* tslint:disable */
 /* eslint-disable */
-export * from './CreateHouseholdRequest.js';
-export * from './Household.js';
-export * from './Problem.js';
-export * from './ProblemErrorsInner.js';
+export * from './create-household-request.js';
+export * from './household.js';
+export * from './problem.js';
+export * from './problem-errors-inner.js';
