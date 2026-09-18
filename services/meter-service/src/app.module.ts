@@ -10,6 +10,7 @@ import {MeterModule} from './meter/meter.module.js';
 import {CommonExceptionFilter} from './filters/common-exception.filter.js';
 import configuration from './config/configuration.js';
 import {UnauthorizedExceptionFilter} from "./filters/unauthorized-exception.filter.js";
+import {RequestValidationExceptionFilter} from "./filters/request-validation-exception.filter.js";
 
 
 export const {ObserveModule, ObserveInstrument} = createObserveModule();
@@ -40,6 +41,10 @@ export const {ObserveModule, ObserveInstrument} = createObserveModule();
         {
             provide: APP_FILTER,
             useClass: UnauthorizedExceptionFilter,
+        },
+        {
+            provide: APP_FILTER,
+            useClass: RequestValidationExceptionFilter,
         },
     ]
 })
