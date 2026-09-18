@@ -1,27 +1,32 @@
-import { Module } from '@nestjs/common';
-import { APP_GUARD } from '@nestjs/core';
-import { AuthGuard } from './auth.guard.js';
-import { JwtVerifier } from './jwt-verifier.js';
-import { loadJwtConfigFromEnv } from './jwt-config.js';
+import {Module} from '@nestjs/common';
+import {APP_GUARD} from '@nestjs/core';
+import {JwtModule} from "@nestjs/jwt";
+import {ConfigService} from "@nestjs/config";
+import * as fs from "node:fs";
+import {AuthGuard} from './auth.guard.js';
 
-/**
- * Bearer-token authentication for every meter endpoint. The verifier is
- * configured eagerly at bootstrap so a missing or malformed public key fails
- * container startup instead of the first request.
- */
+
 @Module({
-  providers: [
-    {
-      provide: JwtVerifier,
-      useFactory: async () => {
-        const verifier = new JwtVerifier();
-        await verifier.configure(loadJwtConfigFromEnv());
-        return verifier;
-      },
-    },
-    AuthGuard,
-    { provide: APP_GUARD, useClass: AuthGuard },
-  ],
-  exports: [JwtVerifier],
+    providers: [
+        {
+            provide: APP_GUARD,
+            useClass: AuthGuard,
+        },
+    ],
+    imports: [
+        JwtModule.registerAsync({
+            global: true,
+            useFactory: async (configService: ConfigService) => ({
+                publicKey: fs.readFileSync(configService.getOrThrow('identity.jwt.publicKeyPath'), 'utf8'),
+                verifyOptions: {
+                    audience: configService.getOrThrow('identity.jwt.audience'),
+                    issuer: configService.getOrThrow('identity.jwt.issuer'),
+                    algorithms: ['RS256'],
+                },
+            }),
+            inject: [ConfigService],
+        }),
+    ]
 })
-export class AuthModule {}
+export class AuthModule {
+}
