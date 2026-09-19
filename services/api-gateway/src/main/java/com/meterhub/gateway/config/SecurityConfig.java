@@ -58,6 +58,8 @@ public class SecurityConfig {
                 // /actuator/health/** covers the liveness and readiness probe
                 // subpaths as well as the aggregate endpoint
                 .requestMatchers("/actuator/health", "/actuator/health/**").permitAll()
+                // Prometheus scrapes metrics without a token (task 10.4)
+                .requestMatchers("/actuator/prometheus").permitAll()
                 .requestMatchers("/api/identity-service/api/v1/auth/**").permitAll()
                 .anyRequest().authenticated()
             )

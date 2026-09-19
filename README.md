@@ -196,6 +196,21 @@ curl http://localhost:8083/health/ready
 A fuller check is the end-to-end journey test below, which exercises the
 whole MVP flow through the gateway.
 
+### Metrics (task 10.4)
+
+Every service exposes Prometheus-format metrics: `/actuator/prometheus` on
+the Spring services (Micrometer — `http_server_requests_seconds` gives
+request count, latency and error counts via the `status`/`outcome` tags,
+plus JVM/process metrics), `/metrics` on the NestJS services (prom-client —
+`http_requests_total` + `http_request_duration_seconds`, plus Node.js
+process metrics). In Compose the endpoints are reachable only on the
+services' internal ports; locally:
+
+```bash
+curl http://localhost:8080/actuator/prometheus | head   # gateway
+curl http://localhost:8083/metrics | head               # meter service
+```
+
 ### 6. Run the end-to-end journey test
 
 Drives the full MVP flow through the gateway against the running Compose
