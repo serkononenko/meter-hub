@@ -215,10 +215,10 @@ index on `(household_id, serial_number)` in meter-db.
 - [x] Set source to `MANUAL` for MVP.
 
 ### 6.4 Reading lookup
-- [ ] Implement `GET /api/v1/meters/{meterId}/readings`.
-- [ ] Implement `GET /api/v1/meters/{meterId}/readings/latest`.
-- [ ] Add sorting by recorded timestamp.
-- [ ] Add pagination for history.
+- [x] Implement `GET /api/v1/meters/{meterId}/readings`.
+- [x] Implement `GET /api/v1/meters/{meterId}/readings/latest`.
+- [x] Add sorting by recorded timestamp.
+- [x] Add pagination for history.
 
 ### 6.5 Cross-service authorization
 - [ ] Verify the meter exists and belongs to the authenticated user.

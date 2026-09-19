@@ -38,13 +38,24 @@ export class ReadingRepository {
         return row ? toReading(row) : null;
     }
 
-    async findByMeterId(meterId: string): Promise<Reading[]> {
+    async findByMeterId(meterId: string, limit: number, offset: number): Promise<Reading[]> {
         const rows = await this.prisma.reading.findMany({
+            where: {meterId},
+            orderBy: {recordedAt: 'desc'},
+            take: limit,
+            skip: offset,
+            select: READING_SELECT,
+        });
+        return rows.map(toReading);
+    }
+
+    async findLatestByMeterId(meterId: string): Promise<Reading | null> {
+        const row = await this.prisma.reading.findFirst({
             where: {meterId},
             orderBy: {recordedAt: 'desc'},
             select: READING_SELECT,
         });
-        return rows.map(toReading);
+        return row ? toReading(row) : null;
     }
 }
 

@@ -10,3 +10,13 @@ export class MeterNotFoundException extends NotFoundException {
         });
     }
 }
+
+export class ReadingNotFoundException extends NotFoundException {
+    constructor(meterId: string) {
+        super({
+            code: 'READING_NOT_FOUND',
+            title: 'Reading not found',
+            detail: `The meter ${meterId} has no readings yet.`,
+        });
+    }
+}
