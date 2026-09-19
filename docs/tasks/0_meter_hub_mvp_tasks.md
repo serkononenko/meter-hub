@@ -473,10 +473,31 @@ listing, ownership-scoped 404 indistinguishable from unknown household).
 All green: identity 19, household 7, meter 20, reading 34.
 
 ### 9.3 Integration tests
-- [ ] Test each service against PostgreSQL.
-- [ ] Test Gateway routing.
-- [ ] Test JWT validation.
-- [ ] Test cross-service authorization behavior.
+- [x] Test each service against PostgreSQL.
+- [x] Test Gateway routing.
+- [x] Test JWT validation.
+- [x] Test cross-service authorization behavior.
+
+Most of this coverage already existed from epics 2–6 and was verified by
+running it against the running Compose PostgreSQL: identity (29 tests across
+registration/login/refresh/me against the real DB via Flyway+jooq), household
+(8 authz tests), gateway (16 tests: JWT validation paths — missing/invalid/
+expired/wrong-issuer/wrong-audience/wrongly-signed tokens — plus correlation
+ID and CORS). Cross-service authorization was covered by meter e2e (household
+ownership gating, enumeration-safe 404s, fail-closed) and reading e2e
+(meter-service ownership checks, 503 fail-closed). The gap was explicit
+gateway routing tests: added `GatewayRoutingIntegrationTest` (3 tests) — one
+stub server stands in for all four downstreams via the route table's own
+`*_SERVICE_URL` placeholders, asserting each `/api/<service>/...` prefix
+strips to the contract path, the Authorization header propagates verbatim,
+and an unknown service prefix never reaches a downstream (401 unauthenticated,
+404 authenticated — security runs before routing). Also fixed three stale
+expectations in `meter-authorization.e2e-spec.ts` left behind by the "add
+error handling" rework: enumeration-safety diffs now strip the request-scoped
+`detail` field (like the reading spec), and household-unreachable maps to 503
+`HOUSEHOLD_SERVICE_UNAVAILABLE` per the 6.5 fail-closed decision, not 502.
+All suites green: gateway 19, identity 48 (29 integration + 19 unit),
+household 15, meter 36 (16 e2e + 20 unit), reading 49 (15 e2e + 34 unit).
 
 ### 9.4 End-to-end test
 - [ ] Automate registration → login → household → meter → reading → history.
