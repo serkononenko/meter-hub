@@ -35,6 +35,24 @@ export const kepple: ColorShades = {
   950: "#042f2c",
 };
 
+/**
+ * Deep ink base for the side nav and auth panel — near-black navy with a
+ * petrol cast, the "meter housing" color of the identity.
+ */
+export const ink: ColorShades = {
+  50: "#f4f6f8",
+  100: "#e4e9ee",
+  200: "#c9d2db",
+  300: "#9fb0bf",
+  400: "#6e8399",
+  500: "#4b5f75",
+  600: "#334558",
+  700: "#212f3d",
+  800: "#151f2b",
+  900: "#0c1420",
+  950: "#070d16",
+};
+
 export const neonBlue: ColorShades = {
   50: "#ecf0ff",
   100: "#dde3ff",
@@ -47,6 +65,20 @@ export const neonBlue: ColorShades = {
   800: "#3725ae",
   900: "#302689",
   950: "#1e1650",
+};
+
+export const petrol: ColorShades = {
+  50: "#effaf8",
+  100: "#d7f2ee",
+  200: "#b3e5de",
+  300: "#83d1c9",
+  400: "#52b4ad",
+  500: "#359691",
+  600: "#0f766e",
+  700: "#0e605c",
+  800: "#0e4c4a",
+  900: "#0d3e3d",
+  950: "#062324",
 };
 
 export const nevada: ColorShades = {

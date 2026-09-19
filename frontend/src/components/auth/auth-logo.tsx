@@ -8,7 +8,7 @@ import Typography from "@mui/material/Typography";
 export function AuthLogo({href}: {href: string}): React.JSX.Element {
   return (
     <Box component={RouterLink} href={href} sx={{display: "inline-flex", textDecoration: "none"}}>
-      <Typography variant="h5" sx={{fontWeight: 700, letterSpacing: "-0.5px"}}>
+      <Typography variant="h5" sx={{color: "var(--mui-palette-text-primary)", fontWeight: 700, letterSpacing: "-0.5px"}}>
         MeterHub
       </Typography>
     </Box>

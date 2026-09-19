@@ -7,10 +7,11 @@ import Toolbar from "@mui/material/Toolbar";
 import Typography from "@mui/material/Typography";
 
 import {paths} from "@/paths";
+import {RegisterDisplay} from "@/components/register/register-display";
 
 /**
- * Landing page: basic layout and navigation shell. Sign-in and the household
- * views arrive with 7.2/7.3.
+ * Landing page: the register display is the hero — the product is the
+ * number on the meter, so the first thing on the page is the number.
  */
 export default function Home() {
   return (
@@ -26,15 +27,17 @@ export default function Home() {
         </Toolbar>
       </AppBar>
       <Container maxWidth="sm" sx={{flexGrow: 1, display: "flex", alignItems: "center"}}>
-        <Stack spacing={2} sx={{textAlign: "center", width: "100%", py: 8}}>
-          <Typography variant="h1" component="h1">
-            Home metering, simplified
+        <Stack spacing={4} sx={{width: "100%", py: 8}}>
+          <RegisterDisplay size={72} value="0043187" />
+          <Typography variant="h1" component="h1" sx={{textWrap: "balance"}}>
+            Read your meters. Remember every number.
           </Typography>
-          <Typography variant="body1" color="text.secondary">
-            Track electricity, gas, and water meters, record readings, and
-            follow your usage over time.
+          <Typography variant="body1" color="text.secondary" sx={{maxWidth: "46ch"}}>
+            MeterHub keeps a history of electricity, gas, and water readings
+            for every household — and refuses values that would move a meter
+            backwards.
           </Typography>
-          <Stack direction="row" spacing={2} sx={{justifyContent: "center"}}>
+          <Stack direction="row" spacing={2}>
             <Button variant="contained" size="large" href={paths.auth.signIn}>
               Sign in
             </Button>

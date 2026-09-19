@@ -29,3 +29,16 @@ html {
 body {
   height: 100%;
 }
+
+/* Register roller digits (RegisterDisplay): drop into place on mount,
+   skipped entirely under reduced motion. */
+@keyframes register-roll {
+  from {
+    transform: translateY(-0.9em);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
