@@ -11,6 +11,8 @@ import {CommonExceptionFilter} from './filters/common-exception.filter.js';
 import configuration from './config/configuration.js';
 import {UnauthorizedExceptionFilter} from "./filters/unauthorized-exception.filter.js";
 import {RequestValidationExceptionFilter} from "./filters/request-validation-exception.filter.js";
+import {LoggingModule} from './logging/logging.module.js';
+import {RequestLoggingMiddleware} from './logging/request-logging.middleware.js';
 
 
 export const {ObserveModule, ObserveInstrument} = createObserveModule();
@@ -28,6 +30,7 @@ export const {ObserveModule, ObserveInstrument} = createObserveModule();
             isGlobal: true,
             load: [configuration],
         }),
+        LoggingModule,
         DatabaseModule,
         AuthModule,
         HealthModule,
@@ -50,6 +53,9 @@ export const {ObserveModule, ObserveInstrument} = createObserveModule();
 })
 export class AppModule implements NestModule {
     configure(consumer: MiddlewareConsumer) {
+        // Correlation ID first so the request log line (and every other log
+        // line emitted while handling) carries the resolved request ID
         consumer.apply(CorrelationIdMiddleware).forRoutes('*');
+        consumer.apply(RequestLoggingMiddleware).forRoutes('*');
     }
 }

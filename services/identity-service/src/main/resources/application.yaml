@@ -32,8 +32,11 @@ identity:
     refresh-token-ttl: ${IDENTITY_JWT_REFRESH_TOKEN_TTL:30d}
 
 logging:
-  # Every log line carries the request's correlation ID from the MDC (set by
-  # CorrelationIdFilter), so a request can be followed from the gateway's
-  # logs into this service's logs (conventions §9)
+  # Structured single-line format per conventions §14: timestamp, level,
+  # service, requestId (the correlation ID from the MDC, set by
+  # CorrelationIdFilter) and message. The correlation ID lets a request be
+  # followed from the gateway's logs into this service's logs (conventions §9).
+  # The %replace escapes double quotes in the message so the line stays valid JSON
   pattern:
+    console: "{\"timestamp\":\"%d{yyyy-MM-dd'T'HH:mm:ss.SSSXXX,UTC}\",\"level\":\"%p\",\"service\":\"identity-service\",\"requestId\":\"%X{correlationId:-}\",\"message\":\"%replace(%m){'\"':'\\\\\"'}%n\"}"
     level: "%5p [%X{correlationId:-}]"
