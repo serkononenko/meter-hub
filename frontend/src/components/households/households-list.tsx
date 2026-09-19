@@ -40,11 +40,16 @@ export function HouseholdsList(): React.JSX.Element {
     return (
       <Card>
         <CardContent>
-          <Typography color="error">
-            {response && isErrorResponse(response)
-              ? problemMessage(response.data)
-              : "Could not load households."}
-          </Typography>
+          <Stack spacing={2} sx={{alignItems: "flex-start"}}>
+            <Typography color="error">
+              {response && isErrorResponse(response)
+                ? problemMessage(response.data)
+                : "Could not load households."}
+            </Typography>
+            <Button onClick={() => void householdsQuery.refetch()} size="small" variant="outlined">
+              Retry
+            </Button>
+          </Stack>
         </CardContent>
       </Card>
     );

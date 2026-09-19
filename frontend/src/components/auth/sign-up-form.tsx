@@ -152,7 +152,7 @@ export function SignUpForm(): React.JSX.Element {
             {errors.confirmPassword ? <FormHelperText>{errors.confirmPassword}</FormHelperText> : null}
           </FormControl>
           {errors.root ? <Alert color="error">{errors.root}</Alert> : null}
-          <Button disabled={isPending} type="submit" variant="contained">
+          <Button loading={isPending} type="submit" variant="contained">
             Sign up
           </Button>
         </Stack>

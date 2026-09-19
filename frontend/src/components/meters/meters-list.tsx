@@ -57,11 +57,16 @@ export function MetersList({householdId}: MetersListProps): React.JSX.Element {
     return (
       <Card>
         <CardContent>
-          <Typography color="error">
-            {response && isErrorResponse(response)
-              ? problemMessage(response.data)
-              : "Could not load meters."}
-          </Typography>
+          <Stack spacing={2} sx={{alignItems: "flex-start"}}>
+            <Typography color="error">
+              {response && isErrorResponse(response)
+                ? problemMessage(response.data)
+                : "Could not load meters."}
+            </Typography>
+            <Button onClick={() => void metersQuery.refetch()} size="small" variant="outlined">
+              Retry
+            </Button>
+          </Stack>
         </CardContent>
       </Card>
     );

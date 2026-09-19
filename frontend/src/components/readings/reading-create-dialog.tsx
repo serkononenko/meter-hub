@@ -220,7 +220,7 @@ export function ReadingCreateDialog({meter, onClose, open}: ReadingCreateDialogP
           <Button color="secondary" onClick={handleClose}>
             Cancel
           </Button>
-          <Button disabled={createReadingMutation.isPending} type="submit" variant="contained">
+          <Button loading={createReadingMutation.isPending} type="submit" variant="contained">
             Record reading
           </Button>
         </DialogActions>

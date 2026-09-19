@@ -345,10 +345,22 @@ problem → required-name validation → cancel).
 - [x] Show validation/business errors clearly.
 
 ### 7.6 Basic UX
-- [ ] Add loading states.
-- [ ] Add empty states.
-- [ ] Add error states.
-- [ ] Prevent duplicate form submissions.
+- [x] Add loading states.
+- [x] Add empty states.
+- [x] Add error states.
+- [x] Prevent duplicate form submissions.
+
+Loading: skeleton rows in the lists (`households-list`, `meters-list`)
+and a centered `CircularProgress` in `AuthGuard` while the session
+resolves (previously a blank page on hard refresh of a protected page).
+Empty: households ("No households yet" + create shortcut), meters, and
+reading history ("No readings yet"). Errors: lists/details show the backend
+problem message plus a Retry button that refetches the failed query;
+dialog errors land on their fields or as a root alert. Duplicate
+submissions: all submit buttons disable while the mutation is pending —
+now with MUI v9's `loading` prop so the disabled state also shows a
+spinner (household/meter/reading create, meter edit, sign-in, sign-up).
+Verified with `tsc --noEmit`, eslint, and `next build` all clean.
 
 ---
 

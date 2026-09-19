@@ -95,7 +95,7 @@ export function HouseholdCreateDialog({onClose, open}: HouseholdCreateDialogProp
           <Button color="secondary" onClick={handleClose}>
             Cancel
           </Button>
-          <Button disabled={createHouseholdMutation.isPending} type="submit" variant="contained">
+          <Button loading={createHouseholdMutation.isPending} type="submit" variant="contained">
             Create household
           </Button>
         </DialogActions>

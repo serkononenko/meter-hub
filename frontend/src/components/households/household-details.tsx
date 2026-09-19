@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import {useParams} from "next/navigation";
+import Button from "@mui/material/Button";
 import Card from "@mui/material/Card";
 import CardContent from "@mui/material/CardContent";
 import Skeleton from "@mui/material/Skeleton";
@@ -38,11 +39,16 @@ export function HouseholdDetails(): React.JSX.Element {
     return (
       <Card>
         <CardContent>
-          <Typography color="error">
-            {response && isErrorResponse(response)
-              ? problemMessage(response.data)
-              : "Could not load the household."}
-          </Typography>
+          <Stack spacing={2} sx={{alignItems: "flex-start"}}>
+            <Typography color="error">
+              {response && isErrorResponse(response)
+                ? problemMessage(response.data)
+                : "Could not load the household."}
+            </Typography>
+            <Button onClick={() => void householdQuery.refetch()} size="small" variant="outlined">
+              Retry
+            </Button>
+          </Stack>
         </CardContent>
       </Card>
     );
