@@ -154,7 +154,7 @@ describe('Meter authorization (e2e)', () => {
     expect(readBack.body.name).toBe('Cross-user meter');
   });
 
-  it('answers 502 when the household service is unreachable', async () => {
+  it('answers 503 when the household service is unreachable', async () => {
     const alice = await mintToken({ subject: ALICE });
     await takeHouseholdDown();
     try {
@@ -163,7 +163,7 @@ describe('Meter authorization (e2e)', () => {
         .query({ householdId: ALICE_HOUSEHOLD })
         .set('Authorization', `Bearer ${alice}`);
 
-      expect(response.status).toBe(502);
+      expect(response.status).toBe(503);
       expect(response.body.code).toBe('HOUSEHOLD_SERVICE_UNAVAILABLE');
     } finally {
       await bringHouseholdBack();
@@ -193,6 +193,6 @@ function uniqueSerial(): string {
 
 /** Problem body without request-scoped fields, for enumeration-safety diffs. */
 function stableProblem(body: Record<string, unknown>) {
-  const { correlationId: _c, instance: _i, ...rest } = body;
+  const { correlationId: _c, instance: _i, detail: _d, ...rest } = body;
   return rest;
 }
