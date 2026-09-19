@@ -9,7 +9,78 @@ tags:
     description: Meter reading endpoints
 
 paths:
-  {}  # paths arrive with 6.3 (create) and 6.4 (lookup); the model is defined first.
+  /api/v1/readings:
+    post:
+      tags: [Readings]
+      operationId: createReading
+      summary: Record a reading for a meter owned by the authenticated user
+      description: >-
+        Creates a reading under the given meter. The meter must exist and be
+        owned by the user that owns the presented access token; meters of
+        other users are not addressable and return the same not-found problem
+        as unknown ones. The source is always MANUAL in the MVP.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '../../openapi.yaml#/components/parameters/CorrelationId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateReadingRequest'
+            example:
+              meterId: 0d7f8a26-6f6f-4a55-9a71-3bd11c0a1f01
+              value: 15432.1
+              recordedAt: '2026-08-27T08:30:00Z'
+      responses:
+        '201':
+          description: Reading created.
+          headers:
+            X-Correlation-ID:
+              $ref: '../../components/headers/correlation-id.yaml'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Reading'
+              example:
+                id: 2b7e9a10-1c44-4c7e-8f5a-9d3b6c2e1a40
+                meterId: 0d7f8a26-6f6f-4a55-9a71-3bd11c0a1f01
+                value: 15432.1
+                recordedAt: '2026-08-27T08:30:00Z'
+                source: MANUAL
+                createdAt: '2026-08-27T08:31:00Z'
+        '400':
+          $ref: '../../openapi.yaml#/components/responses/BadRequest'
+        '401':
+          description: No access token was supplied, or it is invalid or expired.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../../openapi.yaml#/components/schemas/Problem'
+          # Auth (401 problems) arrives with 6.5; until then the endpoint is
+          # unauthenticated and this response is reserved.
+        '404':
+          description: No meter with this identifier is visible to the authenticated user.
+          headers:
+            X-Correlation-ID:
+              $ref: '../../components/headers/correlation-id.yaml'
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../../openapi.yaml#/components/schemas/Problem'
+              examples:
+                meterNotFound:
+                  summary: Meter does not exist or belongs to another user
+                  value:
+                    type: https://api.meterhub.local/problems/meter-not-found
+                    title: Meter not found
+                    status: 404
+                    code: METER_NOT_FOUND
+                    detail: No meter with this identifier is visible to the authenticated user.
+                    correlationId: 7d6f5f2c-0a49-4e10-8ef7-7c3d2b1f4a10
+        '500':
+          $ref: '../../openapi.yaml#/components/responses/InternalServerError'
 
 components:
   securitySchemes:
@@ -24,6 +95,24 @@ components:
       type: string
       enum: [MANUAL]
       description: How the reading entered the system. MVP records MANUAL entries only.
+
+    CreateReadingRequest:
+      type: object
+      additionalProperties: false
+      required: [meterId, value, recordedAt]
+      properties:
+        meterId:
+          type: string
+          format: uuid
+          description: The meter the reading belongs to. Must be owned by the authenticated user.
+        value:
+          type: number
+          minimum: 0
+          description: Meter counter value at recording time; non-negative (PRD §7).
+        recordedAt:
+          type: string
+          format: date-time
+          description: When the reading was taken. RFC 3339 timestamp in UTC. Must use the Z suffix.
 
     Reading:
       type: object

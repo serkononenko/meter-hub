@@ -5,7 +5,9 @@ import {createObserveModule} from '@nestjs/observe';
 import {DatabaseModule} from './database/database.module.js';
 import {CorrelationIdMiddleware} from './middlewares/correlation.middleware.js';
 import {HealthModule} from './health/health.module.js';
+import {ReadingModule} from './reading/reading.module.js';
 import {CommonExceptionFilter} from './filters/common-exception.filter.js';
+import {RequestValidationExceptionFilter} from "./filters/request-validation-exception.filter.js";
 import configuration from './config/configuration.js';
 
 
@@ -26,11 +28,16 @@ export const {ObserveModule, ObserveInstrument} = createObserveModule();
         }),
         DatabaseModule,
         HealthModule,
+        ReadingModule,
     ],
     providers: [
         {
             provide: APP_FILTER,
             useClass: CommonExceptionFilter
+        },
+        {
+            provide: APP_FILTER,
+            useClass: RequestValidationExceptionFilter,
         },
     ]
 })
