@@ -1,0 +1,15 @@
+.gitignore
+.openapi-generator-ignore
+README.md
+api-implementations.ts
+api.module.ts
+api/index.ts
+controllers/index.ts
+decorators/cookies-decorator.ts
+decorators/headers-decorator.ts
+decorators/index.ts
+index.ts
+models/index.ts
+models/reading-source.ts
+models/reading.ts
+tsconfig.json

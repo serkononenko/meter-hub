@@ -9,7 +9,8 @@
 * 🟢 You can import this file directly.
 */
 
+export const ReadingSource = {
+  MANUAL: 'MANUAL'
+} as const
 
-
-// This file is empty because there are no enums in the schema.
-export {}
+export type ReadingSource = (typeof ReadingSource)[keyof typeof ReadingSource]

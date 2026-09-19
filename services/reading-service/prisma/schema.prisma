@@ -6,3 +6,24 @@ generator client {
 datasource db {
   provider = "postgresql"
 }
+
+/// A meter reading recorded under a meter. The meter lives in Meter Service's
+/// database, so meter_id is a plain UUID reference without a foreign key (no
+/// cross-service DB access — PRD §6.4).
+model Reading {
+  id         String        @id @default(uuid()) @db.Uuid
+  meterId    String        @map("meter_id") @db.Uuid
+  value      Decimal       @db.Decimal(20, 6)
+  recordedAt DateTime      @map("recorded_at") @db.Timestamptz(6)
+  source     ReadingSource @default(MANUAL)
+  createdAt  DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@index([meterId, recordedAt])
+  @@map("readings")
+}
+
+enum ReadingSource {
+  MANUAL
+
+  @@map("reading_source")
+}

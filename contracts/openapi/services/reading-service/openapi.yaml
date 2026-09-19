@@ -1,0 +1,56 @@
+openapi: 3.0.3
+info:
+  title: MeterHub Reading Service API
+  description: MeterHub Reading Service HTTP API. Covers meter reading registration and lookup for meters owned by the authenticated user.
+  version: 1.0.0
+
+tags:
+  - name: Readings
+    description: Meter reading endpoints
+
+paths:
+  {}  # paths arrive with 6.3 (create) and 6.4 (lookup); the model is defined first.
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Access token issued by POST /api/v1/auth/login or /api/v1/auth/refresh.
+
+  schemas:
+    ReadingSource:
+      type: string
+      enum: [MANUAL]
+      description: How the reading entered the system. MVP records MANUAL entries only.
+
+    Reading:
+      type: object
+      additionalProperties: false
+      required: [id, meterId, value, recordedAt, source, createdAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: UUID v4 in canonical lowercase form.
+          example: 2b7e9a10-1c44-4c7e-8f5a-9d3b6c2e1a40
+        meterId:
+          type: string
+          format: uuid
+          description: The meter this reading belongs to.
+        value:
+          type: number
+          description: Meter counter value at recording time; non-negative (PRD §7).
+        recordedAt:
+          type: string
+          format: date-time
+          description: RFC 3339 timestamp in UTC. Must use the Z suffix.
+          example: '2026-08-27T08:30:00Z'
+        source:
+          $ref: '#/components/schemas/ReadingSource'
+        createdAt:
+          type: string
+          format: date-time
+          description: RFC 3339 timestamp in UTC. Must use the Z suffix.
+          example: '2026-08-27T08:30:00Z'
