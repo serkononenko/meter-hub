@@ -13,7 +13,13 @@ openapi/
 │   └── schemas/
 │       └── problem.yaml
 └── services/
-    └── identity-service/
+    ├── identity-service/
+    │   └── openapi.yaml
+    ├── household-service/
+    │   └── openapi.yaml
+    ├── meter-service/
+    │   └── openapi.yaml
+    └── reading-service/
         └── openapi.yaml
 ```
 
@@ -28,4 +34,4 @@ Each service keeps its own contract under `services/<service-name>/openapi.yaml`
 - `X-Correlation-ID` is used for request tracing.
 - Service-specific contracts should reuse these definitions instead of introducing alternative formats.
 
-The root contract is intentionally small. Domain-specific paths should be added as individual services are implemented.
+The root contract is intentionally small. Domain-specific paths live in the per-service contracts; services generate their server stubs and cross-service clients from them (see each service's `openapi-config/generate.sh`).

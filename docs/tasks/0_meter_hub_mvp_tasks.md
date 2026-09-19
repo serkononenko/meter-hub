@@ -434,11 +434,24 @@ their own token B still gets 200 on the meter and 201 on a reading.
 ## Epic 9 — Contracts and Testing
 
 ### 9.1 OpenAPI
-- [ ] Define Identity API OpenAPI contract.
-- [ ] Define Household API OpenAPI contract.
-- [ ] Define Meter API OpenAPI contract.
-- [ ] Define Reading API OpenAPI contract.
-- [ ] Publish contracts in repository.
+- [x] Define Identity API OpenAPI contract.
+- [x] Define Household API OpenAPI contract.
+- [x] Define Meter API OpenAPI contract.
+- [x] Define Reading API OpenAPI contract.
+- [x] Publish contracts in repository.
+
+All four contracts live in `contracts/openapi/services/<service>/openapi.yaml`,
+sharing the root `contracts/openapi/openapi.yaml` (Problem schema, correlation
+ID header, common error responses). Verified against the implementations:
+identity/household controllers implement the generated `*Api` interfaces and
+meter/reading services extend the generated NestJS server stubs, so paths,
+schemas, and status codes match the deployed behavior (including 8.5's
+ownership-scoped 404s and the meter/reading 401 problem examples). Reading
+contract's 401 responses were still pre-auth placeholders ("reserved"
+comments) — replaced with the shared `UnauthorizedProblem` response (missing
+token / invalid token examples) matching the other contracts. All five
+documents lint clean with Redocly; regenerating the reading-service stubs
+from the updated contract produced byte-identical code.
 
 ### 9.2 Unit tests
 - [ ] Add domain/service tests for each backend service.
