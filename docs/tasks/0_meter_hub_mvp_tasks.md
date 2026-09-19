@@ -454,9 +454,23 @@ documents lint clean with Redocly; regenerating the reading-service stubs
 from the updated contract produced byte-identical code.
 
 ### 9.2 Unit tests
-- [ ] Add domain/service tests for each backend service.
-- [ ] Add validation tests.
-- [ ] Add authorization tests.
+- [x] Add domain/service tests for each backend service.
+- [x] Add validation tests.
+- [x] Add authorization tests.
+
+Meter and reading services already had full Vitest unit suites for their
+service and repository layers (meter: 20 tests incl. serial-conflict mapping
+and empty-update rejection; reading: 34 tests incl. paging bounds, UTC
+normalization, non-decreasing rule, and meter-access gating). The gap was the
+Java services, which only had Spring integration tests: added pure unit tests
+with Mockito — identity `AuthServiceTest` (13 tests: login credential/status
+rejection paths that all map to the same 401, refresh rotation with hash-only
+storage, expiry/revocation/inactive-account rejection, idempotent logout) and
+`UserServiceTest` (6 tests: password hashing, email/username uniqueness with
+field attribution, current-user lookup), household `HouseholdServiceTest`
+(7 tests: owner-member creation with consistent timestamps, owner-scoped
+listing, ownership-scoped 404 indistinguishable from unknown household).
+All green: identity 19, household 7, meter 20, reading 34.
 
 ### 9.3 Integration tests
 - [ ] Test each service against PostgreSQL.
