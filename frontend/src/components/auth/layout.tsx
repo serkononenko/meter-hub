@@ -4,6 +4,7 @@ import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 
 import {paths} from "@/paths";
+import {RegisterDisplay} from "@/components/register/register-display";
 import {AuthLogo} from "./auth-logo";
 
 export interface AuthLayoutProps {
@@ -35,25 +36,26 @@ export function AuthLayout({children}: AuthLayoutProps): React.JSX.Element {
       <Box
         sx={{
           alignItems: "center",
-          background: "radial-gradient(50% 50% at 50% 50%, #122647 0%, #090E23 100%)",
+          backgroundColor: "#0c1420",
           color: "var(--mui-palette-common-white)",
           display: {xs: "none", lg: "flex"},
           justifyContent: "center",
           p: 3,
         }}
       >
-        <Stack spacing={3}>
+        <Stack spacing={4} sx={{alignItems: "flex-start"}}>
+          <RegisterDisplay size={64} value="0043187" />
           <Stack spacing={1}>
-            <Typography color="inherit" sx={{fontSize: "24px", lineHeight: "32px", textAlign: "center"}} variant="h1">
-              Welcome to <Box component="span" sx={{color: "#15b79e"}}>MeterHub</Box>
+            <Typography color="inherit" sx={{fontSize: "24px", lineHeight: "32px"}} variant="h1">
+              Read your meters. Remember every number.
             </Typography>
-            <Typography align="center" variant="subtitle1">
+            <Typography variant="subtitle1">
               Track household meters and keep your readings in one place.
             </Typography>
           </Stack>
-          <Divider sx={{borderColor: "rgba(255, 255, 255, 0.12)"}} />
+          <Divider sx={{borderColor: "rgba(255, 255, 255, 0.12)", alignSelf: "stretch"}} />
           <Stack spacing={2} sx={{p: 2}}>
-            <Typography align="center" color="var(--mui-palette-neutral-400)" variant="body2">
+            <Typography color="var(--mui-palette-neutral-400)" variant="body2">
               Record electricity, gas, and water readings — the app refuses
               values that would move a meter backwards.
             </Typography>

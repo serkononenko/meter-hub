@@ -5,7 +5,7 @@ import ThemeProviderBoundary from "../theme/theme-provider";
 
 import {QueryProvider} from "@/components/query-provider";
 import {AuthProvider} from "@/contexts/auth-context";
-import {inter} from "@/lib/fonts";
+import {bricolage, splineMono} from "@/lib/fonts";
 import "@/styles/global.css";
 
 export const metadata: Metadata = {
@@ -15,7 +15,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({children}: LayoutProps<"/">) {
   return (
-    <html lang="en" className={inter.variable} suppressHydrationWarning>
+    <html lang="en" className={`${bricolage.variable} ${splineMono.variable}`} suppressHydrationWarning>
       <body>
         {/* Runs before hydration so the color scheme matches the system
             preference without a flash. */}

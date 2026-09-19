@@ -3,8 +3,8 @@ import type {ColorSystemOptions} from "@mui/material/styles";
 import {
   california,
   kepple,
-  neonBlue,
   nevada,
+  petrol,
   redOrange,
   shakespeare,
   stormGrey,
@@ -20,8 +20,8 @@ export const colorSchemes: {light: ColorSystemOptions; dark: ColorSystemOptions}
     palette: {
       action: {disabledBackground: "rgba(0, 0, 0, 0.06)"},
       background: {
-        default: "var(--mui-palette-common-white)",
-        defaultChannel: "255 255 255",
+        default: "#f7f9f9",
+        defaultChannel: "247 249 249",
         paper: "var(--mui-palette-common-white)",
         paperChannel: "255 255 255",
         level1: "var(--mui-palette-neutral-50)",
@@ -47,10 +47,10 @@ export const colorSchemes: {light: ColorSystemOptions; dark: ColorSystemOptions}
       },
       neutral: {...stormGrey},
       primary: {
-        ...neonBlue,
-        light: neonBlue[400],
-        main: neonBlue[500],
-        dark: neonBlue[600],
+        ...petrol,
+        light: petrol[500],
+        main: petrol[600],
+        dark: petrol[700],
         contrastText: "var(--mui-palette-common-white)",
       },
       secondary: {
@@ -90,7 +90,7 @@ export const colorSchemes: {light: ColorSystemOptions; dark: ColorSystemOptions}
         default: "var(--mui-palette-neutral-950)",
         defaultChannel: "9 10 11",
         paper: "var(--mui-palette-neutral-900)",
-        paperChannel: "19 78 72",
+        paperChannel: "18 21 23",
         level1: "var(--mui-palette-neutral-800)",
         level2: "var(--mui-palette-neutral-700)",
         level3: "var(--mui-palette-neutral-600)",
@@ -114,10 +114,10 @@ export const colorSchemes: {light: ColorSystemOptions; dark: ColorSystemOptions}
       },
       neutral: {...nevada},
       primary: {
-        ...neonBlue,
-        light: neonBlue[300],
-        main: neonBlue[400],
-        dark: neonBlue[500],
+        ...petrol,
+        light: petrol[400],
+        main: petrol[300],
+        dark: petrol[500],
         contrastText: "var(--mui-palette-common-black)",
       },
       secondary: {

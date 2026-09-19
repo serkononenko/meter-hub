@@ -22,7 +22,7 @@ const theme = createTheme({
   shape: {borderRadius: 8},
   typography: {
     fontFamily:
-      'var(--font-inter), "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji"',
+      'var(--font-bricolage), "Bricolage Grotesque", -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji"',
     body1: {fontSize: "1rem", fontWeight: 400, lineHeight: 1.5},
     body2: {fontSize: "0.875rem", fontWeight: 400, lineHeight: 1.57},
     button: {fontWeight: 500},

@@ -27,7 +27,7 @@ export function SideNav(): React.JSX.Element {
   return (
     <Box
       sx={{
-        "--SideNav-background": "var(--mui-palette-neutral-950)",
+        "--SideNav-background": "#0c1420",
         "--SideNav-color": "var(--mui-palette-common-white)",
         "--NavItem-color": "var(--mui-palette-neutral-300)",
         "--NavItem-hover-background": "rgba(255, 255, 255, 0.04)",
@@ -53,7 +53,7 @@ export function SideNav(): React.JSX.Element {
       }}
     >
       <Stack spacing={2} sx={{p: 3}}>
-        <Box component={RouterLink} href={paths.home} sx={{display: "inline-flex", textDecoration: "none"}}>
+        <Box component={RouterLink} href={paths.home} sx={{color: "inherit", display: "inline-flex", textDecoration: "none"}}>
           <Typography variant="h6" sx={{color: "inherit"}}>
             MeterHub
           </Typography>
