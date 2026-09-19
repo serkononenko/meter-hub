@@ -196,7 +196,7 @@ export function MeterCreateDialog({householdId, onClose, open}: MeterCreateDialo
           <Button color="secondary" onClick={handleClose}>
             Cancel
           </Button>
-          <Button disabled={createMeterMutation.isPending} type="submit" variant="contained">
+          <Button loading={createMeterMutation.isPending} type="submit" variant="contained">
             Add meter
           </Button>
         </DialogActions>

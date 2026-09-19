@@ -189,7 +189,7 @@ export function MeterEditDialog({meter, onClose, open}: MeterEditDialogProps): R
           <Button color="secondary" onClick={handleClose}>
             Cancel
           </Button>
-          <Button disabled={updateMeterMutation.isPending} type="submit" variant="contained">
+          <Button loading={updateMeterMutation.isPending} type="submit" variant="contained">
             Save changes
           </Button>
         </DialogActions>

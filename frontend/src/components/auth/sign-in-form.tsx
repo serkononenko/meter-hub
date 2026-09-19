@@ -110,7 +110,7 @@ export function SignInForm(): React.JSX.Element {
             {errors.password ? <FormHelperText>{errors.password}</FormHelperText> : null}
           </FormControl>
           {errors.root ? <Alert color="error">{errors.root}</Alert> : null}
-          <Button disabled={isPending} type="submit" variant="contained">
+          <Button loading={isPending} type="submit" variant="contained">
             Sign in
           </Button>
         </Stack>

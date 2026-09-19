@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import Box from "@mui/material/Box";
+import Button from "@mui/material/Button";
 import Collapse from "@mui/material/Collapse";
 import Divider from "@mui/material/Divider";
 import Skeleton from "@mui/material/Skeleton";
@@ -42,9 +43,14 @@ export function ReadingsHistory({meter, open}: ReadingsHistoryProps): React.JSX.
             <Skeleton height={24} variant="rounded" />
           </Stack>
         ) : historyQuery.isError || !response ? (
-          <Typography color="error" variant="body2">
-            Could not load the reading history.
-          </Typography>
+          <Stack spacing={1} sx={{alignItems: "flex-start"}}>
+            <Typography color="error" variant="body2">
+              Could not load the reading history.
+            </Typography>
+            <Button onClick={() => void historyQuery.refetch()} size="small" variant="outlined">
+              Retry
+            </Button>
+          </Stack>
         ) : isErrorResponse(response) ? (
           <Typography color="text.secondary" variant="body2">
             {response.status === 404
