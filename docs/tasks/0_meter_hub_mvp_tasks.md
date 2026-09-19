@@ -626,11 +626,22 @@ reading 47 unit + 15 e2e, identity/household/gateway all green).
 ## Epic 11 — MVP Release
 
 ### 11.1 Documentation
-- [ ] Write architecture overview.
-- [ ] Write local setup guide.
-- [ ] Write API usage examples.
-- [ ] Document data ownership boundaries.
-- [ ] Document known limitations.
+- [x] Write architecture overview.
+- [x] Write local setup guide.
+- [x] Write API usage examples.
+- [x] Document data ownership boundaries.
+- [x] Document known limitations.
+
+New docs/architecture-overview.md (components, auth flow, cross-service
+trust, observability, environments), docs/api-examples.md (runnable curl
+walkthrough of the full MVP flow with real payloads and the error-code
+table — every `code` verified against the OpenAPI contracts), and
+docs/known-limitations.md (deliberate scope cuts: no service-to-service
+auth, shared PostgreSQL, no rate limiting/pagination/CI, etc.). The local
+setup guide requirement was already covered by the 10.3 README rewrite
+(clone → .env → keygen → one-command startup/reset); data ownership is
+documented in docs/service-boundaries.md §Data Ownership and conventions
+§16, now linked from a new README "Documentation" index table.
 
 ### 11.2 MVP acceptance
 - [ ] Clean checkout starts successfully with Docker Compose.
