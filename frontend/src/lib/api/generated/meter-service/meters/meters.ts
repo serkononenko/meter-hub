@@ -99,7 +99,7 @@ export const getCreateMeterUrl = () => {
 
 
 
-  return `/api/v1/meters`
+  return `/api/meter-service/api/v1/meters`
 }
 
 /**
@@ -228,7 +228,7 @@ export const getListMetersUrl = (params: ListMetersParams,) => {
 
   const stringifiedParams = normalizedParams.toString();
 
-  return stringifiedParams.length > 0 ? `/api/v1/meters?${stringifiedParams}` : `/api/v1/meters`
+  return stringifiedParams.length > 0 ? `/api/meter-service/api/v1/meters?${stringifiedParams}` : `/api/meter-service/api/v1/meters`
 }
 
 /**
@@ -252,7 +252,7 @@ export const listMeters = async (params: ListMetersParams, options?: Parameters<
 
 export const getListMetersQueryKey = (params?: ListMetersParams,) => {
     return [
-    `/api/v1/meters`, ...(params ? [params] : [])
+    `/api/meter-service/api/v1/meters`, ...(params ? [params] : [])
     ] as const;
     }
 
@@ -358,7 +358,7 @@ export const getGetMeterUrl = (meterId: string,) => {
 
 
 
-  return `/api/v1/meters/${meterId}`
+  return `/api/meter-service/api/v1/meters/${meterId}`
 }
 
 /**
@@ -382,7 +382,7 @@ export const getMeter = async (meterId: string, options?: Parameters<typeof orva
 
 export const getGetMeterQueryKey = (meterId: string,) => {
     return [
-    `/api/v1/meters/${meterId}`
+    `/api/meter-service/api/v1/meters/${meterId}`
     ] as const;
     }
 
@@ -498,7 +498,7 @@ export const getUpdateMeterUrl = (meterId: string,) => {
 
 
 
-  return `/api/v1/meters/${meterId}`
+  return `/api/meter-service/api/v1/meters/${meterId}`
 }
 
 /**

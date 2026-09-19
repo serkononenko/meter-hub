@@ -4,7 +4,8 @@ import {getAccessToken, refreshSession} from "@/lib/auth/auth-client";
  * Custom instance used by all Orval-generated API calls.
  *
  * Browser: attaches the in-memory Bearer access token and retries once
- * through a silent refresh on 401, calling relative /api/v1 URLs (proxied
+ * through a silent refresh on 401, calling relative /api/<service-name> URLs
+ * (proxied
  * to the gateway by the Next.js rewrite).
  *
  * Server (BFF route handlers): the same generated functions are called

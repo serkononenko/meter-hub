@@ -7,6 +7,19 @@ import {defineConfig} from "orval";
  * which attaches the in-memory access token and silently refreshes on 401.
  */
 
+/**
+ * Maps a contract service name to the gateway route prefix that fronts it.
+ * The gateway exposes each service under /api/<service-name>/** and strips
+ * that prefix before forwarding (RewritePath), so a generated URL of
+ * /api/meter-service/api/v1/meters reaches Meter Service as /api/v1/meters.
+ */
+const SERVICE_GATEWAY_PREFIX: Record<string, string> = {
+  "identity-service": "/api/identity-service",
+  "household-service": "/api/household-service",
+  "meter-service": "/api/meter-service",
+  "reading-service": "/api/reading-service",
+};
+
 function serviceConfig(name: string) {
   return {
     input: {
@@ -30,7 +43,9 @@ function serviceConfig(name: string) {
       target: `src/lib/api/generated/${name}/${name}.ts`,
       schemas: `src/lib/api/generated/${name}/model`,
       httpClient: "fetch" as const,
-      // NOTE: contract paths already start with /api/v1, so no baseUrl here.
+      // Prepend the gateway route prefix to every contract path
+      // (/api/v1/...) so browser calls route through the gateway.
+      baseUrl: SERVICE_GATEWAY_PREFIX[name],
       override: {
         mutator: {
           path: "src/lib/api/orval-mutator.ts",

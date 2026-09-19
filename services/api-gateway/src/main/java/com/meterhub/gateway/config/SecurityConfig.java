@@ -52,9 +52,11 @@ public class SecurityConfig {
                 // auth rules; the original request was already authorized
                 .dispatcherTypeMatchers(DispatcherType.ERROR).permitAll()
                 // Health probes must not need a token; auth endpoints authenticate
-                // by the request body itself (login, register, refresh, logout)
+                // by the request body itself (login, register, refresh, logout).
+                // Path matchers see the original request path, i.e. with the
+                // /api/<service-name> prefix that the gateway routes strip later
                 .requestMatchers("/actuator/health").permitAll()
-                .requestMatchers("/api/v1/auth/**").permitAll()
+                .requestMatchers("/api/identity-service/api/v1/auth/**").permitAll()
                 .anyRequest().authenticated()
             )
             .oauth2ResourceServer(oauth2 -> oauth2

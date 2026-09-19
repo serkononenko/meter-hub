@@ -48,7 +48,7 @@ class GatewayAuthenticationIntegrationTest {
 
     @Test
     void missingTokenReturnsUnauthorizedProblem() {
-        EntityExchangeResult<byte[]> result = client.get().uri("/api/v1/users/me")
+        EntityExchangeResult<byte[]> result = client.get().uri("/api/identity-service/api/v1/users/me")
             .exchange()
             .returnResult(byte[].class);
 
@@ -146,7 +146,7 @@ class GatewayAuthenticationIntegrationTest {
     void authEndpointsArePublic() {
         // Downstream is down: a 5xx (connection refused) means the security
         // layer let the request through; a 401 would mean it demanded a token
-        EntityExchangeResult<byte[]> register = client.post().uri("/api/v1/auth/register")
+        EntityExchangeResult<byte[]> register = client.post().uri("/api/identity-service/api/v1/auth/register")
             .body(Map.of(
                 "email", "jane.doe@example.com",
                 "username", "jane.doe",
@@ -154,18 +154,18 @@ class GatewayAuthenticationIntegrationTest {
             ))
             .exchange()
             .returnResult(byte[].class);
-        EntityExchangeResult<byte[]> login = client.post().uri("/api/v1/auth/login")
+        EntityExchangeResult<byte[]> login = client.post().uri("/api/identity-service/api/v1/auth/login")
             .body(Map.of(
                 "email", "jane.doe@example.com",
                 "password", "correct-horse-battery"
             ))
             .exchange()
             .returnResult(byte[].class);
-        EntityExchangeResult<byte[]> refresh = client.post().uri("/api/v1/auth/refresh")
+        EntityExchangeResult<byte[]> refresh = client.post().uri("/api/identity-service/api/v1/auth/refresh")
             .body(Map.of("refreshToken", "anything"))
             .exchange()
             .returnResult(byte[].class);
-        EntityExchangeResult<byte[]> logout = client.post().uri("/api/v1/auth/logout")
+        EntityExchangeResult<byte[]> logout = client.post().uri("/api/identity-service/api/v1/auth/logout")
             .exchange()
             .returnResult(byte[].class);
 
@@ -207,7 +207,7 @@ class GatewayAuthenticationIntegrationTest {
     }
 
     private EntityExchangeResult<byte[]> me(String accessToken) {
-        return client.get().uri("/api/v1/users/me")
+        return client.get().uri("/api/identity-service/api/v1/users/me")
             .headers(headers -> headers.setBearerAuth(accessToken))
             .exchange()
             .returnResult(byte[].class);

@@ -97,7 +97,7 @@ export const getCreateReadingUrl = () => {
 
 
 
-  return `/api/v1/readings`
+  return `/api/reading-service/api/v1/readings`
 }
 
 /**
@@ -227,7 +227,7 @@ export const getListReadingsUrl = (meterId: string,
 
   const stringifiedParams = normalizedParams.toString();
 
-  return stringifiedParams.length > 0 ? `/api/v1/meters/${meterId}/readings?${stringifiedParams}` : `/api/v1/meters/${meterId}/readings`
+  return stringifiedParams.length > 0 ? `/api/reading-service/api/v1/meters/${meterId}/readings?${stringifiedParams}` : `/api/reading-service/api/v1/meters/${meterId}/readings`
 }
 
 /**
@@ -253,7 +253,7 @@ export const listReadings = async (meterId: string,
 export const getListReadingsQueryKey = (meterId: string,
     params?: ListReadingsParams,) => {
     return [
-    `/api/v1/meters/${meterId}/readings`, ...(params ? [params] : [])
+    `/api/reading-service/api/v1/meters/${meterId}/readings`, ...(params ? [params] : [])
     ] as const;
     }
 
@@ -364,7 +364,7 @@ export const getGetLatestReadingUrl = (meterId: string,) => {
 
 
 
-  return `/api/v1/meters/${meterId}/readings/latest`
+  return `/api/reading-service/api/v1/meters/${meterId}/readings/latest`
 }
 
 /**
@@ -388,7 +388,7 @@ export const getLatestReading = async (meterId: string, options?: Parameters<typ
 
 export const getGetLatestReadingQueryKey = (meterId: string,) => {
     return [
-    `/api/v1/meters/${meterId}/readings/latest`
+    `/api/reading-service/api/v1/meters/${meterId}/readings/latest`
     ] as const;
     }
 
