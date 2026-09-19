@@ -333,10 +333,10 @@ against docker compose (create → card + side-nav update → details → 404
 problem → required-name validation → cancel).
 
 ### 7.4 Meter UI
-- [ ] Show meters for selected household.
-- [ ] Create add-meter form.
-- [ ] Create edit/archive meter action.
-- [ ] Display meter type, unit, serial number, and latest reading.
+- [x] Show meters for selected household.
+- [x] Create add-meter form.
+- [x] Create edit/archive meter action.
+- [x] Display meter type, unit, serial number, and latest reading.
 
 ### 7.5 Reading UI
 - [ ] Create add-reading form.

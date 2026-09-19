@@ -4,7 +4,6 @@ export const paths = {
   auth: {signIn: "/auth/sign-in", signUp: "/auth/sign-up"},
   /** Post-login landing view. */
   households: "/households",
-  meters: "/meters",
   readings: "/readings",
   settings: "/settings",
   errors: {notFound: "/errors/not-found"},
