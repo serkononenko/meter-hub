@@ -1,6 +1,7 @@
-import {Injectable} from "@nestjs/common";
-import {HouseholdsApi} from './generated/index.js';
-import {HouseholdAccessException} from '../exceptions/household-access.exception.js';
+import {HttpStatus, Injectable} from "@nestjs/common";
+import {FetchError, HouseholdsApi, ResponseError} from './generated/index.js';
+import {HouseholdServiceUnavailableException} from '../exceptions/service-unavailable.exception.js';
+import {HouseholdNotFoundException} from '../exceptions/not-found.exception.js';
 
 
 @Injectable()
@@ -12,7 +13,19 @@ export class HouseholdService {
         try {
             return await this.householdApi.getHousehold({householdId});
         } catch (error) {
-            throw new HouseholdAccessException(householdId, error);
+            if (error instanceof FetchError) {
+                throw new HouseholdServiceUnavailableException(error.cause)
+            }
+
+            if (isNotFound(error)) {
+                throw new HouseholdNotFoundException(householdId);
+            }
+
+            throw error;
         }
     }
+}
+
+function isNotFound(error: unknown): boolean {
+    return error instanceof ResponseError && error.response.status === HttpStatus.NOT_FOUND;
 }

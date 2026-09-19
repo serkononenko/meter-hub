@@ -1,9 +1,10 @@
-import { beforeAll, afterAll } from 'vitest';
-import { writeFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
-import { join } from 'node:path';
-import { createServer, type Server } from 'node:http';
-import { exportSPKI, generateKeyPair, SignJWT, type CryptoKey } from 'jose';
+import {writeFileSync} from 'node:fs';
+import {tmpdir} from 'node:os';
+import {join} from 'node:path';
+import {createServer, type Server, type IncomingMessage, type ServerResponse} from 'node:http';
+import {generateKeyPairSync} from 'node:crypto';
+import {beforeAll, afterAll} from 'vitest';
+import jwt from 'jsonwebtoken';
 
 /**
  * Global e2e setup: mints an RSA key pair for the run, points the service at
@@ -20,49 +21,52 @@ export const ALICE_HOUSEHOLD = 'aaaa1111-1111-4111-8111-111111111111';
 /** Household owned by the BOB test subject. */
 export const BOB_HOUSEHOLD = 'bbbb2222-2222-4222-8222-222222222222';
 
-let privateKey: CryptoKey;
+const {privateKey, publicKey: publicKeyPem} = generateKeyPairSync('rsa', {
+    modulusLength: 2048,
+    publicKeyEncoding: {type: 'spki', format: 'pem'},
+    privateKeyEncoding: {type: 'pkcs8', format: 'pem'},
+});
+
 let householdServer: Server;
 
 beforeAll(async () => {
-  const { publicKey, privateKey: key } = await generateKeyPair('RS256', { modulusLength: 2048 });
-  privateKey = key;
-  const pem = await exportSPKI(publicKey);
-  const path = join(tmpdir(), `meter-service-e2e-${process.pid}.pem`);
-  writeFileSync(path, pem);
-  process.env.IDENTITY_JWT_ISSUER = 'identity-service';
-  process.env.IDENTITY_JWT_AUDIENCE = 'meterhub-api';
-  process.env.IDENTITY_JWT_PUBLIC_KEY_PATH = path;
+    const path = join(tmpdir(), `meter-service-e2e-${process.pid}.pem`);
+    writeFileSync(path, publicKeyPem);
+    process.env.IDENTITY_JWT_ISSUER = 'identity-service';
+    process.env.IDENTITY_JWT_AUDIENCE = 'meterhub-api';
+    process.env.IDENTITY_JWT_PUBLIC_KEY_PATH = path;
 
-  householdServer = createServer(householdStubHandler);
-  await new Promise<void>((resolve) => householdServer.listen(0, '127.0.0.1', resolve));
-  const port = (householdServer.address() as { port: number }).port;
-  process.env.HOUSEHOLD_SERVICE_URL = `http://127.0.0.1:${port}`;
+    householdServer = createServer(householdStubHandler);
+    await new Promise<void>((resolve) => householdServer.listen(0, '127.0.0.1', resolve));
+    const port = (householdServer.address() as { port: number }).port;
+    process.env.HOUSEHOLD_SERVICE_URL = `http://127.0.0.1:${port}`;
 }, 30_000);
 
 afterAll(async () => {
-  await new Promise<void>((resolve) => householdServer?.close(() => resolve()));
+    await new Promise<void>((resolve) => householdServer?.close(() => resolve()));
 });
 
+interface TokenClaims {
+    subject?: string;
+    issuer?: string;
+    audience?: string;
+    issuedAt?: number;
+    expiresAt?: number;
+}
+
 /** Mints a signed access token with full claim control. */
-export async function mintToken(claims: {
-  subject?: string;
-  issuer?: string;
-  audience?: string;
-  issuedAt?: number;
-  expiresAt?: number;
-}): Promise<string> {
-  if (!privateKey) {
-    throw new Error('JWT test keys not initialized; run the global beforeAll first');
-  }
-  const now = Math.floor(Date.now() / 1000);
-  return new SignJWT({})
-    .setProtectedHeader({ alg: 'RS256' })
-    .setIssuer(claims.issuer ?? 'identity-service')
-    .setSubject(claims.subject ?? ALICE)
-    .setAudience(claims.audience ?? 'meterhub-api')
-    .setIssuedAt(claims.issuedAt ?? now)
-    .setExpirationTime(claims.expiresAt ?? now + 300)
-    .sign(privateKey);
+export function mintToken(claims: TokenClaims = {}): string {
+    const now = Math.floor(Date.now() / 1000);
+    return jwt.sign(
+        {
+            iss: claims.issuer ?? 'identity-service',
+            sub: claims.subject ?? ALICE,
+            iat: claims.issuedAt ?? now,
+            exp: claims.expiresAt ?? now + 300,
+        },
+        privateKey,
+        {algorithm: 'RS256', audience: claims.audience ?? 'meterhub-api'},
+    );
 }
 
 /**
@@ -70,50 +74,47 @@ export async function mintToken(claims: {
  * failure and the service must fail closed. Restart with bringHouseholdBack().
  */
 export async function takeHouseholdDown(): Promise<void> {
-  await new Promise<void>((resolve) => householdServer.close(() => resolve()));
+    await new Promise<void>((resolve) => householdServer.close(() => resolve()));
 }
 
 export async function bringHouseholdBack(): Promise<void> {
-  await new Promise<void>((resolve) => householdServer.listen(0, '127.0.0.1', resolve));
-  const port = (householdServer.address() as { port: number }).port;
-  process.env.HOUSEHOLD_SERVICE_URL = `http://127.0.0.1:${port}`;
+    await new Promise<void>((resolve) => householdServer.listen(0, '127.0.0.1', resolve));
+    const port = (householdServer.address() as { port: number }).port;
+    process.env.HOUSEHOLD_SERVICE_URL = `http://127.0.0.1:${port}`;
 }
 
 const OWNED: Record<string, string> = {
-  [ALICE_HOUSEHOLD]: ALICE,
-  [BOB_HOUSEHOLD]: BOB,
+    [ALICE_HOUSEHOLD]: ALICE,
+    [BOB_HOUSEHOLD]: BOB,
 };
 
-function householdStubHandler(
-  request: { url?: string; headers: { authorization?: string } },
-  response: { writeHead: (status: number, headers: object) => void; end: (body: string) => void },
-): void {
-  const match = /^\/api\/v1\/households\/([0-9a-f-]{36})(\?.*)?$/.exec(request.url ?? '');
-  const householdId = match?.[1];
-  const subject = subjectOf(request.headers.authorization);
-  const owned = householdId !== undefined && OWNED[householdId] === subject;
-  response.writeHead(owned ? 200 : 404, { 'Content-Type': 'application/json' });
-  response.end(
-    owned
-      ? JSON.stringify({ id: householdId, name: 'Test household', createdAt: '2026-09-01T10:00:00Z' })
-      : JSON.stringify({ code: 'HOUSEHOLD_NOT_FOUND', status: 404 }),
-  );
+function householdStubHandler(request: IncomingMessage, response: ServerResponse): void {
+    const match = /^\/api\/v1\/households\/([0-9a-f-]{36})(\?.*)?$/.exec(request.url ?? '');
+    const householdId = match?.[1];
+    const subject = subjectOf(request.headers.authorization);
+    const owned = householdId !== undefined && OWNED[householdId] === subject;
+    response.writeHead(owned ? 200 : 404, {'Content-Type': 'application/json'});
+    response.end(
+        owned
+            ? JSON.stringify({id: householdId, name: 'Test household', createdAt: '2026-09-01T10:00:00Z'})
+            : JSON.stringify({code: 'HOUSEHOLD_NOT_FOUND', status: 404}),
+    );
 }
 
 /** Decodes (without verifying — this is a test stand-in) the token's `sub`. */
 function subjectOf(authorization: string | undefined): string | null {
-  const token = authorization?.replace(/^Bearer\s+/i, '');
-  if (!token) {
-    return null;
-  }
-  const [, payload] = token.split('.');
-  if (!payload) {
-    return null;
-  }
-  try {
-    const json = Buffer.from(payload, 'base64url').toString('utf8');
-    return (JSON.parse(json) as { sub?: string }).sub ?? null;
-  } catch {
-    return null;
-  }
+    const token = authorization?.replace(/^Bearer\s+/i, '');
+    if (!token) {
+        return null;
+    }
+    const [, payload] = token.split('.');
+    if (!payload) {
+        return null;
+    }
+    try {
+        const json = Buffer.from(payload, 'base64url').toString('utf8');
+        return (JSON.parse(json) as { sub?: string }).sub ?? null;
+    } catch {
+        return null;
+    }
 }
