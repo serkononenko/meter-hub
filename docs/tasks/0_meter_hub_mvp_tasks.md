@@ -209,10 +209,10 @@ index on `(household_id, serial_number)` in meter-db.
 - [x] Add `createdAt`.
 
 ### 6.3 Create reading
-- [ ] Implement `POST /api/v1/readings`.
-- [ ] Validate non-negative values.
-- [ ] Validate timestamp.
-- [ ] Set source to `MANUAL` for MVP.
+- [x] Implement `POST /api/v1/readings`.
+- [x] Validate non-negative values.
+- [x] Validate timestamp.
+- [x] Set source to `MANUAL` for MVP.
 
 ### 6.4 Reading lookup
 - [ ] Implement `GET /api/v1/meters/{meterId}/readings`.
