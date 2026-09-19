@@ -113,9 +113,14 @@ services:
     build:
       context: ./services/reading-service
     environment:
-      # The auth stack (6.5) adds the identity-jwt anchor and the public-key
-      # secret; DATABASE_URL is all the bootstrap (6.1) needs.
+      <<: *identity-jwt-env
       DATABASE_URL: postgresql://${READING_DB_USER}:${READING_DB_PASSWORD}@postgres:5432/${READING_DB}
+      # Ownership checks call Meter Service's HTTP API (6.5); the token is
+      # forwarded so Meter Service applies its own masking.
+      METER_SERVICE_URL: http://meter-service:8083
+      IDENTITY_JWT_PUBLIC_KEY_PATH: /run/secrets/identity.jwt.public-key
+    secrets:
+      - identity.jwt.public-key
     expose:
       - "8084"
     networks:
@@ -123,6 +128,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      meter-service:
+        condition: service_started
 
 secrets:
   identity.jwt.private-key:

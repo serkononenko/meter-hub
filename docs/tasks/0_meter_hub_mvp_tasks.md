@@ -221,9 +221,18 @@ index on `(household_id, serial_number)` in meter-db.
 - [x] Add pagination for history.
 
 ### 6.5 Cross-service authorization
-- [ ] Verify the meter exists and belongs to the authenticated user.
-- [ ] Decide and document whether this check uses Meter Service API or an internal cached projection.
-- [ ] Do not access Meter Service database directly.
+- [x] Verify the meter exists and belongs to the authenticated user.
+- [x] Decide and document whether this check uses Meter Service API or an internal cached projection.
+- [x] Do not access Meter Service database directly.
+
+Decision: every reading operation calls Meter Service's `GET /api/v1/meters/{meterId}`
+(`MeterAccessService`) before touching reading data. No cached projection — the
+MVP volume makes per-request checks cheap, and a projection would introduce
+staleness on revocation (archiving/sharing a meter must cut off reads
+immediately). The caller's access token is forwarded, so Meter Service applies
+the same ownership masking as its own endpoints; unknown and foreign meters both
+return `METER_NOT_FOUND`. Failures fail closed with `503
+METER_SERVICE_UNAVAILABLE`. Reading Service never accesses meter-db directly.
 
 ### 6.6 Reading business rules
 - [ ] Load the previous reading for cumulative meters.

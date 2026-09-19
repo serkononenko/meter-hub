@@ -5,6 +5,7 @@ import {ReadingNotFoundException} from "../exceptions/not-found.exception.js";
 import {RequestValidationException} from "../exceptions/request-validation.exception.js";
 import {ReadingsApi} from "./generated/api/index.js";
 import {ReadingRepository} from './reading.repository.js';
+import {MeterAccessService} from '../meter/meter-access.service.js';
 import {CreateReadingCommand} from "./commands/create-reading.command.js";
 import {clampPage} from "../utils/clamp-page.js";
 
@@ -13,7 +14,10 @@ import type {CreateReadingRequest} from "./generated/models/index.js";
 
 @Injectable()
 export class ReadingService extends ReadingsApi {
-    constructor(private readonly repository: ReadingRepository) {
+    constructor(
+        private readonly repository: ReadingRepository,
+        private readonly meterAccess: MeterAccessService,
+    ) {
         super();
     }
 
@@ -21,10 +25,8 @@ export class ReadingService extends ReadingsApi {
         const command = plainToInstance(CreateReadingCommand, payload);
 
         await this.validate(command);
+        await this.meterAccess.assertAccessible(command.meterId);
 
-        // Meter existence/ownership (and the authenticated caller) arrive
-        // with 6.5 cross-service authorization; until then the meterId is
-        // stored as a plain reference.
         return this.repository.save({
             id: crypto.randomUUID(),
             meterId: command.meterId,
@@ -36,11 +38,13 @@ export class ReadingService extends ReadingsApi {
     }
 
     async getLatestReading(meterId: string) {
+        await this.meterAccess.assertAccessible(meterId);
+
         const reading = await this.repository.findLatestByMeterId(meterId);
 
         if (!reading) {
-            // Without authorization (6.5) there is no ownership dimension
-            // yet: an empty history is reported as "no readings".
+            // The meter exists and is visible, so an empty history means
+            // "no readings yet" (contract: READING_NOT_FOUND).
             throw new ReadingNotFoundException(meterId);
         }
 
@@ -48,6 +52,8 @@ export class ReadingService extends ReadingsApi {
     }
 
     async listReadings(meterId: string, limit?: number | string, offset?: number | string) {
+        await this.meterAccess.assertAccessible(meterId);
+
         const page = clampPage(limit, offset);
 
         return this.repository.findByMeterId(meterId, page.limit, page.offset);

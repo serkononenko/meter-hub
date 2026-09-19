@@ -2,11 +2,13 @@ import {MiddlewareConsumer, Module, NestModule} from '@nestjs/common';
 import {APP_FILTER} from '@nestjs/core';
 import {ConfigModule} from "@nestjs/config";
 import {createObserveModule} from '@nestjs/observe';
+import {AuthModule} from './auth/auth.module.js';
 import {DatabaseModule} from './database/database.module.js';
 import {CorrelationIdMiddleware} from './middlewares/correlation.middleware.js';
 import {HealthModule} from './health/health.module.js';
 import {ReadingModule} from './reading/reading.module.js';
 import {CommonExceptionFilter} from './filters/common-exception.filter.js';
+import {UnauthorizedExceptionFilter} from "./filters/unauthorized-exception.filter.js";
 import {RequestValidationExceptionFilter} from "./filters/request-validation-exception.filter.js";
 import configuration from './config/configuration.js';
 
@@ -27,6 +29,7 @@ export const {ObserveModule, ObserveInstrument} = createObserveModule();
             load: [configuration],
         }),
         DatabaseModule,
+        AuthModule,
         HealthModule,
         ReadingModule,
     ],
@@ -34,6 +37,10 @@ export const {ObserveModule, ObserveInstrument} = createObserveModule();
         {
             provide: APP_FILTER,
             useClass: CommonExceptionFilter
+        },
+        {
+            provide: APP_FILTER,
+            useClass: UnauthorizedExceptionFilter,
         },
         {
             provide: APP_FILTER,

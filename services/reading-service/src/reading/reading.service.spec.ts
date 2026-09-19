@@ -1,7 +1,8 @@
 import {describe, expect, it, vi} from 'vitest';
 import {ReadingService} from './reading.service.js';
+import {MeterAccessService} from '../meter/meter-access.service.js';
 import {ReadingRepository} from './reading.repository.js';
-import {ReadingNotFoundException} from '../exceptions/not-found.exception.js';
+import {MeterNotFoundException, ReadingNotFoundException} from '../exceptions/not-found.exception.js';
 import {RequestValidationException} from '../exceptions/request-validation.exception.js';
 
 const METER_ID = '0d7f8a26-6f6f-4a55-9a71-3bd11c0a1f01';
@@ -23,8 +24,17 @@ function repositoryStub() {
     };
 }
 
-function serviceWith(repository: ReturnType<typeof repositoryStub>) {
-    return new ReadingService(repository as unknown as ReadingRepository);
+function meterAccessStub() {
+    return {
+        assertAccessible: vi.fn().mockResolvedValue(undefined),
+    };
+}
+
+function serviceWith(
+    repository: ReturnType<typeof repositoryStub>,
+    meterAccess: ReturnType<typeof meterAccessStub> = meterAccessStub(),
+) {
+    return new ReadingService(repository as unknown as ReadingRepository, meterAccess as unknown as MeterAccessService);
 }
 
 describe('ReadingService', () => {
@@ -178,5 +188,57 @@ describe('ReadingService', () => {
         const service = serviceWith(repository);
 
         await expect(service.getLatestReading(METER_ID)).rejects.toBeInstanceOf(ReadingNotFoundException);
+    });
+
+    it('verifies meter access before saving a reading', async () => {
+        const repository = repositoryStub();
+        const meterAccess = meterAccessStub();
+        const service = serviceWith(repository, meterAccess);
+
+        await service.createReading({meterId: METER_ID, value: 1, recordedAt: '2026-08-27T08:30:00Z'});
+
+        expect(meterAccess.assertAccessible).toHaveBeenCalledWith(METER_ID);
+    });
+
+    it('does not save a reading when the meter is not accessible', async () => {
+        const repository = repositoryStub();
+        const meterAccess = meterAccessStub();
+        meterAccess.assertAccessible = vi.fn().mockRejectedValue(new MeterNotFoundException(METER_ID));
+        const service = serviceWith(repository, meterAccess);
+
+        await expect(service.createReading({meterId: METER_ID, value: 1, recordedAt: '2026-08-27T08:30:00Z'}))
+            .rejects.toBeInstanceOf(MeterNotFoundException);
+        expect(repository.save).not.toHaveBeenCalled();
+    });
+
+    it('verifies meter access before listing history', async () => {
+        const repository = repositoryStub();
+        const meterAccess = meterAccessStub();
+        const service = serviceWith(repository, meterAccess);
+
+        await service.listReadings(METER_ID, 10, 0);
+
+        expect(meterAccess.assertAccessible).toHaveBeenCalledWith(METER_ID);
+        expect(repository.findByMeterId).toHaveBeenCalled();
+    });
+
+    it('does not list history when the meter is not accessible', async () => {
+        const repository = repositoryStub();
+        const meterAccess = meterAccessStub();
+        meterAccess.assertAccessible = vi.fn().mockRejectedValue(new MeterNotFoundException(METER_ID));
+        const service = serviceWith(repository, meterAccess);
+
+        await expect(service.listReadings(METER_ID)).rejects.toBeInstanceOf(MeterNotFoundException);
+        expect(repository.findByMeterId).not.toHaveBeenCalled();
+    });
+
+    it('verifies meter access before returning the latest reading', async () => {
+        const repository = repositoryStub();
+        const meterAccess = meterAccessStub();
+        const service = serviceWith(repository, meterAccess);
+
+        await service.getLatestReading(METER_ID);
+
+        expect(meterAccess.assertAccessible).toHaveBeenCalledWith(METER_ID);
     });
 });
