@@ -3,16 +3,18 @@ import Box from "@mui/material/Box";
 import Container from "@mui/material/Container";
 import GlobalStyles from "@mui/material/GlobalStyles";
 
+import {AuthGuard} from "@/components/auth/auth-guard";
 import {MainNav} from "@/components/dashboard/layout/main-nav";
 import {SideNav} from "@/components/dashboard/layout/side-nav";
 
 /**
  * Dashboard shell, ported from the Devias Kit: fixed dark side nav plus a
- * sticky top bar. Auth gating arrives with task 7.2.
+ * sticky top bar, wrapped in the auth guard.
  */
 export default function DashboardLayout({children}: {children: React.ReactNode}): React.JSX.Element {
   return (
-    <React.Fragment>
+    <AuthGuard>
+      <React.Fragment>
       <GlobalStyles
         styles={{
           body: {
@@ -44,6 +46,7 @@ export default function DashboardLayout({children}: {children: React.ReactNode})
           </main>
         </Box>
       </Box>
-    </React.Fragment>
+      </React.Fragment>
+    </AuthGuard>
   );
 }

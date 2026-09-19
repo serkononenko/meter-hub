@@ -5,6 +5,13 @@ import nextTs from "eslint-config-next/typescript";
 const eslintConfig = defineConfig([
   ...nextVitals,
   ...nextTs,
+  {
+    rules: {
+      // Next.js route handlers must accept (request, context) even when the
+      // request object is unused; underscore-prefix those parameters.
+      "@typescript-eslint/no-unused-vars": ["error", {argsIgnorePattern: "^_"}],
+    },
+  },
   // Override default ignores of eslint-config-next.
   globalIgnores([
     // Default ignores of eslint-config-next:

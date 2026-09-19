@@ -7,12 +7,17 @@ import IconButton from "@mui/material/IconButton";
 import Stack from "@mui/material/Stack";
 import MenuIcon from "@mui/icons-material/Menu";
 
+import {useAuth} from "@/contexts/auth-context";
+
+import {UserPopover} from "./user-popover";
 import {MobileNav} from "./mobile-nav";
 
-/** Top bar of the dashboard shell, ported from the Devias Kit. The user
- * popover (sign-out, account) is wired up with the auth UI in task 7.2. */
+/** Top bar of the dashboard shell, ported from the Devias Kit. */
 export function MainNav(): React.JSX.Element {
   const [openNav, setOpenNav] = React.useState<boolean>(false);
+  const [anchorEl, setAnchorEl] = React.useState<HTMLElement | null>(null);
+
+  const {user} = useAuth();
 
   return (
     <React.Fragment>
@@ -42,10 +47,16 @@ export function MainNav(): React.JSX.Element {
             </IconButton>
           </Stack>
           <Stack sx={{alignItems: "center"}} direction="row" spacing={2}>
-            <Avatar sx={{cursor: "pointer"}} />
+            <Avatar
+              onClick={(event) => setAnchorEl(event.currentTarget)}
+              sx={{cursor: "pointer"}}
+            >
+              {user?.username.charAt(0).toUpperCase()}
+            </Avatar>
           </Stack>
         </Stack>
       </Box>
+      <UserPopover anchorEl={anchorEl} onClose={() => setAnchorEl(null)} open={Boolean(anchorEl)} />
       <MobileNav
         onClose={() => {
           setOpenNav(false);

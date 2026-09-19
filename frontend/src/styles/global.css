@@ -7,6 +7,19 @@
 
 *:focus-visible {
   outline: 2px solid var(--mui-palette-primary-main);
+  outline-offset: 2px;
+}
+
+/* MUI text controls draw their own focus indicator (border color +
+   box-shadow). Suppress the global outline for them, or it doubles up —
+   MUI's reset lives in @layer mui (enableCssLayer), which loses to this
+   un-layered rule without the explicit override. */
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible,
+.MuiInputBase-root:focus-visible,
+.MuiOutlinedInput-root:focus-within .MuiOutlinedInput-input:focus-visible {
+  outline: none;
 }
 
 html {
