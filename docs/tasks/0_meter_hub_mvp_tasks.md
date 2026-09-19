@@ -500,8 +500,24 @@ All suites green: gateway 19, identity 48 (29 integration + 19 unit),
 household 15, meter 36 (16 e2e + 20 unit), reading 49 (15 e2e + 34 unit).
 
 ### 9.4 End-to-end test
-- [ ] Automate registration → login → household → meter → reading → history.
-- [ ] Run E2E test against Docker Compose environment.
+- [x] Automate registration → login → household → meter → reading → history.
+- [x] Run E2E test against Docker Compose environment.
+
+`e2e/journey.e2e.test.mjs` (Node's built-in test runner, no new dependencies)
+drives the gateway at `http://localhost:8080` (`GATEWAY_URL` overridable)
+against the running Compose stack with nothing mocked. Journey test:
+registration (with duplicate-email 409), login (with enumeration-safe wrong
+password), /users/me, household create/list/get, meter create/list (with
+serial-number 409), two readings in the past, READING_DECREASING rejection,
+history newest-first, latest reading, refresh-token rotation (old token
+consumed — reuse fails identically to unknown), and logout revocation. A
+second test registers two more users and verifies cross-user isolation:
+foreign household and meter both masked behind the same 404s, readings into
+a foreign meter rejected, household list scoped to the caller. Every run
+mints unique emails/usernames so it is idempotent against a persistent DB.
+Run with `node --test e2e/journey.e2e.test.mjs` (documented in README §"Run
+the end-to-end journey test"). Both tests pass against the live Compose
+environment.
 
 ---
 
