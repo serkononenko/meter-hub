@@ -11,6 +11,8 @@ import Typography from "@mui/material/Typography";
 import type {NavItemConfig} from "@/types/nav";
 import {paths} from "@/paths";
 import {isNavItemActive} from "@/lib/is-nav-item-active";
+import {isErrorResponse} from "@/lib/api/problems";
+import {useListHouseholds} from "@/lib/api/generated/household-service";
 
 import {navItems} from "./config";
 import {navIcons} from "./nav-icons";
@@ -56,29 +58,51 @@ export function SideNav(): React.JSX.Element {
             MeterHub
           </Typography>
         </Box>
-        <Box
-          sx={{
-            alignItems: "center",
-            backgroundColor: "var(--mui-palette-neutral-950)",
-            border: "1px solid var(--mui-palette-neutral-700)",
-            borderRadius: "12px",
-            display: "flex",
-            p: "4px 12px",
-          }}
-        >
-          <Box sx={{flex: "1 1 auto"}}>
-            <Typography color="var(--mui-palette-neutral-400)" variant="body2">
-              Household
-            </Typography>
-            <Typography color="inherit" variant="subtitle1">
-              My home
-            </Typography>
-          </Box>
-        </Box>
+        <HouseholdBox />
       </Stack>
       <Divider sx={{borderColor: "var(--mui-palette-neutral-700)"}} />
       <Box component="nav" sx={{flex: "1 1 auto", p: "12px"}}>
         {renderNavItems({pathname, items: navItems})}
+      </Box>
+    </Box>
+  );
+}
+
+/**
+ * The household box under the logo shows the most recently created
+ * household of the signed-in user and links to the households list.
+ */
+function HouseholdBox(): React.JSX.Element {
+  const householdsQuery = useListHouseholds();
+  const response = householdsQuery.data;
+
+  const latestHousehold =
+    response && !isErrorResponse(response) && response.data.length > 0
+      ? response.data[0]
+      : undefined;
+
+  return (
+    <Box
+      component={RouterLink}
+      href={paths.households}
+      sx={{
+        alignItems: "center",
+        backgroundColor: "var(--mui-palette-neutral-950)",
+        border: "1px solid var(--mui-palette-neutral-700)",
+        borderRadius: "12px",
+        color: "inherit",
+        display: "flex",
+        p: "4px 12px",
+        textDecoration: "none",
+      }}
+    >
+      <Box sx={{flex: "1 1 auto", minWidth: 0}}>
+        <Typography color="var(--mui-palette-neutral-400)" variant="body2">
+          Household
+        </Typography>
+        <Typography color="inherit" noWrap variant="subtitle1">
+          {latestHousehold ? latestHousehold.name : "None yet"}
+        </Typography>
       </Box>
     </Box>
   );

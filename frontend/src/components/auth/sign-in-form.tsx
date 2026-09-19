@@ -59,7 +59,7 @@ export function SignInForm(): React.JSX.Element {
 
       // AuthGuard on the dashboard handles the redirect; refresh picks up
       // the new server components.
-      router.replace(paths.dashboard.overview);
+      router.replace(paths.households);
       router.refresh();
     },
     [values, signIn, router],

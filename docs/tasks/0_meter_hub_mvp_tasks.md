@@ -271,11 +271,12 @@ UI design: the app follows the free Devias Kit
 schemes with neutral shades, soft shadows, rounded buttons/cards, table
 styles) was ported into `src/theme/`, and the dashboard shell (fixed dark
 side nav, sticky top bar, mobile drawer) into
-`src/components/dashboard/layout/` — adapted to MUI 9 (`@mui/icons-material`
+`src/components/layout/` — adapted to MUI 9 (`@mui/icons-material`
 instead of Phosphor, `slotProps.paper` instead of `PaperProps`) and wired
 through our existing `AppRouterCacheProvider` / `InitColorSchemeScript`
-setup. Dashboard routes: `/dashboard` (overview, placeholder), `/dashboard/
-meters`, `/dashboard/readings`, `/dashboard/settings`.
+setup. Frontend routes use top-level paths under a `(dashboard)` route group (shared
+auth-guarded shell): `/households`, `/meters`, `/readings`, `/settings`.
+There is no `/dashboard` route; the group directory is purely structural.
 
 ### 7.2 Authentication UI
 - [x] Create registration page.
@@ -316,9 +317,20 @@ Browser API calls use relative `/api/v1/...` URLs proxied to the gateway
 by a Next.js rewrite (same-origin, no CORS preflights).
 
 ### 7.3 Household UI
-- [ ] Create household list.
-- [ ] Create household form.
-- [ ] Create household details page.
+- [x] Create household list.
+- [x] Create household form.
+- [x] Create household details page.
+
+All data flows through the Orval-generated household-service client
+(`useListHouseholds`, `useGetHousehold`, `useCreateHousehold`) with the
+shared status-narrowing helpers (`src/lib/api/problems.ts`, extracted from
+auth-client so any feature can use them). List page at
+`/dashboard/households` with empty state and create dialog; details at
+`/dashboard/households/[householdId]` surfacing problem details (404 shows
+the backend `detail`). Side-nav household box is now live: shows the most
+recent household, links to the list. Verified end-to-end via Playwright MCP
+against docker compose (create → card + side-nav update → details → 404
+problem → required-name validation → cancel).
 
 ### 7.4 Meter UI
 - [ ] Show meters for selected household.

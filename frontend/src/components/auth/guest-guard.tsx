@@ -13,7 +13,7 @@ export function GuestGuard({children}: {children: React.ReactNode}): React.JSX.E
 
   React.useEffect(() => {
     if (status === "authenticated" && user) {
-      router.replace(paths.dashboard.overview);
+      router.replace(paths.households);
     }
   }, [status, user, router]);
 

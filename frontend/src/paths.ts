@@ -2,11 +2,15 @@
 export const paths = {
   home: "/",
   auth: {signIn: "/auth/sign-in", signUp: "/auth/sign-up"},
-  dashboard: {
-    overview: "/dashboard",
-    meters: "/dashboard/meters",
-    readings: "/dashboard/readings",
-    settings: "/dashboard/settings",
-  },
+  /** Post-login landing view. */
+  households: "/households",
+  meters: "/meters",
+  readings: "/readings",
+  settings: "/settings",
   errors: {notFound: "/errors/not-found"},
 } as const;
+
+/** Route helper for a single household. */
+export function householdPath(householdId: string): string {
+  return `${paths.households}/${householdId}`;
+}
