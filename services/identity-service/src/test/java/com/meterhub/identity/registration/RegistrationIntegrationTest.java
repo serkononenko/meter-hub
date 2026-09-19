@@ -162,8 +162,9 @@ class RegistrationIntegrationTest {
 
         assertThat(conflict.getStatus().value()).isEqualTo(409);
         // The conflict handler logs during the request; its line must carry
-        // the ID from the MDC so logs can be joined with the gateway's
-        assertThat(output.getAll()).contains("[" + correlationId + "]");
+        // the requestId from the MDC so logs can be joined with the gateway's
+        // (structured single-line format per conventions §14)
+        assertThat(output.getAll()).contains("\"requestId\":\"" + correlationId + "\"");
     }
 
     private EntityExchangeResult<byte[]> register(String email, String username) {

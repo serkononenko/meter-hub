@@ -524,9 +524,33 @@ environment.
 ## Epic 10 — Observability and Developer Experience
 
 ### 10.1 Logging
-- [ ] Standardize structured log format.
-- [ ] Include request/correlation ID.
-- [ ] Avoid logging passwords/tokens/secrets.
+- [x] Standardize structured log format.
+- [x] Include request/correlation ID.
+- [x] Avoid logging passwords/tokens/secrets.
+
+Structured single-line JSON on stdout for every service, matching the
+conventions §14 shape `{"timestamp","level","service","requestId","message"}`:
+
+- NestJS (meter/reading): new `StructuredLoggerService` (implements Nest's
+  `LoggerService`) emitting the conventions' fields directly, installed via
+  `app.useLogger` so framework lifecycle lines follow the same shape; new
+  `RequestLoggingMiddleware` (method/path/status/duration, query strings
+  stripped) mirroring the gateway's AccessLogFilter; the exception filters'
+  `console.error` stand-in replaced with structured error lines. `LOG_LEVEL`
+  config filters by severity (info default). Unit-tested (5 specs each).
+- Spring (identity/household/gateway): `logging.pattern.console` renders the
+  same field set, with the correlation ID from the MDC as `requestId` and a
+  `%replace` escaping quotes in the message so the line stays valid JSON.
+  Correlation-ID-in-logs was already covered by CorrelationIdFilter + the
+  MDC pattern; the registration integration test now asserts the JSON
+  `requestId` field.
+- Secret hygiene audited across all services: log statements record
+  codes/outcomes only (INVALID_TOKEN, "Login rejected: no usable account"),
+  never token values, passwords, or request bodies; access logs use URI
+  without query string and no headers.
+
+All suites green: meter 25 unit + 16 e2e, reading 39 unit + 15 e2e,
+identity 49, household 16, gateway 19.
 
 ### 10.2 Health checks
 - [ ] Add liveness endpoints.

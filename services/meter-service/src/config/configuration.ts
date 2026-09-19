@@ -1,5 +1,6 @@
 export default () => ({
     port: parseInt(process.env.SERVER_PORT ?? "8083", 10),
+    logLevel: process.env.LOG_LEVEL ?? 'info',
     database: {
         url: process.env.DATABASE_URL ?? 'postgresql://meter_user:meter_dev@localhost:5432/meter_db',
     },

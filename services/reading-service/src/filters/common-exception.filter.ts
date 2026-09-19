@@ -6,6 +6,7 @@ import {
     HttpStatus,
 } from '@nestjs/common';
 import {CORRELATION_ID_HEADER} from '../constants.js';
+import {StructuredLoggerService} from '../logging/structured-logger.service.js';
 
 import type {Request, Response} from 'express';
 
@@ -30,6 +31,8 @@ interface ProblemBody {
  */
 @Catch()
 export class CommonExceptionFilter implements ExceptionFilter {
+    constructor(private readonly logger: StructuredLoggerService) {}
+
     catch(exception: unknown, host: ArgumentsHost): void {
         const http = host.switchToHttp();
         const request = http.getRequest<Request>();
@@ -65,7 +68,11 @@ export class CommonExceptionFilter implements ExceptionFilter {
         }
 
         if (status >= 500) {
-            logUnexpected(exception);
+            this.logger.error('Unhandled exception', {
+                path: request.originalUrl.split('?')[0],
+                error: exception instanceof Error ? `${exception.name}: ${exception.message}` : String(exception),
+                stack: exception instanceof Error ? exception.stack : undefined,
+            });
         }
 
         const problem: ProblemBody = {
@@ -100,10 +107,4 @@ function codeFromStatus(status: number): string {
         default:
             return 'INTERNAL_ERROR';
     }
-}
-
-function logUnexpected(exception: unknown): void {
-    // Console here stands in for the structured logger (conventions §14); the
-    // exception itself never reaches the response body.
-    console.error('[reading-service] Unhandled exception', exception);
 }
