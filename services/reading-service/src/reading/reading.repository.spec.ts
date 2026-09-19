@@ -19,6 +19,7 @@ function prismaStub() {
         create: vi.fn().mockResolvedValue(READING_ROW),
         findUnique: vi.fn().mockResolvedValue(READING_ROW),
         findMany: vi.fn().mockResolvedValue([READING_ROW]),
+        findFirst: vi.fn().mockResolvedValue(READING_ROW),
     };
     return {reading};
 }
@@ -76,19 +77,44 @@ describe('ReadingRepository', () => {
         expect(await repository.findById(READING_ROW.id)).toBeNull();
     });
 
-    it('lists readings of a meter newest first', async () => {
+    it('lists readings of a meter newest first with paging bounds', async () => {
         const delegate = prismaStub();
         const repository = repositoryWith(delegate);
 
-        const readings = await repository.findByMeterId(READING_ROW.meterId);
+        const readings = await repository.findByMeterId(READING_ROW.meterId, 25, 75);
 
         expect(delegate.reading.findMany).toHaveBeenCalledWith(
             expect.objectContaining({
                 where: {meterId: READING_ROW.meterId},
                 orderBy: {recordedAt: 'desc'},
+                take: 25,
+                skip: 75,
             }),
         );
         expect(readings).toHaveLength(1);
         expect(readings[0].meterId).toBe(READING_ROW.meterId);
+    });
+
+    it('finds the latest reading of a meter', async () => {
+        const delegate = prismaStub();
+        const repository = repositoryWith(delegate);
+
+        const reading = await repository.findLatestByMeterId(READING_ROW.meterId);
+
+        expect(delegate.reading.findFirst).toHaveBeenCalledWith(
+            expect.objectContaining({
+                where: {meterId: READING_ROW.meterId},
+                orderBy: {recordedAt: 'desc'},
+            }),
+        );
+        expect(reading?.id).toBe(READING_ROW.id);
+    });
+
+    it('returns null when the meter has no readings', async () => {
+        const delegate = prismaStub();
+        delegate.reading.findFirst = vi.fn().mockResolvedValue(null);
+        const repository = repositoryWith(delegate);
+
+        expect(await repository.findLatestByMeterId(READING_ROW.meterId)).toBeNull();
     });
 });

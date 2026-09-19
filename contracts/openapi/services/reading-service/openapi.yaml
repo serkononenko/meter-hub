@@ -82,6 +82,166 @@ paths:
         '500':
           $ref: '../../openapi.yaml#/components/responses/InternalServerError'
 
+  /api/v1/meters/{meterId}/readings:
+    get:
+      tags: [Readings]
+      operationId: listReadings
+      summary: List the reading history of a meter owned by the authenticated user
+      description: >-
+        Returns the readings recorded under the given meter, newest first.
+        The meter must exist and be owned by the user that owns the presented
+        access token; meters of other users are not addressable and return
+        the same not-found problem as unknown ones.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: meterId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Identifier of the meter whose readings to return.
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 200
+            default: 50
+          description: Page size.
+        - name: offset
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+          description: Number of readings to skip (newest-first ordering).
+        - $ref: '../../openapi.yaml#/components/parameters/CorrelationId'
+      responses:
+        '200':
+          description: The meter's readings, newest first.
+          headers:
+            X-Correlation-ID:
+              $ref: '../../components/headers/correlation-id.yaml'
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Reading'
+              example:
+                - id: 2b7e9a10-1c44-4c7e-8f5a-9d3b6c2e1a40
+                  meterId: 0d7f8a26-6f6f-4a55-9a71-3bd11c0a1f01
+                  value: 15432.1
+                  recordedAt: '2026-08-27T08:30:00Z'
+                  source: MANUAL
+                  createdAt: '2026-08-27T08:31:00Z'
+        '400':
+          $ref: '../../openapi.yaml#/components/responses/BadRequest'
+        '401':
+          description: No access token was supplied, or it is invalid or expired.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../../openapi.yaml#/components/schemas/Problem'
+          # Auth (401 problems) arrives with 6.5; until then the endpoint is
+          # unauthenticated and this response is reserved.
+        '404':
+          description: No meter with this identifier is visible to the authenticated user.
+          headers:
+            X-Correlation-ID:
+              $ref: '../../components/headers/correlation-id.yaml'
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../../openapi.yaml#/components/schemas/Problem'
+              examples:
+                meterNotFound:
+                  summary: Meter does not exist or belongs to another user
+                  value:
+                    type: https://api.meterhub.local/problems/meter-not-found
+                    title: Meter not found
+                    status: 404
+                    code: METER_NOT_FOUND
+                    detail: No meter with this identifier is visible to the authenticated user.
+                    correlationId: 7d6f5f2c-0a49-4e10-8ef7-7c3d2b1f4a10
+        '500':
+          $ref: '../../openapi.yaml#/components/responses/InternalServerError'
+
+  /api/v1/meters/{meterId}/readings/latest:
+    get:
+      tags: [Readings]
+      operationId: getLatestReading
+      summary: Return the most recent reading of a meter owned by the authenticated user
+      description: >-
+        Returns the reading with the greatest recordedAt under the given
+        meter. The meter must exist and be owned by the user that owns the
+        presented access token.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: meterId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Identifier of the meter whose latest reading to return.
+        - $ref: '../../openapi.yaml#/components/parameters/CorrelationId'
+      responses:
+        '200':
+          description: The meter's most recent reading.
+          headers:
+            X-Correlation-ID:
+              $ref: '../../components/headers/correlation-id.yaml'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Reading'
+        '401':
+          description: No access token was supplied, or it is invalid or expired.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../../openapi.yaml#/components/schemas/Problem'
+          # Auth (401 problems) arrives with 6.5; until then the endpoint is
+          # unauthenticated and this response is reserved.
+        '404':
+          description: >
+            No meter with this identifier is visible to the authenticated
+            user, or the meter has no readings yet.
+          headers:
+            X-Correlation-ID:
+              $ref: '../../components/headers/correlation-id.yaml'
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../../openapi.yaml#/components/schemas/Problem'
+              examples:
+                readingNotFound:
+                  summary: No readings recorded for this meter yet
+                  value:
+                    type: https://api.meterhub.local/problems/reading-not-found
+                    title: Reading not found
+                    status: 404
+                    code: READING_NOT_FOUND
+                    detail: The meter has no readings yet.
+                    correlationId: 7d6f5f2c-0a49-4e10-8ef7-7c3d2b1f4a10
+                meterNotFound:
+                  summary: Meter does not exist or belongs to another user
+                  value:
+                    type: https://api.meterhub.local/problems/meter-not-found
+                    title: Meter not found
+                    status: 404
+                    code: METER_NOT_FOUND
+                    detail: No meter with this identifier is visible to the authenticated user.
+                    correlationId: 7d6f5f2c-0a49-4e10-8ef7-7c3d2b1f4a10
+        '500':
+          $ref: '../../openapi.yaml#/components/responses/InternalServerError'
+
 components:
   securitySchemes:
     bearerAuth:

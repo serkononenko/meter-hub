@@ -89,6 +89,66 @@ describe('Create reading (e2e)', () => {
         expect(response.body.recordedAt).toBe('2026-08-27T08:30:00.000Z');
     });
 
+    it('lists reading history newest first with paging', async () => {
+        const meterId = crypto.randomUUID();
+        for (const [value, recordedAt] of [
+            [10, '2026-08-01T08:00:00Z'],
+            [20, '2026-08-02T08:00:00Z'],
+            [30, '2026-08-03T08:00:00Z'],
+        ] as const) {
+            const created = await request(app.getHttpServer())
+                .post('/api/v1/readings')
+                .send({meterId, value, recordedAt});
+            expect(created.status).toBe(201);
+        }
+
+        const full = await request(app.getHttpServer())
+            .get(`/api/v1/meters/${meterId}/readings`);
+
+        expect(full.status).toBe(200);
+        expect(full.body.map((r: { value: number }) => r.value)).toEqual([30, 20, 10]);
+        expect(full.headers['x-correlation-id']).toBeDefined();
+
+        const paged = await request(app.getHttpServer())
+            .get(`/api/v1/meters/${meterId}/readings`)
+            .query({limit: 2, offset: 1});
+
+        expect(paged.status).toBe(200);
+        expect(paged.body.map((r: { value: number }) => r.value)).toEqual([20, 10]);
+    });
+
+    it('returns the latest reading and 404 for an unknown meter', async () => {
+        const meterId = crypto.randomUUID();
+        await request(app.getHttpServer())
+            .post('/api/v1/readings')
+            .send({meterId, value: 42, recordedAt: '2026-08-05T08:00:00Z'});
+
+        const latest = await request(app.getHttpServer())
+            .get(`/api/v1/meters/${meterId}/readings/latest`);
+
+        expect(latest.status).toBe(200);
+        expect(latest.body).toMatchObject({meterId, value: 42, source: 'MANUAL'});
+
+        const unknown = await request(app.getHttpServer())
+            .get(`/api/v1/meters/${crypto.randomUUID()}/readings/latest`);
+
+        expect(unknown.status).toBe(404);
+        expect(unknown.headers['content-type']).toContain('application/problem+json');
+        expect(unknown.body).toMatchObject({
+            code: 'READING_NOT_FOUND',
+            title: 'Reading not found',
+            status: 404,
+        });
+    });
+
+    it('returns an empty history for a meter without readings', async () => {
+        const response = await request(app.getHttpServer())
+            .get(`/api/v1/meters/${crypto.randomUUID()}/readings`);
+
+        expect(response.status).toBe(200);
+        expect(response.body).toEqual([]);
+    });
+
     afterAll(async () => {
         await app.close();
     });
