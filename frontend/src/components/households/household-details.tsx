@@ -10,6 +10,7 @@ import Typography from "@mui/material/Typography";
 
 import {isErrorResponse, problemMessage} from "@/lib/api/problems";
 import {useGetHousehold} from "@/lib/api/generated/household-service";
+import {MetersList} from "@/components/meters/meters-list";
 
 function formatDate(value: string): string {
   return new Date(value).toLocaleString(undefined, {
@@ -50,20 +51,23 @@ export function HouseholdDetails(): React.JSX.Element {
   const household = response.data;
 
   return (
-    <Card>
-      <CardContent>
-        <Stack spacing={2}>
-          <Typography variant="h5">{household.name}</Typography>
-          <Stack spacing={1}>
-            <DetailRow label="Household ID" value={household.id} />
-            <DetailRow label="Created" value={formatDate(household.createdAt)} />
-            {household.updatedAt ? (
-              <DetailRow label="Last updated" value={formatDate(household.updatedAt)} />
-            ) : null}
+    <Stack spacing={4}>
+      <Card>
+        <CardContent>
+          <Stack spacing={2}>
+            <Typography variant="h5">{household.name}</Typography>
+            <Stack spacing={1}>
+              <DetailRow label="Household ID" value={household.id} />
+              <DetailRow label="Created" value={formatDate(household.createdAt)} />
+              {household.updatedAt ? (
+                <DetailRow label="Last updated" value={formatDate(household.updatedAt)} />
+              ) : null}
+            </Stack>
           </Stack>
-        </Stack>
-      </CardContent>
-    </Card>
+        </CardContent>
+      </Card>
+      <MetersList householdId={household.id} />
+    </Stack>
   );
 }
 

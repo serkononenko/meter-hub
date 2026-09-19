@@ -14,7 +14,7 @@ export default function Page(): React.JSX.Element {
         <Stack spacing={1}>
           <Typography variant="h4">Household</Typography>
           <Typography color="text.secondary" variant="body2">
-            Details of this household.
+            Details and meters of this household.
           </Typography>
         </Stack>
         <HouseholdDetails />
