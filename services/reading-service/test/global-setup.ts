@@ -88,6 +88,16 @@ const OWNED: Record<string, string> = {
     [BOB_METER]: BOB,
 };
 
+/**
+ * Registers a meter with the stand-in so a test can use its own fresh meter
+ * (the shared e2e database is not reset between runs, and the cumulative-
+ * meter rule compares against previously stored readings).
+ */
+export function registerMeter(meterId: string, owner: string): string {
+    OWNED[meterId] = owner;
+    return meterId;
+}
+
 function meterStubHandler(request: IncomingMessage, response: ServerResponse): void {
     const match = /^\/api\/v1\/meters\/([0-9a-f-]{36})(\?.*)?$/.exec(request.url ?? '');
     const meterId = match?.[1];

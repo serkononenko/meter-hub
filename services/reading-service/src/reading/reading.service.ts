@@ -2,6 +2,7 @@ import {Injectable} from '@nestjs/common';
 import {plainToInstance} from 'class-transformer';
 import {validate} from 'class-validator';
 import {ReadingNotFoundException} from "../exceptions/not-found.exception.js";
+import {ReadingDecreasingException} from "../exceptions/reading-argument.exception.js";
 import {RequestValidationException} from "../exceptions/request-validation.exception.js";
 import {ReadingsApi} from "./generated/api/index.js";
 import {ReadingRepository} from './reading.repository.js';
@@ -27,6 +28,8 @@ export class ReadingService extends ReadingsApi {
         await this.validate(command);
         await this.meterAccess.assertAccessible(command.meterId);
 
+        await this.assertNotDecreasing(command.meterId, command.value, new Date(command.recordedAt));
+
         return this.repository.save({
             id: crypto.randomUUID(),
             meterId: command.meterId,
@@ -43,8 +46,6 @@ export class ReadingService extends ReadingsApi {
         const reading = await this.repository.findLatestByMeterId(meterId);
 
         if (!reading) {
-            // The meter exists and is visible, so an empty history means
-            // "no readings yet" (contract: READING_NOT_FOUND).
             throw new ReadingNotFoundException(meterId);
         }
 
@@ -64,6 +65,14 @@ export class ReadingService extends ReadingsApi {
 
         if (errors.length > 0) {
             throw new RequestValidationException(errors);
+        }
+    }
+
+    private async assertNotDecreasing(meterId: string, value: number, recordedAt: Date): Promise<void> {
+        const previous = await this.repository.findPrevious(meterId, recordedAt);
+
+        if (previous && value < previous.value) {
+            throw new ReadingDecreasingException(value, previous.value, previous.recordedAt);
         }
     }
 }

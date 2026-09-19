@@ -79,6 +79,25 @@ paths:
                     code: METER_NOT_FOUND
                     detail: No meter with this identifier is visible to the authenticated user.
                     correlationId: 7d6f5f2c-0a49-4e10-8ef7-7c3d2b1f4a10
+        '422':
+          description: The reading violates a business rule.
+          headers:
+            X-Correlation-ID:
+              $ref: '../../components/headers/correlation-id.yaml'
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../../openapi.yaml#/components/schemas/Problem'
+              examples:
+                readingDecreasing:
+                  summary: Counter value lower than the previous reading
+                  value:
+                    type: https://api.meterhub.local/problems/reading-decreasing
+                    title: Reading is lower than the previous one
+                    status: 422
+                    code: READING_DECREASING
+                    detail: The value 100 is lower than the previous reading 15432.1 recorded at 2026-08-27T08:30:00Z. Cumulative meter counters must not decrease.
+                    correlationId: 7d6f5f2c-0a49-4e10-8ef7-7c3d2b1f4a10
         '500':
           $ref: '../../openapi.yaml#/components/responses/InternalServerError'
 

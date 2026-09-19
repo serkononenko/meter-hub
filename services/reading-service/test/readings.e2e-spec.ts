@@ -3,7 +3,7 @@ import {Test} from '@nestjs/testing';
 import request from 'supertest';
 import {afterAll, beforeAll, describe, expect, it} from 'vitest';
 import {AppModule} from '../src/app.module.js';
-import {ALICE_METER, BOB_METER, mintToken} from './global-setup.js';
+import {ALICE_METER, BOB_METER, mintToken, registerMeter} from './global-setup.js';
 
 const ALICE = '11111111-1111-4111-8111-111111111111';
 
@@ -121,7 +121,7 @@ describe('Create reading (e2e)', () => {
             .post('/api/v1/readings')
             .set('Authorization', `Bearer ${token}`)
             .send({
-                meterId: ALICE_METER,
+                meterId: freshMeter(),
                 value: 1,
                 recordedAt: '2026-08-27T10:30:00+02:00',
             });
@@ -130,7 +130,95 @@ describe('Create reading (e2e)', () => {
         expect(response.body.recordedAt).toBe('2026-08-27T08:30:00.000Z');
     });
 
+    it('accepts first, equal, and increasing readings for a cumulative meter', async () => {
+        const token = await mintToken({subject: ALICE});
+        const meterId = freshMeter();
+
+        const first = await request(app.getHttpServer())
+            .post('/api/v1/readings')
+            .set('Authorization', `Bearer ${token}`)
+            .send({meterId, value: 100, recordedAt: '2026-08-01T08:00:00Z'});
+        const equal = await request(app.getHttpServer())
+            .post('/api/v1/readings')
+            .set('Authorization', `Bearer ${token}`)
+            .send({meterId, value: 100, recordedAt: '2026-08-02T08:00:00Z'});
+        const increasing = await request(app.getHttpServer())
+            .post('/api/v1/readings')
+            .set('Authorization', `Bearer ${token}`)
+            .send({meterId, value: 250.5, recordedAt: '2026-08-03T08:00:00Z'});
+
+        expect(first.status).toBe(201);
+        expect(equal.status).toBe(201);
+        expect(increasing.status).toBe(201);
+    });
+
+    it('rejects a decreasing reading with the READING_DECREASING problem', async () => {
+        const token = await mintToken({subject: ALICE});
+        const meterId = freshMeter();
+
+        await request(app.getHttpServer())
+            .post('/api/v1/readings')
+            .set('Authorization', `Bearer ${token}`)
+            .send({meterId, value: 500, recordedAt: '2026-08-01T08:00:00Z'});
+
+        const decreasing = await request(app.getHttpServer())
+            .post('/api/v1/readings')
+            .set('Authorization', `Bearer ${token}`)
+            .send({meterId, value: 499, recordedAt: '2026-08-02T08:00:00Z'});
+
+        expect(decreasing.status).toBe(422);
+        expect(decreasing.headers['content-type']).toContain('application/problem+json');
+        expect(decreasing.body).toMatchObject({
+            code: 'READING_DECREASING',
+            title: 'Reading is lower than the previous one',
+            status: 422,
+        });
+        expect(decreasing.body.errors).toEqual([
+            {field: 'value', message: 'must not be lower than the previous reading'},
+        ]);
+
+        // The rejected reading was not persisted.
+        const history = await request(app.getHttpServer())
+            .get(`/api/v1/meters/${meterId}/readings`)
+            .set('Authorization', `Bearer ${token}`);
+        expect(history.body.map((r: { value: number }) => r.value)).toEqual([500]);
+    });
+
+    it('compares against the previous reading in recordedAt order, not creation order', async () => {
+        const token = await mintToken({subject: ALICE});
+        const meterId = freshMeter();
+
+        // Create a late reading first, then an earlier one below it — the
+        // earlier one is only compared to readings before it (none), so it
+        // passes even though the meter already holds a higher value.
+        await request(app.getHttpServer())
+            .post('/api/v1/readings')
+            .set('Authorization', `Bearer ${token}`)
+            .send({meterId, value: 300, recordedAt: '2026-08-10T08:00:00Z'});
+
+        const backdated = await request(app.getHttpServer())
+            .post('/api/v1/readings')
+            .set('Authorization', `Bearer ${token}`)
+            .send({meterId, value: 100, recordedAt: '2026-08-01T08:00:00Z'});
+
+        expect(backdated.status).toBe(201);
+
+        // But an even earlier reading below the backdated one is rejected.
+        const below = await request(app.getHttpServer())
+            .post('/api/v1/readings')
+            .set('Authorization', `Bearer ${token}`)
+            .send({meterId, value: 50, recordedAt: '2026-08-05T08:00:00Z'});
+
+        expect(below.status).toBe(422);
+        expect(below.body.code).toBe('READING_DECREASING');
+    });
+
     afterAll(async () => {
         await app.close();
     });
 });
+
+/** A meter owned by ALICE that no other test run has seen. */
+function freshMeter(): string {
+    return registerMeter(crypto.randomUUID(), ALICE);
+}

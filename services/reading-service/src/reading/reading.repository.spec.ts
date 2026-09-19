@@ -24,6 +24,11 @@ function prismaStub() {
     return {reading};
 }
 
+/** Decimals from Prisma expose toNumber(). */
+function decimal(value: number) {
+    return {toNumber: () => value};
+}
+
 function repositoryWith(delegate: ReturnType<typeof prismaStub>) {
     return new ReadingRepository(delegate as unknown as PrismaService);
 }
@@ -116,5 +121,36 @@ describe('ReadingRepository', () => {
         const repository = repositoryWith(delegate);
 
         expect(await repository.findLatestByMeterId(READING_ROW.meterId)).toBeNull();
+    });
+
+    it('finds the previous reading strictly before the given timestamp', async () => {
+        const delegate = prismaStub();
+        delegate.reading.findFirst = vi.fn().mockResolvedValue({
+            ...READING_ROW,
+            value: decimal(100),
+        });
+        const repository = repositoryWith(delegate);
+        const recordedAt = new Date('2026-08-28T08:00:00Z');
+
+        const previous = await repository.findPrevious(READING_ROW.meterId, recordedAt);
+
+        expect(delegate.reading.findFirst).toHaveBeenCalledWith(
+            expect.objectContaining({
+                where: {
+                    meterId: READING_ROW.meterId,
+                    recordedAt: {lt: recordedAt},
+                },
+                orderBy: {recordedAt: 'desc'},
+            }),
+        );
+        expect(previous?.value).toBe(100);
+    });
+
+    it('returns null when there is no reading before the given timestamp', async () => {
+        const delegate = prismaStub();
+        delegate.reading.findFirst = vi.fn().mockResolvedValue(null);
+        const repository = repositoryWith(delegate);
+
+        expect(await repository.findPrevious(READING_ROW.meterId, new Date('2026-01-01T00:00:00Z'))).toBeNull();
     });
 });
