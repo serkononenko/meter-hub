@@ -232,6 +232,7 @@ export type MeterOrderByWithRelationInput = {
 
 export type MeterWhereUniqueInput = Prisma.AtLeast<{
   id?: string
+  householdId_serialNumber?: Prisma.MeterHouseholdIdSerialNumberCompoundUniqueInput
   AND?: Prisma.MeterWhereInput | Prisma.MeterWhereInput[]
   OR?: Prisma.MeterWhereInput[]
   NOT?: Prisma.MeterWhereInput | Prisma.MeterWhereInput[]
@@ -243,7 +244,7 @@ export type MeterWhereUniqueInput = Prisma.AtLeast<{
   status?: Prisma.EnumMeterStatusFilter<"Meter"> | $Enums.MeterStatus
   createdAt?: Prisma.DateTimeFilter<"Meter"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Meter"> | Date | string
-}, "id">
+}, "id" | "householdId_serialNumber">
 
 export type MeterOrderByWithAggregationInput = {
   id?: Prisma.SortOrder
@@ -357,6 +358,11 @@ export type MeterUncheckedUpdateManyInput = {
   status?: Prisma.EnumMeterStatusFieldUpdateOperationsInput | $Enums.MeterStatus
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+}
+
+export type MeterHouseholdIdSerialNumberCompoundUniqueInput = {
+  householdId: string
+  serialNumber: string
 }
 
 export type MeterCountOrderByAggregateInput = {

@@ -47,7 +47,7 @@ describe('Meter authorization (e2e)', () => {
         householdId: ALICE_HOUSEHOLD,
         type: 'ELECTRICITY',
         name: 'Sneaky meter',
-        serialNumber: 'SN-1',
+        serialNumber: uniqueSerial(),
         unit: 'KWH',
       });
 
@@ -84,7 +84,7 @@ describe('Meter authorization (e2e)', () => {
         householdId: ALICE_HOUSEHOLD,
         type: 'COLD_WATER',
         name: 'Kitchen water meter',
-        serialNumber: 'WT-77',
+        serialNumber: uniqueSerial(),
         unit: 'M3',
       });
 
@@ -109,7 +109,7 @@ describe('Meter authorization (e2e)', () => {
         householdId: BOB_HOUSEHOLD,
         type: 'GAS',
         name: "Bob's gas meter",
-        serialNumber: 'BG-1',
+        serialNumber: uniqueSerial(),
         unit: 'M3',
       });
 
@@ -178,13 +178,18 @@ describe('Meter authorization (e2e)', () => {
         householdId,
         type: 'ELECTRICITY',
         name: 'Cross-user meter',
-        serialNumber: 'CU-1',
+        serialNumber: uniqueSerial(),
         unit: 'KWH',
       });
     expect(response.status).toBe(201);
     return response.body as { id: string };
   }
 });
+
+/** Serials are unique per household (5.5), so every run needs fresh ones. */
+function uniqueSerial(): string {
+  return `E2E-${crypto.randomUUID().slice(0, 8)}`;
+}
 
 /** Problem body without request-scoped fields, for enumeration-safety diffs. */
 function stableProblem(body: Record<string, unknown>) {

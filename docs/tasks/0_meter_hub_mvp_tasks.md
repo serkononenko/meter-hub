@@ -180,9 +180,15 @@
 - [x] Prevent access to another user's meter.
 
 ### 5.5 Validation
-- [ ] Validate supported meter types.
-- [ ] Validate required fields.
-- [ ] Define serial number uniqueness policy.
+- [x] Validate supported meter types.
+- [x] Validate required fields.
+- [x] Define serial number uniqueness policy.
+
+Policy: `serialNumber` is unique per `householdId` (a manufacturer serial
+identifies one physical meter, but identical devices can exist in different
+households). The reservation persists after the meter is ARCHIVED. Violations
+return `409 METER_SERIAL_NUMBER_CONFLICT`; the rule is enforced by a DB unique
+index on `(household_id, serial_number)` in meter-db.
 
 ---
 
