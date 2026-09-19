@@ -34,6 +34,8 @@ public class SecurityConfig {
             // Stateless token-based API: CSRF protection does not apply
             .csrf(AbstractHttpConfigurer::disable)
             .authorizeHttpRequests(auth -> auth
+                // Liveness/readiness probes must not need a token
+                .requestMatchers("/actuator/health", "/actuator/health/**").permitAll()
                 .anyRequest().authenticated()
             )
             .oauth2ResourceServer(oauth2 -> oauth2

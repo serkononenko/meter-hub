@@ -31,6 +31,23 @@ identity:
     access-token-ttl: ${IDENTITY_JWT_ACCESS_TOKEN_TTL:15m}
     refresh-token-ttl: ${IDENTITY_JWT_REFRESH_TOKEN_TTL:30d}
 
+management:
+  # Liveness and readiness are separate probe concerns (conventions §13):
+  # liveness answers "is the process up" with no dependency checks, readiness
+  # includes the database so orchestration can stop routing traffic when it
+  # is unreachable. The aggregate /actuator/health is not web-exposed —
+  # probes use the dedicated subpaths
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: never
+  health:
+    db:
+      enabled: true
+
 logging:
   # Structured single-line format per conventions §14: timestamp, level,
   # service, requestId (the correlation ID from the MDC, set by

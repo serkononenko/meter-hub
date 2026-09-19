@@ -143,6 +143,25 @@ class GatewayAuthenticationIntegrationTest {
     }
 
     @Test
+    void livenessAndReadinessProbesArePublic() {
+        // Probes must not need a token (conventions §13): a 401 here would
+        // break container/Kubernetes health checks
+        EntityExchangeResult<byte[]> liveness = client.get().uri("/actuator/health/liveness")
+            .exchange()
+            .returnResult(byte[].class);
+        EntityExchangeResult<byte[]> readiness = client.get().uri("/actuator/health/readiness")
+            .exchange()
+            .returnResult(byte[].class);
+
+        assertThat(liveness.getStatus().value()).isEqualTo(200);
+        assertThat(new String(liveness.getResponseBodyContent(), StandardCharsets.UTF_8))
+            .contains("\"status\":\"UP\"");
+        assertThat(readiness.getStatus().value()).isEqualTo(200);
+        assertThat(new String(readiness.getResponseBodyContent(), StandardCharsets.UTF_8))
+            .contains("\"status\":\"UP\"");
+    }
+
+    @Test
     void authEndpointsArePublic() {
         // Downstream is down: a 5xx (connection refused) means the security
         // layer let the request through; a 401 would mean it demanded a token

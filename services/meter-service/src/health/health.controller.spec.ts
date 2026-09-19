@@ -41,4 +41,22 @@ describe('HealthController', () => {
         };
         await expect(controller.check()).rejects.toThrow(ServiceUnavailableException);
     });
+
+    it('liveness answers UP without touching the database', async () => {
+        prisma.$runCommandRaw = async () => {
+            throw new Error('should not be called');
+        };
+        expect(controller.live()).toEqual({status: 'UP'});
+    });
+
+    it('readiness checks the database like the aggregate endpoint', async () => {
+        const result = await controller.ready();
+        expect(result.status).toBe('ok');
+        expect(result.details.prisma.status).toBe('up');
+
+        prisma.$runCommandRaw = async () => {
+            throw new Error('connection refused');
+        };
+        await expect(controller.ready()).rejects.toThrow(ServiceUnavailableException);
+    });
 });
