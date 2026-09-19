@@ -382,8 +382,13 @@ return `401` as an RFC 9457 problem (`UNAUTHORIZED` / `INVALID_TOKEN` with a
 correlationId).
 
 ### 8.2 Household flow
-- [ ] Create household through Gateway.
-- [ ] Fetch household list.
+- [x] Create household through Gateway.
+- [x] Fetch household list.
+
+Verified with curl against docker compose, using the access token from the
+8.1 user: `POST /api/household-service/api/v1/households` → 201 (id, name,
+timestamps echoed back), then `GET .../households` → 200 listing exactly that
+household, scoped to the token's user.
 
 ### 8.3 Meter flow
 - [ ] Add meter to household.
