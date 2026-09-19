@@ -3,7 +3,8 @@
 import {
   registerUser,
 } from "@/lib/api/generated/identity-service/auth/auth";
-import type {Problem, User} from "@/lib/api/generated/identity-service/model";
+import type {User} from "@/lib/api/generated/identity-service/model";
+import {fieldErrorsOf, isErrorResponse, problemMessage} from "@/lib/api/problems";
 import type {SessionUser} from "@/lib/auth/session-user";
 
 export type {SessionUser};
@@ -63,7 +64,7 @@ export async function login(email: string, password: string): Promise<{ok: true;
     });
 
     if (!response.ok) {
-      const problem = (await response.json().catch(() => null)) as Problem | null;
+      const problem = (await response.json().catch(() => null)) as {detail?: string} | null;
       return {ok: false, error: problem?.detail ?? "Sign in failed"};
     }
 
@@ -73,19 +74,6 @@ export async function login(email: string, password: string): Promise<{ok: true;
   } catch {
     return {ok: false, error: "Sign in failed"};
   }
-}
-
-/** Narrowing helper for generated response unions. */
-export function isErrorResponse(
-  response: unknown,
-): response is {data: Problem; status: number} {
-  return (
-    typeof response === "object" &&
-    response !== null &&
-    "status" in response &&
-    typeof (response as {status: unknown}).status === "number" &&
-    (response as {status: number}).status >= 400
-  );
 }
 
 export async function signUp(values: {
@@ -120,21 +108,6 @@ export async function logout(): Promise<void> {
   } finally {
     accessToken = null;
   }
-}
-
-export function problemMessage(problem: Pick<Problem, "detail" | "title" | "errors"> | null | undefined): string {
-  if (problem?.errors && problem.errors.length > 0) {
-    return problem.errors.map((e) => e.message).join(", ");
-  }
-  return problem?.detail ?? problem?.title ?? "Request failed";
-}
-
-export function fieldErrorsOf(problem: Problem | null | undefined): Record<string, string> {
-  const fieldErrors: Record<string, string> = {};
-  for (const problemError of problem?.errors ?? []) {
-    fieldErrors[problemError.field] = problemError.message;
-  }
-  return fieldErrors;
 }
 
 export type {User};

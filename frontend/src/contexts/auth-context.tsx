@@ -4,10 +4,10 @@ import * as React from "react";
 
 import {useGetCurrentUser} from "@/lib/api/generated/identity-service/users/users";
 import type {User} from "@/lib/api/generated/identity-service/model";
+import {isErrorResponse} from "@/lib/api/problems";
 import {
   clearAccessToken,
   getAccessToken,
-  isErrorResponse,
   login,
   logout,
   refreshSession,

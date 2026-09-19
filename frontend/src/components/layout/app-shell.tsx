@@ -4,17 +4,17 @@ import Container from "@mui/material/Container";
 import GlobalStyles from "@mui/material/GlobalStyles";
 
 import {AuthGuard} from "@/components/auth/auth-guard";
-import {MainNav} from "@/components/dashboard/layout/main-nav";
-import {SideNav} from "@/components/dashboard/layout/side-nav";
+import {MainNav} from "@/components/layout/main-nav";
+import {SideNav} from "@/components/layout/side-nav";
 
 /**
- * Dashboard shell, ported from the Devias Kit: fixed dark side nav plus a
- * sticky top bar, wrapped in the auth guard.
+ * Shell of the authenticated area, ported from the Devias Kit: fixed dark
+ * side nav plus a sticky top bar, wrapped in the auth guard. Applied per
+ * protected page since the top-level routes have no shared segment.
  */
-export default function DashboardLayout({children}: {children: React.ReactNode}): React.JSX.Element {
+export function AppShell({children}: {children: React.ReactNode}): React.JSX.Element {
   return (
     <AuthGuard>
-      <React.Fragment>
       <GlobalStyles
         styles={{
           body: {
@@ -46,7 +46,6 @@ export default function DashboardLayout({children}: {children: React.ReactNode})
           </main>
         </Box>
       </Box>
-      </React.Fragment>
     </AuthGuard>
   );
 }
