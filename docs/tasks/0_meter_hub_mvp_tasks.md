@@ -416,9 +416,18 @@ keeps historical readings addressable"). `POST /api/reading-service/api/v1/readi
 `GET .../meters/{id}/readings` → 200 lists both, newest first.
 
 ### 8.5 Security flow
-- [ ] Verify User A cannot read User B's household.
-- [ ] Verify User A cannot read User B's meter.
-- [ ] Verify User A cannot create a reading for User B's meter.
+- [x] Verify User A cannot read User B's household.
+- [x] Verify User A cannot read User B's meter.
+- [x] Verify User A cannot create a reading for User B's meter.
+
+Verified with curl against docker compose: a second user B registered and
+created their own household + gas meter; User A's token was then used against
+B's resources. `GET /households/{B's id}` → 404 `HOUSEHOLD_NOT_FOUND`;
+`GET /meters?householdId={B's}` → 404; `GET /meters/{B's id}` → 404
+`METER_NOT_FOUND`; `POST /readings` for B's meter → 404; additionally
+`GET /meters/{B's}/readings` (history) → 404. All denials are resource-not-found
+(ownership scoping, not 403), so existence is not leaked. Control checks: with
+their own token B still gets 200 on the meter and 201 on a reading.
 
 ---
 
