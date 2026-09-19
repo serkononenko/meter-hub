@@ -66,7 +66,7 @@ export const getRegisterUserUrl = () => {
 
 
 
-  return `/api/v1/auth/register`
+  return `/api/identity-service/api/v1/auth/register`
 }
 
 /**
@@ -183,7 +183,7 @@ export const getLoginUserUrl = () => {
 
 
 
-  return `/api/v1/auth/login`
+  return `/api/identity-service/api/v1/auth/login`
 }
 
 /**
@@ -300,7 +300,7 @@ export const getRefreshTokenUrl = () => {
 
 
 
-  return `/api/v1/auth/refresh`
+  return `/api/identity-service/api/v1/auth/refresh`
 }
 
 /**
@@ -412,7 +412,7 @@ export const getLogoutUserUrl = () => {
 
 
 
-  return `/api/v1/auth/logout`
+  return `/api/identity-service/api/v1/auth/logout`
 }
 
 /**

@@ -73,7 +73,7 @@ class GatewayCrossCuttingIntegrationTest {
     void unauthorizedProblemCarriesTheRequestsCorrelationId() {
         UUID supplied = UUID.randomUUID();
 
-        EntityExchangeResult<byte[]> result = client.get().uri("/api/v1/users/me")
+        EntityExchangeResult<byte[]> result = client.get().uri("/api/identity-service/api/v1/users/me")
             .header(CorrelationIdFilter.HEADER, supplied.toString())
             .exchange()
             .returnResult(byte[].class);
@@ -85,7 +85,7 @@ class GatewayCrossCuttingIntegrationTest {
 
     @Test
     void corsPreflightForAllowedOriginIsAccepted() {
-        EntityExchangeResult<byte[]> result = client.options().uri("/api/v1/auth/login")
+        EntityExchangeResult<byte[]> result = client.options().uri("/api/identity-service/api/v1/auth/login")
             .header(HttpHeaders.ORIGIN, "http://localhost:3000")
             .header(HttpHeaders.ACCESS_CONTROL_REQUEST_METHOD, HttpMethod.POST.name())
             .exchange()
@@ -100,7 +100,7 @@ class GatewayCrossCuttingIntegrationTest {
 
     @Test
     void corsPreflightForDisallowedOriginIsRejected() {
-        EntityExchangeResult<byte[]> result = client.options().uri("/api/v1/auth/login")
+        EntityExchangeResult<byte[]> result = client.options().uri("/api/identity-service/api/v1/auth/login")
             .header(HttpHeaders.ORIGIN, "https://evil.example.com")
             .header(HttpHeaders.ACCESS_CONTROL_REQUEST_METHOD, HttpMethod.POST.name())
             .exchange()

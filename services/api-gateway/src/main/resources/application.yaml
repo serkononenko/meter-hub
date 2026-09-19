@@ -28,29 +28,38 @@ spring:
     gateway:
       server:
         webmvc:
-          # One route per API path prefix. URIs are overridable per environment:
-          # local defaults point at localhost, Docker Compose sets the service DNS names.
+          # One route per service, keyed by the /api/<service-name> prefix the
+          # web client addresses each service through. StripPrefix=2 drops the
+          # /api and /<service-name> segments (the predicate above guarantees
+          # they are exactly that) so services keep serving their contract
+          # paths (/api/v1/...) unchanged. URIs are overridable per
+          # environment: local defaults point at localhost, Docker Compose
+          # sets the service DNS names.
           routes:
-            - id: auth
+            - id: identity
               uri: ${IDENTITY_SERVICE_URL:http://localhost:8081}
               predicates:
-                - Path=/api/v1/auth/**
-            - id: users
-              uri: ${IDENTITY_SERVICE_URL:http://localhost:8081}
-              predicates:
-                - Path=/api/v1/users/**
-            - id: households
+                - Path=/api/identity-service/**
+              filters:
+                - StripPrefix=2
+            - id: household
               uri: ${HOUSEHOLD_SERVICE_URL:http://localhost:8082}
               predicates:
-                - Path=/api/v1/households/**
-            - id: meters
+                - Path=/api/household-service/**
+              filters:
+                - StripPrefix=2
+            - id: meter
               uri: ${METER_SERVICE_URL:http://localhost:8083}
               predicates:
-                - Path=/api/v1/meters/**
-            - id: readings
+                - Path=/api/meter-service/**
+              filters:
+                - StripPrefix=2
+            - id: reading
               uri: ${READING_SERVICE_URL:http://localhost:8084}
               predicates:
-                - Path=/api/v1/readings/**
+                - Path=/api/reading-service/**
+              filters:
+                - StripPrefix=2
 
 logging:
   # Every log line (access log included) carries the request's correlation ID

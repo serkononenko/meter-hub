@@ -86,7 +86,7 @@ export const getCreateHouseholdUrl = () => {
 
 
 
-  return `/api/v1/households`
+  return `/api/household-service/api/v1/households`
 }
 
 /**
@@ -198,7 +198,7 @@ export const getListHouseholdsUrl = () => {
 
 
 
-  return `/api/v1/households`
+  return `/api/household-service/api/v1/households`
 }
 
 /**
@@ -222,7 +222,7 @@ export const listHouseholds = async ( options?: Parameters<typeof orvalInstance>
 
 export const getListHouseholdsQueryKey = () => {
     return [
-    `/api/v1/households`
+    `/api/household-service/api/v1/households`
     ] as const;
     }
 
@@ -328,7 +328,7 @@ export const getGetHouseholdUrl = (householdId: string,) => {
 
 
 
-  return `/api/v1/households/${householdId}`
+  return `/api/household-service/api/v1/households/${householdId}`
 }
 
 /**
@@ -352,7 +352,7 @@ export const getHousehold = async (householdId: string, options?: Parameters<typ
 
 export const getGetHouseholdQueryKey = (householdId: string,) => {
     return [
-    `/api/v1/households/${householdId}`
+    `/api/household-service/api/v1/households/${householdId}`
     ] as const;
     }
 

@@ -76,7 +76,7 @@ export const getGetCurrentUserUrl = () => {
 
 
 
-  return `/api/v1/users/me`
+  return `/api/identity-service/api/v1/users/me`
 }
 
 /**
@@ -100,7 +100,7 @@ export const getCurrentUser = async ( options?: Parameters<typeof orvalInstance>
 
 export const getGetCurrentUserQueryKey = () => {
     return [
-    `/api/v1/users/me`
+    `/api/identity-service/api/v1/users/me`
     ] as const;
     }
 
