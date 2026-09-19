@@ -1,9 +1,12 @@
 import {describe, expect, it, vi} from 'vitest';
+import {Prisma} from '../database/generated/prisma/client.js';
 import {MeterService} from './meter.service.js';
 import {MeterRepository} from './meter.repository.js';
 import {HouseholdService} from '../household/household.service.js';
 import {MeterNotFoundException} from '../exceptions/not-found.exception.js';
+import {MeterSerialNumberConflictException} from '../exceptions/conflict.exception.js';
 import {HouseholdServiceUnavailableException} from '../exceptions/service-unavailable.exception.js';
+import {RequestValidationException} from '../exceptions/request-validation.exception.js';
 import {MeterType, MeterUnit, MeterStatus} from "./generated/models/index.js";
 
 import type {Meter} from "./generated/models/index.js";
@@ -151,4 +154,65 @@ describe('MeterService', () => {
         })).rejects.toBeInstanceOf(HouseholdServiceUnavailableException);
         expect(repository.save).not.toHaveBeenCalled();
     });
+
+    it('maps the serial number unique violation to a conflict problem on create', async () => {
+        const repository = repositoryStub();
+        repository.save = vi.fn().mockRejectedValue(uniqueViolation());
+        const service = serviceWith(repository);
+
+        await expect(service.createMeter({
+            householdId: HOUSEHOLD,
+            type: METER.type,
+            name: METER.name as string,
+            serialNumber: METER.serialNumber,
+            unit: METER.unit,
+        })).rejects.toBeInstanceOf(MeterSerialNumberConflictException);
+    });
+
+    it('maps the serial number unique violation to a conflict problem on update', async () => {
+        const repository = repositoryStub();
+        repository.update = vi.fn().mockRejectedValue(uniqueViolation());
+        const service = serviceWith(repository);
+
+        await expect(service.updateMeter(METER.id, {serialNumber: 'EL-123456'}))
+            .rejects.toBeInstanceOf(MeterSerialNumberConflictException);
+    });
+
+    it('lets non-unique database errors bubble up', async () => {
+        const repository = repositoryStub();
+        repository.save = vi.fn().mockRejectedValue(new Error('connection refused'));
+        const service = serviceWith(repository);
+
+        await expect(service.createMeter({
+            householdId: HOUSEHOLD,
+            type: METER.type,
+            name: METER.name as string,
+            serialNumber: METER.serialNumber,
+            unit: METER.unit,
+        })).rejects.toThrow('connection refused');
+    });
+
+    it('rejects an empty update body', async () => {
+        const repository = repositoryStub();
+        const service = serviceWith(repository);
+
+        await expect(service.updateMeter(METER.id, {})).rejects.toBeInstanceOf(RequestValidationException);
+        expect(repository.update).not.toHaveBeenCalled();
+    });
+
+    it('rejects an update body that only clears fields to empty', async () => {
+        const repository = repositoryStub();
+        const service = serviceWith(repository);
+
+        await expect(service.updateMeter(METER.id, {name: ''})).rejects.toBeInstanceOf(RequestValidationException);
+        expect(repository.update).not.toHaveBeenCalled();
+    });
 });
+
+/** The error Prisma raises when a unique constraint insert/update collides. */
+function uniqueViolation(): Prisma.PrismaClientKnownRequestError {
+    return new Prisma.PrismaClientKnownRequestError(
+        'Unique constraint failed on the fields: (household_id,serial_number)',
+        {code: 'P2002', clientVersion: '7.10.0'},
+    );
+}

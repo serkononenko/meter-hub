@@ -1,7 +1,9 @@
 import {Injectable} from '@nestjs/common';
 import {plainToInstance} from 'class-transformer';
 import {validate} from 'class-validator';
+import {Prisma} from '../database/generated/prisma/client.js';
 import {MeterNotFoundException, HouseholdNotFoundException} from "../exceptions/not-found.exception.js";
+import {MeterSerialNumberConflictException} from "../exceptions/conflict.exception.js";
 import {RequestValidationException} from "../exceptions/request-validation.exception.js";
 import {MetersApi} from "./generated/api/index.js";
 import {MeterRepository} from './meter.repository.js';
@@ -28,7 +30,7 @@ export class MeterService extends MetersApi {
         await this.validate(command);
         await this.canAccess(command.householdId);
 
-        return this.repository.save({
+        return this.guardSerialConflict(() => this.repository.save({
             id: crypto.randomUUID(),
             householdId: command.householdId,
             type: command.type,
@@ -38,7 +40,7 @@ export class MeterService extends MetersApi {
             status: 'ACTIVE',
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString()
-        })
+        }), command.serialNumber);
     }
 
     async getMeter(meterId: string) {
@@ -78,13 +80,27 @@ export class MeterService extends MetersApi {
 
         const prevMeter = await this.getMeter(meterId);
 
-        const meter = await this.repository.update(prevMeter.id, command);
+        const meter = await this.guardSerialConflict(
+            () => this.repository.update(prevMeter.id, command),
+            command.serialNumber ?? '',
+        );
 
         if (!meter) {
             throw new MeterNotFoundException(meterId);
         }
 
         return meter;
+    }
+
+    private async guardSerialConflict<T>(operation: () => Promise<T>, serialNumber: string): Promise<T> {
+        try {
+            return await operation();
+        } catch (error) {
+            if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+                throw new MeterSerialNumberConflictException(serialNumber);
+            }
+            throw error;
+        }
     }
 
     private async canAccess(householdId: string) {

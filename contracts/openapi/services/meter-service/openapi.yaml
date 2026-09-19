@@ -78,6 +78,25 @@ paths:
                     code: HOUSEHOLD_NOT_FOUND
                     detail: No household with this identifier is visible to the authenticated user.
                     correlationId: 7d6f5f2c-0a49-4e10-8ef7-7c3d2b1f4a10
+        '409':
+          description: A meter with the same serial number is already registered in this household.
+          headers:
+            X-Correlation-ID:
+              $ref: '../../components/headers/correlation-id.yaml'
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../../openapi.yaml#/components/schemas/Problem'
+              examples:
+                serialNumberConflict:
+                  summary: Serial number already used within the household
+                  value:
+                    type: https://api.meterhub.local/problems/meter-serial-number-conflict
+                    title: Meter serial number already registered
+                    status: 409
+                    code: METER_SERIAL_NUMBER_CONFLICT
+                    detail: A meter with the serial number EL-123456 is already registered in this household.
+                    correlationId: 7d6f5f2c-0a49-4e10-8ef7-7c3d2b1f4a10
         '500':
           $ref: '../../openapi.yaml#/components/responses/InternalServerError'
 
@@ -261,6 +280,25 @@ paths:
                     status: 404
                     code: METER_NOT_FOUND
                     detail: No meter with this identifier is visible to the authenticated user.
+                    correlationId: 7d6f5f2c-0a49-4e10-8ef7-7c3d2b1f4a10
+        '409':
+          description: A meter with the same serial number is already registered in this household.
+          headers:
+            X-Correlation-ID:
+              $ref: '../../components/headers/correlation-id.yaml'
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../../openapi.yaml#/components/schemas/Problem'
+              examples:
+                serialNumberConflict:
+                  summary: Serial number already used within the household
+                  value:
+                    type: https://api.meterhub.local/problems/meter-serial-number-conflict
+                    title: Meter serial number already registered
+                    status: 409
+                    code: METER_SERIAL_NUMBER_CONFLICT
+                    detail: A meter with the serial number EL-123456 is already registered in this household.
                     correlationId: 7d6f5f2c-0a49-4e10-8ef7-7c3d2b1f4a10
         '500':
           $ref: '../../openapi.yaml#/components/responses/InternalServerError'

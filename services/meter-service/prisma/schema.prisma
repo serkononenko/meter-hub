@@ -22,6 +22,10 @@ model Meter {
   updatedAt    DateTime    @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   @@index([householdId])
+  // A manufacturer serial number identifies one physical meter, so a household
+  // cannot register it twice. The reservation persists after ARCHIVED — a
+  // replacement meter gets a fresh serial.
+  @@unique([householdId, serialNumber])
   @@map("meters")
 }
 
