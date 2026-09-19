@@ -12,6 +12,7 @@ import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import AddIcon from "@mui/icons-material/Add";
 import EditIcon from "@mui/icons-material/Edit";
+import HistoryIcon from "@mui/icons-material/History";
 
 import {isErrorResponse, problemMessage} from "@/lib/api/problems";
 import {
@@ -22,6 +23,8 @@ import {useGetLatestReading} from "@/lib/api/generated/reading-service";
 import {meterStatusLabels, meterTypeLabels, formatReadingValue} from "@/lib/meters/labels";
 import {meterTypeColor} from "@/theme/meter-type-colors";
 
+import {ReadingsHistory} from "@/components/readings/readings-history";
+import {ReadingCreateDialog} from "@/components/readings/reading-create-dialog";
 import {MeterCreateDialog} from "./meter-create-dialog";
 import {MeterEditDialog} from "./meter-edit-dialog";
 
@@ -104,6 +107,9 @@ export function MetersList({householdId}: MetersListProps): React.JSX.Element {
 }
 
 function MeterCard({meter, onEdit}: {meter: Meter; onEdit: () => void}): React.JSX.Element {
+  const [recordOpen, setRecordOpen] = React.useState(false);
+  const [historyOpen, setHistoryOpen] = React.useState(false);
+
   return (
     <Card>
       <CardContent>
@@ -122,13 +128,30 @@ function MeterCard({meter, onEdit}: {meter: Meter; onEdit: () => void}): React.J
             {meterTypeLabels[meter.type]} · Serial {meter.serialNumber}
           </Typography>
           <LatestReading meterId={meter.id} unit={meter.unit} />
+          <ReadingsHistory meter={meter} open={historyOpen} />
         </Stack>
       </CardContent>
       <CardActions>
+        <Button
+          disabled={meter.status === "ARCHIVED"}
+          onClick={() => setRecordOpen(true)}
+          size="small"
+          startIcon={<AddIcon />}
+        >
+          Record reading
+        </Button>
+        <Button
+          onClick={() => setHistoryOpen((prev) => !prev)}
+          size="small"
+          startIcon={<HistoryIcon />}
+        >
+          {historyOpen ? "Hide history" : "History"}
+        </Button>
         <Button onClick={onEdit} size="small" startIcon={<EditIcon />}>
           Edit or archive
         </Button>
       </CardActions>
+      <ReadingCreateDialog meter={meter} onClose={() => setRecordOpen(false)} open={recordOpen} />
     </Card>
   );
 }

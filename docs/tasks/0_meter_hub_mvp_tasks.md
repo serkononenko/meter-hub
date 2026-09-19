@@ -339,10 +339,10 @@ problem → required-name validation → cancel).
 - [x] Display meter type, unit, serial number, and latest reading.
 
 ### 7.5 Reading UI
-- [ ] Create add-reading form.
-- [ ] Show latest reading.
-- [ ] Show reading history.
-- [ ] Show validation/business errors clearly.
+- [x] Create add-reading form.
+- [x] Show latest reading.
+- [x] Show reading history.
+- [x] Show validation/business errors clearly.
 
 ### 7.6 Basic UX
 - [ ] Add loading states.
