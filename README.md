@@ -352,6 +352,19 @@ Cross-service data must be accessed through APIs or asynchronous events.
 - Add correlation/request IDs to requests and logs.
 - Keep secrets out of source control.
 
+## Documentation
+
+| Document | Contents |
+|---|---|
+| [docs/architecture-overview.md](docs/architecture-overview.md) | Architecture overview: components, authentication flow, cross-service trust, observability, environments |
+| [docs/api-examples.md](docs/api-examples.md) | API usage examples: the full MVP flow with runnable curl requests and error codes |
+| [docs/service-boundaries.md](docs/service-boundaries.md) | Service boundaries: per-service responsibilities, owned data, APIs and cross-service rules |
+| [docs/api-conventions.md](docs/api-conventions.md) | API conventions: versioning, IDs, timestamps, correlation ID, RFC 9457 problem responses |
+| [docs/conventions.md](docs/conventions.md) | Engineering conventions: naming, ports, env vars, health, logging, DB ownership, commit style |
+| [docs/ports.md](docs/ports.md) | Local service port plan |
+| [docs/known-limitations.md](docs/known-limitations.md) | Known limitations: deliberate scope cuts and simplifications in the MVP |
+| [contracts/openapi/openapi.yaml](contracts/openapi/openapi.yaml) | Root OpenAPI contract; per-service contracts under `contracts/openapi/services/` |
+
 ## Future Roadmap
 
 The platform is expected to evolve in roughly this order:
