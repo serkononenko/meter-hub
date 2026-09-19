@@ -391,10 +391,17 @@ timestamps echoed back), then `GET .../households` → 200 listing exactly that
 household, scoped to the token's user.
 
 ### 8.3 Meter flow
-- [ ] Add meter to household.
-- [ ] Fetch meters for household.
-- [ ] Update meter.
-- [ ] Archive meter.
+- [x] Add meter to household.
+- [x] Fetch meters for household.
+- [x] Update meter.
+- [x] Archive meter.
+
+Verified with curl against docker compose, same user/household as 8.2. Meters
+live at `/api/meter-service/api/v1/meters` with `householdId` in the create
+body (not nested under /households/{id}/meters): `POST` → 201 (ELECTRICITY /
+KWH, status ACTIVE), `GET ?householdId=` → 200 with the meter, `PATCH` rename
+→ 200 (name + updatedAt changed), `PATCH {"status":"ARCHIVED"}` → 200
+(ACTIVE → ARCHIVED).
 
 ### 8.4 Reading flow
 - [ ] Create manual reading.
