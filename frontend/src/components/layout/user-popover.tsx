@@ -42,15 +42,15 @@ export function UserPopover({anchorEl, onClose, open}: UserPopoverProps): React.
       open={open}
       slotProps={{paper: {sx: {width: "240px"}}}}
     >
-      <Box sx={{p: "16px 20px"}}>
+      <Box sx={{px: 2, py: 1.5}}>
         <Typography variant="subtitle1">{user?.username ?? "Account"}</Typography>
-        <Typography color="text.secondary" variant="body2">
+        <Typography color="text.secondary" noWrap variant="body2">
           {user?.email}
         </Typography>
       </Box>
       <Divider />
       <MenuList>
-        <MenuItem onClick={handleSignOut} sx={{display: "flex", gap: 1}}>
+        <MenuItem onClick={handleSignOut}>
           <ListItemIcon>
             <LogoutIcon fontSize="small" />
           </ListItemIcon>
