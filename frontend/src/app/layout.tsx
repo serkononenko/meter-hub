@@ -3,6 +3,8 @@ import {AppRouterCacheProvider} from "@mui/material-nextjs/v16-appRouter";
 import InitColorSchemeScript from "@mui/material/InitColorSchemeScript";
 import ThemeProviderBoundary from "../theme/theme-provider";
 
+import {QueryProvider} from "@/components/query-provider";
+import {AuthProvider} from "@/contexts/auth-context";
 import {inter} from "@/lib/fonts";
 import "@/styles/global.css";
 
@@ -19,7 +21,11 @@ export default function RootLayout({children}: LayoutProps<"/">) {
             preference without a flash. */}
         <InitColorSchemeScript attribute="data" />
         <AppRouterCacheProvider options={{key: "mhu", enableCssLayer: true}}>
-          <ThemeProviderBoundary>{children}</ThemeProviderBoundary>
+          <ThemeProviderBoundary>
+            <QueryProvider>
+              <AuthProvider>{children}</AuthProvider>
+            </QueryProvider>
+          </ThemeProviderBoundary>
         </AppRouterCacheProvider>
       </body>
     </html>

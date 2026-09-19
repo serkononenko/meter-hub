@@ -278,11 +278,42 @@ setup. Dashboard routes: `/dashboard` (overview, placeholder), `/dashboard/
 meters`, `/dashboard/readings`, `/dashboard/settings`.
 
 ### 7.2 Authentication UI
-- [ ] Create registration page.
-- [ ] Create login page.
-- [ ] Store authentication state securely according to selected architecture.
-- [ ] Implement logout.
-- [ ] Handle expired access token.
+- [x] Create registration page.
+- [x] Create login page.
+- [x] Store authentication state securely according to selected architecture.
+- [x] Implement logout.
+- [x] Handle expired access token.
+
+Auth architecture: Next.js BFF pattern. The browser only talks to Next.js
+route handlers (`/api/auth/login|sign-up|refresh|logout|session`); the
+refresh token lives in an httpOnly, SameSite=Lax cookie (`meterhub_refresh`)
+and never reaches client JS. The access token is held in memory only
+(module state in `src/lib/auth/auth-client.ts`) and attached as a Bearer
+header by `authedFetch`, which retries once through a silent refresh on a
+401. The identity service's refresh tokens are single-use, so every
+successful refresh rotates the cookie; an invalid refresh clears it and
+forces re-login. Logout revokes the token server-side and clears the
+cookie. `AuthProvider` + `AuthGuard`/`GuestGuard` (Devias Kit pattern)
+resolve the session on boot via silent refresh.
+
+API client generation: Orval (`npm run generate:api`) reads the versioned
+contracts in `contracts/openapi/services/*` and emits TanStack Query hooks +
+typed models under `src/lib/api/generated/` (one module per service). All
+generated calls go through a custom fetch mutator (`orval-mutator.ts`) that
+attaches the in-memory Bearer access token and retries once via silent
+refresh on 401, throwing `ApiError` carrying the RFC 9457 problem body on
+failure. Queries get a 30s stale time and skip retries on 4xx.
+`parserOptions.externalRefs.allow` lists the shared contract files the
+service specs reference (`../../openapi.yaml`, correlation-id header,
+problem schema). The identity-service client is generated too and used on
+both sides: BFF route handlers call `loginUser`/`refreshToken`/
+`logoutUser`/`registerUser` server-side (the mutator resolves absolute
+gateway URLs when `window` is undefined), and the browser registers
+directly through the generated `registerUser` — while login/refresh/
+logout still go through the BFF routes so the refresh token never enters
+client JS. The generated `useGetCurrentUser` hook feeds the auth context.
+Browser API calls use relative `/api/v1/...` URLs proxied to the gateway
+by a Next.js rewrite (same-origin, no CORS preflights).
 
 ### 7.3 Household UI
 - [ ] Create household list.
