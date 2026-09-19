@@ -367,10 +367,19 @@ Verified with `tsc --noEmit`, eslint, and `next build` all clean.
 ## Epic 8 — End-to-End Integration
 
 ### 8.1 Authentication flow
-- [ ] Register through Gateway.
-- [ ] Login through Gateway.
-- [ ] Call protected endpoint with JWT.
-- [ ] Verify unauthorized requests return 401.
+- [x] Register through Gateway.
+- [x] Login through Gateway.
+- [x] Call protected endpoint with JWT.
+- [x] Verify unauthorized requests return 401.
+
+Verified with curl against docker compose (gateway `localhost:8080`). Public
+paths are service-prefixed (`/api/identity-service/api/v1/auth/**`), matching
+the gateway routes and the web client's rewrites: register → 201, login → 200
+(access + rotating refresh token, 900s access TTL), `GET /users/me` with the
+access token → 200 with the correct user id/email. Missing, malformed, and
+expired tokens on a protected route (`GET /api/household-service/...`) all
+return `401` as an RFC 9457 problem (`UNAUTHORIZED` / `INVALID_TOKEN` with a
+correlationId).
 
 ### 8.2 Household flow
 - [ ] Create household through Gateway.

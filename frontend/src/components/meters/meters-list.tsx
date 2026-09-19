@@ -116,21 +116,20 @@ function MeterCard({meter, onEdit}: {meter: Meter; onEdit: () => void}): React.J
   const [historyOpen, setHistoryOpen] = React.useState(false);
 
   return (
-    <Card>
+    <Card sx={{borderLeft: "3px solid", borderLeftColor: meterTypeColor(meter.type)}}>
       <CardContent>
         <Stack spacing={1}>
           <Stack direction="row" spacing={1} sx={{alignItems: "center", justifyContent: "space-between"}}>
-            <Stack direction="row" spacing={1} sx={{alignItems: "center"}}>
-              {/* Type color: the hue encodes the physical meter kind. */}
-              <BoxColor color={meterTypeColor(meter.type)} />
-              <Typography variant="h6">{meter.name}</Typography>
-            </Stack>
+            <Typography variant="h6">{meter.name}</Typography>
             {meter.status === "ARCHIVED" ? (
               <Chip color="default" label={meterStatusLabels[meter.status]} size="small" />
             ) : null}
           </Stack>
           <Typography color="text.secondary" variant="body2">
-            {meterTypeLabels[meter.type]} · Serial {meter.serialNumber}
+            {meterTypeLabels[meter.type]},{" "}
+            <Box sx={{fontFamily: "var(--font-spline-mono), monospace"}} component="span">
+              {meter.serialNumber}
+            </Box>
           </Typography>
           <LatestReading meterId={meter.id} unit={meter.unit} />
           <ReadingsHistory meter={meter} open={historyOpen} />
@@ -158,22 +157,6 @@ function MeterCard({meter, onEdit}: {meter: Meter; onEdit: () => void}): React.J
       </CardActions>
       <ReadingCreateDialog meter={meter} onClose={() => setRecordOpen(false)} open={recordOpen} />
     </Card>
-  );
-}
-
-/** A small color dot in the meter type's hue. */
-function BoxColor({color}: {color: string}): React.JSX.Element {
-  return (
-    <Box
-      aria-hidden
-      sx={{
-        width: 10,
-        height: 10,
-        borderRadius: "50%",
-        backgroundColor: color,
-        flexShrink: 0,
-      }}
-    />
   );
 }
 
@@ -208,12 +191,16 @@ function LatestReading({meterId, unit}: {meterId: string; unit: Meter["unit"]}):
   const reading = response.data;
 
   return (
-    <Stack direction="row" spacing={1} sx={{alignItems: "baseline"}}>
-      <Typography sx={{fontFamily: "var(--font-spline-mono), monospace"}} variant="body1">
+    <Stack direction="row" spacing={1.5} sx={{alignItems: "baseline", pt: 1}}>
+      {/* The counter value is the product: it reads as the card's headline. */}
+      <Typography
+        sx={{fontFamily: "var(--font-spline-mono), monospace", fontSize: "1.75rem", fontWeight: 600, letterSpacing: "0.01em"}}
+        variant="body1"
+      >
         {formatReadingValue(reading.value, unit)}
       </Typography>
       <Typography color="text.secondary" variant="body2">
-        {new Date(reading.recordedAt).toLocaleDateString(undefined, {
+        on {new Date(reading.recordedAt).toLocaleDateString(undefined, {
           day: "numeric",
           month: "short",
           year: "numeric",

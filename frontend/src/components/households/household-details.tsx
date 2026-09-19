@@ -63,7 +63,7 @@ export function HouseholdDetails(): React.JSX.Element {
           <Stack spacing={2}>
             <Typography variant="h5">{household.name}</Typography>
             <Stack spacing={1}>
-              <DetailRow label="Household ID" value={household.id} />
+              <DetailRow mono value={household.id} label="Household ID" />
               <DetailRow label="Created" value={formatDate(household.createdAt)} />
               {household.updatedAt ? (
                 <DetailRow label="Last updated" value={formatDate(household.updatedAt)} />
@@ -77,13 +77,18 @@ export function HouseholdDetails(): React.JSX.Element {
   );
 }
 
-function DetailRow({label, value}: {label: string; value: string}): React.JSX.Element {
+function DetailRow({label, value, mono}: {label: string; value: string; mono?: boolean}): React.JSX.Element {
   return (
     <Stack direction="row" spacing={2}>
       <Typography color="text.secondary" sx={{width: 160, flexShrink: 0}} variant="body2">
         {label}
       </Typography>
-      <Typography variant="body2">{value}</Typography>
+      <Typography
+        sx={mono ? {fontFamily: "var(--font-spline-mono), monospace"} : undefined}
+        variant="body2"
+      >
+        {value}
+      </Typography>
     </Stack>
   );
 }

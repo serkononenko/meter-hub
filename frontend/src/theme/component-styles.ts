@@ -1,11 +1,13 @@
 import type {Components, Theme} from "@mui/material/styles";
-import {paperClasses} from "@mui/material/Paper";
 import {tableCellClasses} from "@mui/material/TableCell";
 import {tableRowClasses} from "@mui/material/TableRow";
 
 /**
- * Component style overrides ported from the Devias Kit (rounded buttons,
- * soft cards, level-shaded table headers, gap-based stacks).
+ * Component style overrides ported from the Devias Kit, restyled to the
+ * meter-housing identity: cards are flat plates with a hairline border
+ * (elevation is reserved for overlays), buttons and cards share the theme
+ * radius, and display headings take the tighter tracking of a stamped
+ * appliance nameplate.
  */
 export const components: Components<Theme> = {
   MuiAvatar: {
@@ -15,7 +17,7 @@ export const components: Components<Theme> = {
   },
   MuiButton: {
     styleOverrides: {
-      root: {borderRadius: "12px", textTransform: "none"},
+      root: {borderRadius: "8px", textTransform: "none"},
       sizeSmall: {padding: "6px 16px"},
       sizeMedium: {padding: "8px 20px"},
       sizeLarge: {padding: "11px 24px"},
@@ -24,25 +26,40 @@ export const components: Components<Theme> = {
   MuiCard: {
     styleOverrides: {
       root: ({theme}) => ({
-        borderRadius: "20px",
-        [`&.${paperClasses.elevation1}`]: {
-          boxShadow:
-            theme.palette.mode === "dark"
-              ? "0 5px 22px 0 rgba(0, 0, 0, 0.24), 0 0 0 1px rgba(255, 255, 255, 0.12)"
-              : "0 5px 22px 0 rgba(0, 0, 0, 0.04), 0 0 0 1px rgba(0, 0, 0, 0.06)",
-        },
+        borderRadius: "12px",
+        border: "1px solid var(--mui-palette-divider)",
+        backgroundImage: "none",
+        boxShadow: "none",
+        ...(theme.palette.mode === "dark" && {
+          backgroundColor: "var(--mui-palette-background-paper)",
+        }),
       }),
     },
   },
   MuiCardContent: {
     styleOverrides: {
-      root: {padding: "32px 24px", "&:last-child": {paddingBottom: "32px"}},
+      root: {padding: "24px", "&:last-child": {paddingBottom: "24px"}},
     },
   },
   MuiCardHeader: {
-    styleOverrides: {root: {padding: "32px 24px 16px"}},
+    styleOverrides: {root: {padding: "24px 24px 12px"}},
+  },
+  MuiChip: {
+    styleOverrides: {
+      root: {borderRadius: "6px", fontWeight: 500},
+    },
+  },
+  MuiDialog: {
+    styleOverrides: {
+      paper: {backgroundImage: "none"},
+    },
   },
   MuiLink: {defaultProps: {underline: "hover"}},
+  MuiPaper: {
+    styleOverrides: {
+      root: {backgroundImage: "none"},
+    },
+  },
   MuiStack: {defaultProps: {useFlexGap: true}},
   MuiTab: {
     styleOverrides: {
@@ -55,15 +72,6 @@ export const components: Components<Theme> = {
         paddingRight: 0,
         textTransform: "none",
         "& + &": {marginLeft: "24px"},
-      },
-    },
-  },
-  MuiTableBody: {
-    styleOverrides: {
-      root: {
-        [`& .${tableRowClasses.root}:last-child`]: {
-          [`& .${tableCellClasses.root}`]: {"--TableCell-borderWidth": 0},
-        },
       },
     },
   },
@@ -84,6 +92,24 @@ export const components: Components<Theme> = {
           lineHeight: 1,
         },
       },
+    },
+  },
+  MuiTableBody: {
+    styleOverrides: {
+      root: {
+        [`& .${tableRowClasses.root}:last-child`]: {
+          [`& .${tableCellClasses.root}`]: {"--TableCell-borderWidth": 0},
+        },
+      },
+    },
+  },
+  MuiTypography: {
+    styleOverrides: {
+      h1: {letterSpacing: "-0.02em"},
+      h2: {letterSpacing: "-0.02em"},
+      h3: {letterSpacing: "-0.015em"},
+      h4: {letterSpacing: "-0.015em"},
+      h5: {letterSpacing: "-0.01em"},
     },
   },
 };
