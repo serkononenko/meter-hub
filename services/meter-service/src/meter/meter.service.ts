@@ -1,12 +1,13 @@
-import {BadRequestException, Injectable} from '@nestjs/common';
+import {Injectable} from '@nestjs/common';
 import {plainToInstance} from 'class-transformer';
 import {validate} from 'class-validator';
-import {MeterNotFoundException} from "../exceptions/meter-not-found.exception.js";
+import {MeterNotFoundException, HouseholdNotFoundException} from "../exceptions/not-found.exception.js";
+import {RequestValidationException} from "../exceptions/request-validation.exception.js";
 import {MetersApi} from "./generated/api/index.js";
 import {MeterRepository} from './meter.repository.js';
 import {HouseholdService} from '../household/household.service.js';
-import {CreateMeterParams} from "./models/create-meter-params.js";
-import {UpdateMeterParams} from "./models/update-meter-params.js";
+import {CreateMeterCommand} from "./commands/create-meter.command.js";
+import {UpdateMeterCommand} from "./commands/update-meter.command.js";
 
 import type {CreateMeterRequest} from "./generated/models/index.js";
 import type {UpdateMeterRequest} from "./generated/models/index.js";
@@ -22,18 +23,18 @@ export class MeterService extends MetersApi {
     }
 
     async createMeter(payload: CreateMeterRequest) {
-        const params = plainToInstance(CreateMeterParams, payload);
+        const command = plainToInstance(CreateMeterCommand, payload);
 
-        await this.validate(params);
-        await this.canAccess(params.householdId);
+        await this.validate(command);
+        await this.canAccess(command.householdId);
 
         return this.repository.save({
             id: crypto.randomUUID(),
-            householdId: params.householdId,
-            type: params.type,
-            name: params.name,
-            serialNumber: params.serialNumber,
-            unit: params.unit,
+            householdId: command.householdId,
+            type: command.type,
+            name: command.name,
+            serialNumber: command.serialNumber,
+            unit: command.unit,
             status: 'ACTIVE',
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString()
@@ -49,7 +50,14 @@ export class MeterService extends MetersApi {
             throw new MeterNotFoundException(meterId);
         }
 
-        await this.canAccess(meter.householdId);
+        try {
+            await this.canAccess(meter.householdId);
+        } catch (error) {
+            if (error instanceof HouseholdNotFoundException) {
+                throw new MeterNotFoundException(meterId);
+            }
+            throw error;
+        }
 
         return meter;
     }
@@ -64,15 +72,13 @@ export class MeterService extends MetersApi {
     async updateMeter(meterId: string, payload: UpdateMeterRequest) {
         this.requireNotEmpty(meterId);
 
-        const params = plainToInstance(UpdateMeterParams, payload);
+        const command = plainToInstance(UpdateMeterCommand, payload);
 
-        await this.validate(params);
+        await this.validate(command);
 
         const prevMeter = await this.getMeter(meterId);
 
-        await this.canAccess(prevMeter.householdId);
-
-        const meter = await this.repository.update(prevMeter.id, params);
+        const meter = await this.repository.update(prevMeter.id, command);
 
         if (!meter) {
             throw new MeterNotFoundException(meterId);
@@ -85,17 +91,17 @@ export class MeterService extends MetersApi {
         return !!await this.householdService.getHousehold(householdId);
     }
 
-    private async validate(params: Object) {
-        const errors = await validate(params);
+    private async validate(command: Object) {
+        const errors = await validate(command);
 
         if (errors.length > 0) {
-            throw new BadRequestException();
+            throw new RequestValidationException(errors);
         }
     }
 
     private requireNotEmpty<T>(obj: T | null | undefined) {
         if (!obj) {
-            throw new BadRequestException();
+            throw new RequestValidationException([]);
         }
 
         return obj;

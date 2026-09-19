@@ -1,12 +1,13 @@
 import {describe, expect, it, vi} from 'vitest';
-import {MeterType} from '../database/generated/prisma/enums.js';
 import {MeterService} from './meter.service.js';
 import {MeterRepository} from './meter.repository.js';
-import {HouseholdAccessException} from '../exceptions/household-access.exception.js';
+import {HouseholdService} from '../household/household.service.js';
+import {MeterNotFoundException} from '../exceptions/not-found.exception.js';
+import {HouseholdServiceUnavailableException} from '../exceptions/service-unavailable.exception.js';
+import {MeterType, MeterUnit, MeterStatus} from "./generated/models/index.js";
+
 import type {Meter} from "./generated/models/index.js";
 
-const ALICE_TOKEN = 'alice-token';
-const BOB_TOKEN = 'bob-token';
 
 const HOUSEHOLD = '3f6a5b7c-93d2-4c8e-9a44-9f60f1f4c2aa';
 const METER: Meter = {
@@ -15,104 +16,101 @@ const METER: Meter = {
     type: MeterType.ELECTRICITY,
     name: 'Main electricity meter',
     serialNumber: 'EL-123456',
-    unit: 'KWH',
-    status: 'ACTIVE',
+    unit: MeterUnit.KWH,
+    status: MeterStatus.ACTIVE,
     createdAt: '2026-09-09T10:00:00Z',
     updatedAt: '2026-09-09T10:00:00Z',
 };
 
-function repositoryStub(): typeof MeterRepository {
+function repositoryStub(): MeterRepository {
     return {
         save: vi.fn().mockResolvedValue(METER),
         findById: vi.fn().mockResolvedValue(METER),
         findByHouseholdId: vi.fn().mockResolvedValue([METER]),
         update: vi.fn().mockResolvedValue(METER),
-    };
+    } as unknown as MeterRepository;
 }
 
-/** Stub ownership port: Alice owns the test household, Bob does not. */
-function accessStub(overrides: Partial<HouseholdAccessException> = {}): HouseholdAccessException {
+/** Stub household port: every test household resolves (access granted). */
+function householdStub(): HouseholdService {
     return {
-        canAccess: vi.fn(async (_householdId: string, token: string) => token === ALICE_TOKEN),
-        ...overrides,
-    };
+        getHousehold: vi.fn().mockResolvedValue({id: HOUSEHOLD}),
+    } as unknown as HouseholdService;
 }
 
-function serviceWith(repository: MeterRepository, access = accessStub()) {
-    return new MeterService(repository, access);
+/** Stub household port that always fails (service unreachable). */
+function householdDownStub(): HouseholdService {
+    return {
+        getHousehold: vi.fn().mockRejectedValue(new HouseholdServiceUnavailableException()),
+    } as unknown as HouseholdService;
+}
+
+function serviceWith(repository: MeterRepository, household: HouseholdService = householdStub()) {
+    return new MeterService(repository, household);
 }
 
 describe('MeterService', () => {
-    it('persists meters through the repository when the household is owned', async () => {
+    it('persists meters through the repository when the household is accessible', async () => {
         const repository = repositoryStub();
-        const access = accessStub();
-        const service = serviceWith(repository, access);
+        const household = householdStub();
+        const service = serviceWith(repository, household);
 
-        const created = await service.create(METER, ALICE_TOKEN);
+        const created = await service.createMeter({
+            householdId: HOUSEHOLD,
+            type: METER.type,
+            name: METER.name as string,
+            serialNumber: METER.serialNumber,
+            unit: METER.unit,
+        });
 
-        expect(access.canAccess).toHaveBeenCalledWith(HOUSEHOLD, ALICE_TOKEN);
-        expect(repository.save).toHaveBeenCalledWith(METER);
+        expect(household.getHousehold).toHaveBeenCalledWith(HOUSEHOLD);
+        expect(repository.save).toHaveBeenCalledWith(
+            expect.objectContaining({householdId: HOUSEHOLD, serialNumber: METER.serialNumber}),
+        );
         expect(created.id).toBe(METER.id);
     });
 
-    it('refuses to create a meter in a household the caller cannot see', async () => {
+    it('refuses to create a meter in an inaccessible household', async () => {
         const repository = repositoryStub();
-        const service = serviceWith(repository);
+        const service = serviceWith(repository, householdDownStub());
 
-        await expect(service.create(METER, BOB_TOKEN)).rejects.toMatchObject({
-            response: {code: 'HOUSEHOLD_NOT_FOUND'}, status: 404,
-        });
+        await expect(service.createMeter({
+            householdId: HOUSEHOLD,
+            type: METER.type,
+            name: METER.name as string,
+            serialNumber: METER.serialNumber,
+            unit: METER.unit,
+        })).rejects.toBeInstanceOf(HouseholdServiceUnavailableException);
         expect(repository.save).not.toHaveBeenCalled();
-    });
-
-    it('treats unknown and foreign households the same (404)', async () => {
-        const repository = repositoryStub();
-        const access = accessStub({canAccess: vi.fn().mockResolvedValue(false)});
-        const service = serviceWith(repository, access);
-
-        await expect(service.create(METER, ALICE_TOKEN)).rejects.toMatchObject({
-            response: {code: 'HOUSEHOLD_NOT_FOUND'}, status: 404,
-        });
     });
 
     it('lists meters only after the household check passes', async () => {
         const repository = repositoryStub();
-        const service = serviceWith(repository);
+        const household = householdStub();
+        const service = serviceWith(repository, household);
 
-        const meters = await service.listByHousehold(HOUSEHOLD, ALICE_TOKEN);
+        const meters = await service.listMeters(HOUSEHOLD);
 
+        expect(household.getHousehold).toHaveBeenCalledWith(HOUSEHOLD);
         expect(repository.findByHouseholdId).toHaveBeenCalledWith(HOUSEHOLD);
         expect(meters).toHaveLength(1);
     });
 
-    it('refuses listing meters of a foreign household', async () => {
+    it('refuses listing meters of an inaccessible household', async () => {
         const repository = repositoryStub();
-        const service = serviceWith(repository);
+        const service = serviceWith(repository, householdDownStub());
 
-        await expect(service.listByHousehold(HOUSEHOLD, BOB_TOKEN)).rejects.toMatchObject({
-            response: {code: 'HOUSEHOLD_NOT_FOUND'}, status: 404,
-        });
+        await expect(service.listMeters(HOUSEHOLD)).rejects.toBeInstanceOf(HouseholdServiceUnavailableException);
         expect(repository.findByHouseholdId).not.toHaveBeenCalled();
     });
 
-    it('returns a meter whose household belongs to the caller', async () => {
+    it('returns a meter whose household is accessible', async () => {
         const repository = repositoryStub();
         const service = serviceWith(repository);
 
-        const meter = await service.getById(METER.id, ALICE_TOKEN);
+        const meter = await service.getMeter(METER.id);
 
         expect(meter.id).toBe(METER.id);
-    });
-
-    it('hides a foreign-owned meter behind the same 404 as an unknown meter', async () => {
-        const repository = repositoryStub();
-        const service = serviceWith(repository);
-
-        // The meter exists but Bob does not own its household: indistinguishable
-        // from a missing meter so ids cannot be probed.
-        await expect(service.getById(METER.id, BOB_TOKEN)).rejects.toMatchObject({
-            name: 'NotFoundException',
-        });
     });
 
     it('throws when a meter is not found', async () => {
@@ -120,50 +118,37 @@ describe('MeterService', () => {
         repository.findById = vi.fn().mockResolvedValue(null);
         const service = serviceWith(repository);
 
-        await expect(service.getById(METER.id, ALICE_TOKEN)).rejects.toMatchObject({
-            name: 'NotFoundException',
-        });
+        await expect(service.getMeter(METER.id)).rejects.toBeInstanceOf(MeterNotFoundException);
     });
 
     it('applies only provided changes on update', async () => {
         const repository = repositoryStub();
         const service = serviceWith(repository);
 
-        await service.update(METER.id, {status: 'ARCHIVED'}, ALICE_TOKEN);
+        await service.updateMeter(METER.id, {status: 'ARCHIVED'});
 
         expect(repository.update).toHaveBeenCalledWith(METER.id, {status: 'ARCHIVED'});
     });
 
-    it('refuses updating a meter owned by another user', async () => {
-        const repository = repositoryStub();
-        const service = serviceWith(repository);
-
-        await expect(service.update(METER.id, {status: 'ARCHIVED'}, BOB_TOKEN)).rejects.toMatchObject({
-            name: 'NotFoundException',
-        });
-        expect(repository.update).not.toHaveBeenCalled();
-    });
-
-    it('throws on update when the meter does not exist', async () => {
+    it('refuses updating a meter that does not exist', async () => {
         const repository = repositoryStub();
         repository.update = vi.fn().mockResolvedValue(null);
         const service = serviceWith(repository);
 
-        await expect(service.update(METER.id, {status: 'ARCHIVED'}, ALICE_TOKEN)).rejects.toMatchObject({
-            name: 'NotFoundException',
-        });
+        await expect(service.updateMeter(METER.id, {status: 'ARCHIVED'})).rejects.toBeInstanceOf(MeterNotFoundException);
     });
 
-    it('fails closed with 502 when the household service is unreachable', async () => {
+    it('fails closed when the household service is unreachable', async () => {
         const repository = repositoryStub();
-        const access = accessStub({
-            canAccess: vi.fn().mockRejectedValue(new HouseholdAccessException('down')),
-        });
-        const service = serviceWith(repository, access);
+        const service = serviceWith(repository, householdDownStub());
 
-        await expect(service.create(METER, ALICE_TOKEN)).rejects.toMatchObject({
-            response: {code: 'HOUSEHOLD_SERVICE_UNAVAILABLE'}, status: 502,
-        });
+        await expect(service.createMeter({
+            householdId: HOUSEHOLD,
+            type: METER.type,
+            name: METER.name as string,
+            serialNumber: METER.serialNumber,
+            unit: METER.unit,
+        })).rejects.toBeInstanceOf(HouseholdServiceUnavailableException);
         expect(repository.save).not.toHaveBeenCalled();
     });
 });
