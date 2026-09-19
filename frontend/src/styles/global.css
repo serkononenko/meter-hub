@@ -10,6 +10,16 @@
   outline-offset: 2px;
 }
 
+/* Focus containers (popovers, dialogs) take focus for focus-trapping, not
+   because the user selected them — a ring around the whole surface reads
+   as a border, so suppress it there. Interactive elements inside keep the
+   ring. */
+.MuiPopover-paper:focus-visible,
+.MuiDialog-paper:focus-visible,
+.MuiDrawer-paper:focus-visible {
+  outline: none;
+}
+
 /* MUI text controls draw their own focus indicator (border color +
    box-shadow). Suppress the global outline for them, or it doubles up —
    MUI's reset lives in @layer mui (enableCssLayer), which loses to this
