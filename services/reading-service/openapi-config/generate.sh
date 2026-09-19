@@ -22,4 +22,12 @@ find "./src/reading/generated" -name '*.ts' -exec sed -i '' -E \
 find "./src/reading/generated/controllers" -name '*.ts' -exec sed -i '' -E \
   -e "/from '\.\.\/models\/index\.js'/s/import \{/import type {/" {} +
 
+echo "🚀 Launching typescript-fetch client generation for meter-service..."
+mkdir -p "./src/meter/generated"
+npx @openapitools/openapi-generator-cli generate \
+  -i "../../contracts/openapi/services/meter-service/openapi.yaml" \
+  -g typescript-fetch \
+  -o "./src/meter/generated" \
+  -c "./openapi-config/meter-client.json"
+
 echo "✅ Successfully generated"

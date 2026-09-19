@@ -7,6 +7,6 @@ export default defineConfig({
     globals: true,
     root: './',
     include: ['**/*.e2e-spec.ts'],
-    // A global setup (JWT keys, service stubs) arrives with 6.5 auth.
+    setupFiles: ['./test/global-setup.ts'],
   },
 });

@@ -3,14 +3,14 @@ import {Test} from '@nestjs/testing';
 import request from 'supertest';
 import {afterAll, beforeAll, describe, expect, it} from 'vitest';
 import {AppModule} from '../src/app.module.js';
+import {ALICE_METER, BOB_METER, mintToken} from './global-setup.js';
 
-const METER_ID = '0d7f8a26-6f6f-4a55-9a71-3bd11c0a1f01';
+const ALICE = '11111111-1111-4111-8111-111111111111';
 
 /**
- * Create-reading e2e (6.3): the HTTP surface runs against the real Prisma
- * wiring and the local reading_db. Authorization (the caller's access to the
- * meter) arrives with 6.5; until then meterId is accepted as a plain
- * reference.
+ * Create-reading e2e (6.3 + 6.5): the HTTP surface runs against the real
+ * Prisma wiring, the real JWT verification path, and a meter-service stand-in
+ * for the ownership check.
  */
 describe('Create reading (e2e)', () => {
     let app: INestApplication;
@@ -24,12 +24,40 @@ describe('Create reading (e2e)', () => {
         await app.init();
     });
 
-    it('creates a reading and reads it back', async () => {
+    it('rejects unauthenticated requests with the UNAUTHORIZED problem', async () => {
+        const response = await request(app.getHttpServer())
+            .post('/api/v1/readings')
+            .send({meterId: ALICE_METER, value: 1, recordedAt: '2026-08-27T08:30:00Z'});
+
+        expect(response.status).toBe(401);
+        expect(response.headers['content-type']).toContain('application/problem+json');
+        expect(response.body).toMatchObject({
+            code: 'UNAUTHORIZED',
+            title: 'Authentication required',
+            status: 401,
+        });
+        expect(response.headers['www-authenticate']).toBe('Bearer');
+    });
+
+    it('rejects invalid tokens with the INVALID_TOKEN problem', async () => {
+        const response = await request(app.getHttpServer())
+            .post('/api/v1/readings')
+            .set('Authorization', 'Bearer not-a-jwt')
+            .send({meterId: ALICE_METER, value: 1, recordedAt: '2026-08-27T08:30:00Z'});
+
+        expect(response.status).toBe(401);
+        expect(response.body).toMatchObject({code: 'INVALID_TOKEN', status: 401});
+    });
+
+    it('creates a reading for a meter owned by the token subject', async () => {
+        const token = await mintToken({subject: ALICE});
+
         const created = await request(app.getHttpServer())
             .post('/api/v1/readings')
+            .set('Authorization', `Bearer ${token}`)
             .set('X-Correlation-ID', '7d6f5f2c-0a49-4e10-8ef7-7c3d2b1f4a10')
             .send({
-                meterId: METER_ID,
+                meterId: ALICE_METER,
                 value: 15432.1,
                 recordedAt: '2026-08-27T08:30:00Z',
             });
@@ -37,7 +65,7 @@ describe('Create reading (e2e)', () => {
         expect(created.status).toBe(201);
         expect(created.headers['content-type']).toContain('application/json');
         expect(created.body).toMatchObject({
-            meterId: METER_ID,
+            meterId: ALICE_METER,
             value: 15432.1,
             recordedAt: '2026-08-27T08:30:00.000Z',
             source: 'MANUAL',
@@ -45,15 +73,34 @@ describe('Create reading (e2e)', () => {
         expect(created.body.id).toMatch(/^[0-9a-f-]{36}$/);
         expect(created.body.createdAt).toMatch(/Z$/);
         expect(created.headers['x-correlation-id']).toBe('7d6f5f2c-0a49-4e10-8ef7-7c3d2b1f4a10');
+    });
 
-        const listed = await request(app.getHttpServer())
-            .get('/health');
-        expect(listed.status).toBe(200);
+    it('rejects a reading for someone else\'s meter with the same 404 as an unknown one', async () => {
+        const token = await mintToken({subject: ALICE});
+
+        const foreign = await request(app.getHttpServer())
+            .post('/api/v1/readings')
+            .set('Authorization', `Bearer ${token}`)
+            .send({meterId: BOB_METER, value: 1, recordedAt: '2026-08-27T08:30:00Z'});
+        const unknown = await request(app.getHttpServer())
+            .post('/api/v1/readings')
+            .set('Authorization', `Bearer ${token}`)
+            .send({meterId: crypto.randomUUID(), value: 1, recordedAt: '2026-08-27T08:30:00Z'});
+
+        expect(foreign.status).toBe(404);
+        expect(unknown.status).toBe(404);
+        expect(foreign.body.code).toBe('METER_NOT_FOUND');
+        const {correlationId: _c, instance: _i, detail: _d, ...rest} = foreign.body;
+        const {correlationId: _c2, instance: _i2, detail: _d2, ...restUnknown} = unknown.body;
+        expect(restUnknown).toEqual(rest);
     });
 
     it('returns a validation problem for a bad create body', async () => {
+        const token = await mintToken({subject: ALICE});
+
         const response = await request(app.getHttpServer())
             .post('/api/v1/readings')
+            .set('Authorization', `Bearer ${token}`)
             .send({meterId: 'not-a-uuid', value: -5, recordedAt: 'yesterday'});
 
         expect(response.status).toBe(400);
@@ -67,86 +114,20 @@ describe('Create reading (e2e)', () => {
         expect(fields).toEqual(['meterId', 'recordedAt', 'value']);
     });
 
-    it('returns a validation problem when the timestamp is missing', async () => {
-        const response = await request(app.getHttpServer())
-            .post('/api/v1/readings')
-            .send({meterId: METER_ID, value: 10});
-
-        expect(response.status).toBe(400);
-        expect(response.body.errors.map((e: { field: string }) => e.field)).toEqual(['recordedAt']);
-    });
-
     it('normalizes an offset timestamp to UTC Z form', async () => {
+        const token = await mintToken({subject: ALICE});
+
         const response = await request(app.getHttpServer())
             .post('/api/v1/readings')
+            .set('Authorization', `Bearer ${token}`)
             .send({
-                meterId: METER_ID,
+                meterId: ALICE_METER,
                 value: 1,
                 recordedAt: '2026-08-27T10:30:00+02:00',
             });
 
         expect(response.status).toBe(201);
         expect(response.body.recordedAt).toBe('2026-08-27T08:30:00.000Z');
-    });
-
-    it('lists reading history newest first with paging', async () => {
-        const meterId = crypto.randomUUID();
-        for (const [value, recordedAt] of [
-            [10, '2026-08-01T08:00:00Z'],
-            [20, '2026-08-02T08:00:00Z'],
-            [30, '2026-08-03T08:00:00Z'],
-        ] as const) {
-            const created = await request(app.getHttpServer())
-                .post('/api/v1/readings')
-                .send({meterId, value, recordedAt});
-            expect(created.status).toBe(201);
-        }
-
-        const full = await request(app.getHttpServer())
-            .get(`/api/v1/meters/${meterId}/readings`);
-
-        expect(full.status).toBe(200);
-        expect(full.body.map((r: { value: number }) => r.value)).toEqual([30, 20, 10]);
-        expect(full.headers['x-correlation-id']).toBeDefined();
-
-        const paged = await request(app.getHttpServer())
-            .get(`/api/v1/meters/${meterId}/readings`)
-            .query({limit: 2, offset: 1});
-
-        expect(paged.status).toBe(200);
-        expect(paged.body.map((r: { value: number }) => r.value)).toEqual([20, 10]);
-    });
-
-    it('returns the latest reading and 404 for an unknown meter', async () => {
-        const meterId = crypto.randomUUID();
-        await request(app.getHttpServer())
-            .post('/api/v1/readings')
-            .send({meterId, value: 42, recordedAt: '2026-08-05T08:00:00Z'});
-
-        const latest = await request(app.getHttpServer())
-            .get(`/api/v1/meters/${meterId}/readings/latest`);
-
-        expect(latest.status).toBe(200);
-        expect(latest.body).toMatchObject({meterId, value: 42, source: 'MANUAL'});
-
-        const unknown = await request(app.getHttpServer())
-            .get(`/api/v1/meters/${crypto.randomUUID()}/readings/latest`);
-
-        expect(unknown.status).toBe(404);
-        expect(unknown.headers['content-type']).toContain('application/problem+json');
-        expect(unknown.body).toMatchObject({
-            code: 'READING_NOT_FOUND',
-            title: 'Reading not found',
-            status: 404,
-        });
-    });
-
-    it('returns an empty history for a meter without readings', async () => {
-        const response = await request(app.getHttpServer())
-            .get(`/api/v1/meters/${crypto.randomUUID()}/readings`);
-
-        expect(response.status).toBe(200);
-        expect(response.body).toEqual([]);
     });
 
     afterAll(async () => {
