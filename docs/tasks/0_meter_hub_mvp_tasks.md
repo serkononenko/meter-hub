@@ -195,10 +195,10 @@ index on `(household_id, serial_number)` in meter-db.
 ## Epic 6 — Reading Service — NestJS
 
 ### 6.1 Bootstrap service
-- [ ] Create NestJS project.
-- [ ] Configure PostgreSQL.
-- [ ] Configure database migrations.
-- [ ] Add health endpoint.
+- [x] Create NestJS project.
+- [x] Configure PostgreSQL.
+- [x] Configure database migrations.
+- [x] Add health endpoint.
 
 ### 6.2 Reading model
 - [ ] Create Reading entity/model.
