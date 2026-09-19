@@ -201,12 +201,12 @@ index on `(household_id, serial_number)` in meter-db.
 - [x] Add health endpoint.
 
 ### 6.2 Reading model
-- [ ] Create Reading entity/model.
-- [ ] Add meter ID.
-- [ ] Add numeric reading value.
-- [ ] Add `recordedAt`.
-- [ ] Add `source`.
-- [ ] Add `createdAt`.
+- [x] Create Reading entity/model.
+- [x] Add meter ID.
+- [x] Add numeric reading value.
+- [x] Add `recordedAt`.
+- [x] Add `source`.
+- [x] Add `createdAt`.
 
 ### 6.3 Create reading
 - [ ] Implement `POST /api/v1/readings`.

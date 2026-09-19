@@ -8,4 +8,5 @@
  *
  * 🟢 You can import this file directly.
  */
+export type * from './models/Reading.js'
 export type * from './commonInputTypes.js'

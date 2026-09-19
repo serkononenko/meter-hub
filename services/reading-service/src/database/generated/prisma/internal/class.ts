@@ -20,7 +20,7 @@ const config: runtime.GetPrismaClientConfig = {
   "clientVersion": "7.10.0",
   "engineVersion": "0edf323efd1d98336f3f0a68684b56f689b900d3",
   "activeProvider": "postgresql",
-  "inlineSchema": "generator client {\n  provider = \"prisma-client\"\n  output   = \"../src/database/generated/prisma\"\n}\n\ndatasource db {\n  provider = \"postgresql\"\n}\n",
+  "inlineSchema": "generator client {\n  provider = \"prisma-client\"\n  output   = \"../src/database/generated/prisma\"\n}\n\ndatasource db {\n  provider = \"postgresql\"\n}\n\n/// A meter reading recorded under a meter. The meter lives in Meter Service's\n/// database, so meter_id is a plain UUID reference without a foreign key (no\n/// cross-service DB access — PRD §6.4).\nmodel Reading {\n  id         String        @id @default(uuid()) @db.Uuid\n  meterId    String        @map(\"meter_id\") @db.Uuid\n  value      Decimal       @db.Decimal(20, 6)\n  recordedAt DateTime      @map(\"recorded_at\") @db.Timestamptz(6)\n  source     ReadingSource @default(MANUAL)\n  createdAt  DateTime      @default(now()) @map(\"created_at\") @db.Timestamptz(6)\n\n  @@index([meterId, recordedAt])\n  @@map(\"readings\")\n}\n\nenum ReadingSource {\n  MANUAL\n\n  @@map(\"reading_source\")\n}\n",
   "runtimeDataModel": {
     "models": {},
     "enums": {},
@@ -32,10 +32,10 @@ const config: runtime.GetPrismaClientConfig = {
   }
 }
 
-config.runtimeDataModel = JSON.parse("{\"models\":{},\"enums\":{},\"types\":{}}")
+config.runtimeDataModel = JSON.parse("{\"models\":{\"Reading\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"meterId\",\"kind\":\"scalar\",\"type\":\"String\",\"dbName\":\"meter_id\"},{\"name\":\"value\",\"kind\":\"scalar\",\"type\":\"Decimal\"},{\"name\":\"recordedAt\",\"kind\":\"scalar\",\"type\":\"DateTime\",\"dbName\":\"recorded_at\"},{\"name\":\"source\",\"kind\":\"enum\",\"type\":\"ReadingSource\"},{\"name\":\"createdAt\",\"kind\":\"scalar\",\"type\":\"DateTime\",\"dbName\":\"created_at\"}],\"dbName\":\"readings\",\"schema\":null}},\"enums\":{},\"types\":{}}")
 config.parameterizationSchema = {
-  strings: JSON.parse("[]"),
-  graph: "AAAA"
+  strings: JSON.parse("[\"where\",\"Reading.findUnique\",\"Reading.findUniqueOrThrow\",\"orderBy\",\"cursor\",\"Reading.findFirst\",\"Reading.findFirstOrThrow\",\"Reading.findMany\",\"data\",\"Reading.createOne\",\"Reading.createMany\",\"Reading.createManyAndReturn\",\"Reading.updateOne\",\"Reading.updateMany\",\"Reading.updateManyAndReturn\",\"create\",\"update\",\"Reading.upsertOne\",\"Reading.deleteOne\",\"Reading.deleteMany\",\"having\",\"_count\",\"_avg\",\"_sum\",\"_min\",\"_max\",\"Reading.groupBy\",\"Reading.aggregate\",\"AND\",\"OR\",\"NOT\",\"id\",\"meterId\",\"value\",\"recordedAt\",\"ReadingSource\",\"source\",\"createdAt\",\"equals\",\"in\",\"notIn\",\"not\",\"lt\",\"lte\",\"gt\",\"gte\",\"contains\",\"startsWith\",\"endsWith\",\"set\",\"increment\",\"decrement\",\"multiply\",\"divide\"]"),
+  graph: "NgsQCRwAACgAMB0AAAQAEB4AACgAMB8BAAAAASABACkAISEQACoAISJAACsAISQAACwkIiVAACsAIQEAAAABACABAAAAAQAgCRwAACgAMB0AAAQAEB4AACgAMB8BACkAISABACkAISEQACoAISJAACsAISQAACwkIiVAACsAIQADAAAABAAgAwAABQAwBAAAAQAgAwAAAAQAIAMAAAUAMAQAAAEAIAMAAAAEACADAAAFADAEAAABACAGHwEAAAABIAEAAAABIRAAAAABIkAAAAABJAAAACQCJUAAAAABAQgAAAkAIAYfAQAAAAEgAQAAAAEhEAAAAAEiQAAAAAEkAAAAJAIlQAAAAAEBCAAACwAwAQgAAAsAMAYfAQAzACEgAQAzACEhEAA0ACEiQAA1ACEkAAA2JCIlQAA1ACECAAAAAQAgCAAADgAgBh8BADMAISABADMAISEQADQAISJAADUAISQAADYkIiVAADUAIQIAAAAEACAIAAAQACACAAAABAAgCAAAEAAgAwAAAAEAIA8AAAkAIBAAAA4AIAEAAAABACABAAAABAAgBRUAAC4AIBYAAC8AIBcAADIAIBgAADEAIBkAADAAIAkcAAAaADAdAAAXABAeAAAaADAfAQAbACEgAQAbACEhEAAcACEiQAAdACEkAAAeJCIlQAAdACEDAAAABAAgAwAAFgAwFAAAFwAgAwAAAAQAIAMAAAUAMAQAAAEAIAkcAAAaADAdAAAXABAeAAAaADAfAQAbACEgAQAbACEhEAAcACEiQAAdACEkAAAeJCIlQAAdACELFQAAIAAgGAAAJwAgGQAAJwAgJgEAAAABJwEAAAAEKAEAAAAEKQEAJgAhKgEAAAABKwEAAAABLAEAAAABLQEAAAABDRUAACAAIBYAACUAIBcAACUAIBgAACUAIBkAACUAICYQAAAAAScQAAAABCgQAAAABCkQACQAISoQAAAAASsQAAAAASwQAAAAAS0QAAAAAQsVAAAgACAYAAAjACAZAAAjACAmQAAAAAEnQAAAAAQoQAAAAAQpQAAiACEqQAAAAAErQAAAAAEsQAAAAAEtQAAAAAEHFQAAIAAgGAAAIQAgGQAAIQAgJgAAACQCJwAAACQIKAAAACQIKQAAHyQiBxUAACAAIBgAACEAIBkAACEAICYAAAAkAicAAAAkCCgAAAAkCCkAAB8kIggmAgAAAAEnAgAAAAQoAgAAAAQpAgAgACEqAgAAAAErAgAAAAEsAgAAAAEtAgAAAAEEJgAAACQCJwAAACQIKAAAACQIKQAAISQiCxUAACAAIBgAACMAIBkAACMAICZAAAAAASdAAAAABChAAAAABClAACIAISpAAAAAAStAAAAAASxAAAAAAS1AAAAAAQgmQAAAAAEnQAAAAAQoQAAAAAQpQAAjACEqQAAAAAErQAAAAAEsQAAAAAEtQAAAAAENFQAAIAAgFgAAJQAgFwAAJQAgGAAAJQAgGQAAJQAgJhAAAAABJxAAAAAEKBAAAAAEKRAAJAAhKhAAAAABKxAAAAABLBAAAAABLRAAAAABCCYQAAAAAScQAAAABCgQAAAABCkQACUAISoQAAAAASsQAAAAASwQAAAAAS0QAAAAAQsVAAAgACAYAAAnACAZAAAnACAmAQAAAAEnAQAAAAQoAQAAAAQpAQAmACEqAQAAAAErAQAAAAEsAQAAAAEtAQAAAAELJgEAAAABJwEAAAAEKAEAAAAEKQEAJwAhKgEAAAABKwEAAAABLAEAAAABLQEAAAABLgEAAAABLwEAAAABMAEAAAABCRwAACgAMB0AAAQAEB4AACgAMB8BACkAISABACkAISEQACoAISJAACsAISQAACwkIiVAACsAIQgmAQAAAAEnAQAAAAQoAQAAAAQpAQAtACEqAQAAAAErAQAAAAEsAQAAAAEtAQAAAAEIJhAAAAABJxAAAAAEKBAAAAAEKRAAJQAhKhAAAAABKxAAAAABLBAAAAABLRAAAAABCCZAAAAAASdAAAAABChAAAAABClAACMAISpAAAAAAStAAAAAASxAAAAAAS1AAAAAAQQmAAAAJAInAAAAJAgoAAAAJAgpAAAhJCIIJgEAAAABJwEAAAAEKAEAAAAEKQEALQAhKgEAAAABKwEAAAABLAEAAAABLQEAAAABAAAAAAABMQEAAAABBTEQAAAAATIQAAAAATMQAAAAATQQAAAAATUQAAAAAQExQAAAAAEBMQAAACQCAAAAAAUVAAYWAAcXAAgYAAkZAAoAAAAAAAUVAAYWAAcXAAgYAAkZAAoBAgECAwEFBgEGBwEHCAEJCgEKDAILDQMMDwENEQIOEgQREwESFAETFQIaGAUbGQs"
 }
 
 async function decodeBase64AsWasm(wasmBase64: string): Promise<WebAssembly.Module> {
@@ -70,8 +70,8 @@ export interface PrismaClientConstructor {
    * const prisma = new PrismaClient({
    *   adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL })
    * })
-   * // Fetch zero or more Users
-   * const users = await prisma.user.findMany()
+   * // Fetch zero or more Readings
+   * const readings = await prisma.reading.findMany()
    * ```
    * 
    * Read more in our [docs](https://pris.ly/d/client).
@@ -94,8 +94,8 @@ export interface PrismaClientConstructor {
  * const prisma = new PrismaClient({
  *   adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL })
  * })
- * // Fetch zero or more Users
- * const users = await prisma.user.findMany()
+ * // Fetch zero or more Readings
+ * const readings = await prisma.reading.findMany()
  * ```
  * 
  * Read more in our [docs](https://pris.ly/d/client).
@@ -188,7 +188,15 @@ export interface PrismaClient<
     extArgs: ExtArgs
   }>>
 
-    
+      /**
+   * `prisma.reading`: Exposes CRUD operations for the **Reading** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more Readings
+    * const readings = await prisma.reading.findMany()
+    * ```
+    */
+  get reading(): Prisma.ReadingDelegate<ExtArgs, { omit: OmitOpts }>;
 }
 
 export function getPrismaClientClass(): PrismaClientConstructor {

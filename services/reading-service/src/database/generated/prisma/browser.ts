@@ -17,4 +17,10 @@ import * as Prisma from './internal/prismaNamespaceBrowser.js'
 export { Prisma }
 export * as $Enums from './enums.js'
 export * from './enums.js';
-
+/**
+ * Model Reading
+ * A meter reading recorded under a meter. The meter lives in Meter Service's
+ * database, so meter_id is a plain UUID reference without a foreign key (no
+ * cross-service DB access — PRD §6.4).
+ */
+export type Reading = Prisma.ReadingModel
