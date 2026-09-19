@@ -252,10 +252,30 @@ overwritten.
 ## Epic 7 — Frontend — Next.js
 
 ### 7.1 Bootstrap frontend
-- [ ] Create Next.js application with TypeScript.
-- [ ] Configure environment variables.
-- [ ] Configure API base URL.
-- [ ] Add basic layout/navigation.
+- [x] Create Next.js application with TypeScript.
+- [x] Configure environment variables.
+- [x] Configure API base URL.
+- [x] Add basic layout/navigation.
+
+Bootstrap decisions: Next.js 16 (App Router, `src/` dir, `@/*` alias) with
+Material UI 9 integrated per the official Next.js App Router guide —
+`AppRouterCacheProvider` (`enableCssLayer: true` so MUI styles win over
+`globals.css`-style resets), `InitColorSchemeScript`, and a client
+`ThemeProvider` boundary with `cssVariables` + light/dark color schemes so the
+app follows the system preference without a hydration flash. The API gateway
+base URL is `NEXT_PUBLIC_API_URL` (`.env.example` provided; defaults to
+`http://localhost:8080`) and is exposed through `src/lib/api.ts`.
+
+UI design: the app follows the free Devias Kit
+(`mui.com/store/items/devias-kit`, MIT-licensed). Its theme system (color
+schemes with neutral shades, soft shadows, rounded buttons/cards, table
+styles) was ported into `src/theme/`, and the dashboard shell (fixed dark
+side nav, sticky top bar, mobile drawer) into
+`src/components/dashboard/layout/` — adapted to MUI 9 (`@mui/icons-material`
+instead of Phosphor, `slotProps.paper` instead of `PaperProps`) and wired
+through our existing `AppRouterCacheProvider` / `InitColorSchemeScript`
+setup. Dashboard routes: `/dashboard` (overview, placeholder), `/dashboard/
+meters`, `/dashboard/readings`, `/dashboard/settings`.
 
 ### 7.2 Authentication UI
 - [ ] Create registration page.
