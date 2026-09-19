@@ -38,6 +38,8 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 // Liveness/readiness probes must not need a token
                 .requestMatchers("/actuator/health", "/actuator/health/**").permitAll()
+                // Prometheus scrapes metrics without a token (task 10.4)
+                .requestMatchers("/actuator/prometheus").permitAll()
                 // Login, registration, refresh and logout authenticate by the
                 // request body itself; everything else requires a bearer token
                 .requestMatchers("/api/v1/auth/**").permitAll()

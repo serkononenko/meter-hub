@@ -78,10 +78,20 @@ management:
   endpoints:
     web:
       exposure:
-        include: health
+        # Prometheus scrapes /actuator/prometheus (task 10.4)
+        include: health,prometheus
   endpoint:
     health:
       show-details: never
+  # HTTP request metrics: Micrometer's http.server.requests timer gives
+  # request count, latency and (via the status tag) error counts in one
+  # metric. http_meters are the default; the correlation-id tag is
+  # deliberately not added — it would explode Prometheus cardinality
+  observations:
+    http:
+      server:
+        requests:
+          name: http.server.requests
 
 identity:
   jwt:

@@ -36,6 +36,8 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 // Liveness/readiness probes must not need a token
                 .requestMatchers("/actuator/health", "/actuator/health/**").permitAll()
+                // Prometheus scrapes metrics without a token (task 10.4)
+                .requestMatchers("/actuator/prometheus").permitAll()
                 .anyRequest().authenticated()
             )
             .oauth2ResourceServer(oauth2 -> oauth2

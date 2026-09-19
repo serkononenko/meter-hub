@@ -600,9 +600,26 @@ actually resetting the running stack and re-running the e2e journey test
 (2/2 pass) against the fresh database.
 
 ### 10.4 Basic metrics
-- [ ] Expose basic application metrics where supported.
-- [ ] Track HTTP request count and latency.
-- [ ] Track error count.
+- [x] Expose basic application metrics where supported.
+- [x] Track HTTP request count and latency.
+- [x] Track error count.
+
+Spring services (gateway, identity, household): added
+`micrometer-registry-prometheus`, exposed `/actuator/prometheus` and
+permitAll'd it in each SecurityConfig — Micrometer's built-in
+`http_server_requests_seconds` timer covers request count, latency and
+error counts (via the `status`/`outcome`/`exception` tags) with
+template-based low-cardinality `uri` labels, plus JVM/process metrics —
+no custom instrumentation needed. NestJS services (meter, reading): added
+`prom-client` with a small metrics module — `http_requests_total` counter
+and `http_request_duration_seconds` histogram labeled method/path/status
+(errors counted via the status label), Node.js default metrics, served at
+`/metrics`. The observer is a middleware rather than an interceptor
+because Nest runs guards before interceptors, so auth-rejected 401s would
+otherwise never be counted. Path labels strip query strings and are
+capped to bound cardinality. All endpoints verified live in Compose after
+running the e2e journey test; full suites pass (meter 33 unit + 16 e2e,
+reading 47 unit + 15 e2e, identity/household/gateway all green).
 
 ---
 

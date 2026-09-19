@@ -12,6 +12,7 @@ import {UnauthorizedExceptionFilter} from "./filters/unauthorized-exception.filt
 import {RequestValidationExceptionFilter} from "./filters/request-validation-exception.filter.js";
 import configuration from './config/configuration.js';
 import {LoggingModule} from './logging/logging.module.js';
+import {MetricsModule} from './metrics/metrics.module.js';
 import {RequestLoggingMiddleware} from './logging/request-logging.middleware.js';
 
 
@@ -31,6 +32,7 @@ export const {ObserveModule, ObserveInstrument} = createObserveModule();
             load: [configuration],
         }),
         LoggingModule,
+        MetricsModule,
         DatabaseModule,
         AuthModule,
         HealthModule,
