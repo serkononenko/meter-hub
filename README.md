@@ -53,18 +53,14 @@ meter-hub/
 │   ├── meter-service/
 │   └── reading-service/
 ├── frontend/
-│   └── web/
 ├── infrastructure/
-│   ├── docker/
-│   ├── postgres/
-│   ├── kafka/
-│   └── observability/
+│   └── postgres/          # init script creating the four databases
 ├── contracts/
-│   ├── openapi/
+│   ├── openapi/           # root + per-service OpenAPI contracts
 │   └── events/
 ├── e2e/
 │   └── journey.e2e.test.mjs
-├── docs/
+├── docs/                  # conventions, port plan, task checklist
 └── docker-compose.yml
 ```
 
@@ -120,57 +116,85 @@ Create the local environment file from the example:
 cp .env.example .env
 ```
 
-Do not commit `.env` or credentials to Git.
+Then fill in the `...` password placeholders (any values work locally).
+See [Environment Variables](#environment-variables) below for the full list
+and where each one is read. Do not commit `.env` or credentials to Git.
 
-The exact variables should be documented in `.env.example` and kept non-sensitive where possible.
+### 3. Generate the JWT signing keys (first run only)
 
-### 3. Start infrastructure
+Each service reads the token-signing key pair from a per-service `certs`
+symlink pointing at the shared repo-root `certs/` directory (in Docker the
+same files arrive as secret mounts instead):
 
 ```bash
-docker compose up -d
+mkdir -p certs
+openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:2048 \
+  -out certs/identity.jwt.private-key
+openssl pkey -in certs/identity.jwt.private-key -pubout \
+  -out certs/identity.jwt.public-key
+for s in api-gateway identity-service household-service meter-service reading-service; do
+  ln -sfn ../../certs services/$s/certs
+done
 ```
 
-Check container status:
+`certs/` is git-ignored — never commit the keys.
+
+### 4. Start the stack (one command)
 
 ```bash
+docker compose up -d --build
+```
+
+That single command brings up everything: PostgreSQL (with the four
+databases and users created by `infrastructure/postgres/init/`), all five
+services, and it applies database migrations automatically (Flyway for the
+Spring services, `prisma migrate deploy` for the NestJS services, each on
+container start).
+
+Watch it come up and check container status:
+
+```bash
+docker compose logs -f
 docker compose ps
 ```
 
-### 4. Start services
-
-For local development, services may be run directly from their source directories or as Docker containers.
-
-Spring Boot services:
+**Alternative: hybrid mode.** The preferred day-to-day workflow is to run
+shared infrastructure in Docker and application services from the IDE (or
+`./gradlew bootRun` / `npm run start:dev`) for faster feedback:
 
 ```bash
-./mvnw spring-boot:run
+docker compose up -d postgres   # only the database
+# then start the services you are working on from their directories:
+#   Spring:  cd services/identity-service && ./gradlew bootRun
+#   NestJS:  cd services/meter-service && npm install && npm run start:dev
+#   Next.js: cd frontend && npm install && npm run dev
 ```
 
-NestJS services:
-
-```bash
-npm install
-npm run start:dev
-```
-
-Next.js:
-
-```bash
-npm install
-npm run dev
-```
-
-The preferred local workflow is to run shared infrastructure in Docker and application services from the IDE for faster feedback.
+Services started this way reach PostgreSQL on `localhost:5432` with the
+in-repo defaults (see [Environment Variables](#environment-variables)); no
+extra configuration is needed beyond `.env`-independent defaults and the
+`certs/` symlinks from step 3.
 
 ### 5. Verify the platform
 
-Gateway health check:
+Gateway health check (includes the database-backed readiness group):
 
 ```bash
 curl http://localhost:8080/actuator/health
 ```
 
-Individual services should expose a health endpoint according to their framework and the conventions described in `docs/conventions.md`.
+Every service also exposes framework-standard liveness/readiness probes per
+`docs/conventions.md` §13 — `/actuator/health/liveness` and
+`/actuator/health/readiness` on the Spring services, `/health/live` and
+`/health/ready` on the NestJS services. In Compose these are reachable only
+on the services' internal ports; when running a service locally, e.g.:
+
+```bash
+curl http://localhost:8083/health/ready
+```
+
+A fuller check is the end-to-end journey test below, which exercises the
+whole MVP flow through the gateway.
 
 ### 6. Run the end-to-end journey test
 
@@ -187,30 +211,93 @@ the gateway address with `GATEWAY_URL` if it is not on `http://localhost:8080`.
 Each run uses unique test accounts, so it is safe to re-run against a
 persistent database.
 
+### 7. Reset the development database (one command)
+
+Wipes the PostgreSQL volume (all four databases, all data) and recreates it
+from the init script; the next `up` re-runs every migration from scratch:
+
+```bash
+docker compose down -v && docker compose up -d --build
+```
+
+Use this when migrations change, seed data is stale, or the platform is in
+an unknown state. It destroys all local data — there is no undo.
+
 ## Service Endpoints
 
 The API Gateway is the primary HTTP entry point for clients.
 
-| Service | Local Port | Purpose |
-|---|---:|---|
-| API Gateway | 8080 | External API entry point and routing |
-| Identity Service | 8081 | Authentication and identity |
-| Household Service | 8082 | Households and memberships |
-| Meter Service | 8083 | Meter management |
-| Reading Service | 8084 | Meter readings and history |
-| Next.js Web | 3000 | Web application |
+| Service | Local Port | Exposed by Compose | Purpose |
+|---|---:|---|---|
+| API Gateway | 8080 | yes (`8080:8080`) | External API entry point and routing |
+| Identity Service | 8081 | no (internal) | Authentication and identity |
+| Household Service | 8082 | no (internal) | Households and memberships |
+| Meter Service | 8083 | no (internal) | Meter management |
+| Reading Service | 8084 | no (internal) | Meter readings and history |
+| Next.js Web | 3000 | run locally (`npm run dev`) | Web application |
+| PostgreSQL | 5432 | yes (`5432:5432`) | Shared local database instance |
 
-These ports are local-development defaults and may be overridden through environment variables.
+These ports are local-development defaults and may be overridden through
+environment variables (`SERVER_PORT`, `POSTGRES` port mapping). In Compose,
+only the gateway, PostgreSQL, and (when run locally) the web app are
+reachable from the host — services talk to each other over the internal
+`meter-hub` Docker network, so clients must go through the gateway.
+
+## Environment Variables
+
+All service configuration has in-repo defaults for local development;
+`.env` exists to override them (mainly the database credentials, which
+Compose injects into both PostgreSQL and the services so they always agree).
+
+### Compose / all services (`.env` at repo root)
+
+| Variable | Used by | Default | Purpose |
+|---|---|---|---|
+| `POSTGRES_DB` / `POSTGRES_USER` / `POSTGRES_PASSWORD` | postgres container | — (required) | Superuser account of the shared PostgreSQL instance |
+| `IDENTITY_DB` / `IDENTITY_DB_USER` / `IDENTITY_DB_PASSWORD` | identity-service, postgres init | — (required) | Database name and owner for the Identity Service |
+| `HOUSEHOLD_DB` / `HOUSEHOLD_DB_USER` / `HOUSEHOLD_DB_PASSWORD` | household-service, postgres init | — (required) | Database name and owner for the Household Service |
+| `METER_DB` / `METER_DB_USER` / `METER_DB_PASSWORD` | meter-service, postgres init | — (required) | Database name and owner for the Meter Service |
+| `READING_DB` / `READING_DB_USER` / `READING_DB_PASSWORD` | reading-service, postgres init | — (required) | Database name and owner for the Reading Service |
+| `IDENTITY_JWT_ISSUER` | identity-service, api-gateway, meter/reading | `identity-service` | JWT `iss` claim — must match between signer and validators |
+| `IDENTITY_JWT_AUDIENCE` | identity-service, api-gateway, meter/reading | `meterhub-api` | JWT `aud` claim — must match between signer and validators |
+
+### Per-service (only when overriding in-repo defaults)
+
+| Variable | Service | Default | Purpose |
+|---|---|---|---|
+| `SERVER_PORT` | all backend services | `8080`–`8084` (per service) | HTTP listen port |
+| `DB_HOST` / `DB_NAME` / `DB_USERNAME` / `DB_PASSWORD` | identity, household | `localhost` / per-service db | PostgreSQL connection (JDBC) |
+| `DATABASE_URL` | meter, reading | `postgresql://<user>@localhost:5432/<db>` | PostgreSQL connection URL (Prisma) |
+| `IDENTITY_JWT_PUBLIC_KEY_PATH` | meter, reading | `./certs/identity.jwt.public-key` | Where the public key PEM lives (Spring services read it via the `certs/` configtree instead) |
+| `IDENTITY_JWT_ACCESS_TOKEN_TTL` | identity-service | `15m` | Access-token lifetime |
+| `IDENTITY_JWT_REFRESH_TOKEN_TTL` | identity-service | `30d` | Refresh-token lifetime |
+| `IDENTITY_SERVICE_URL` | api-gateway | `http://localhost:8081` | Downstream target for `/api/identity-service/**` |
+| `HOUSEHOLD_SERVICE_URL` | api-gateway, meter | `http://localhost:8082` | Downstream routing target / meter ownership checks |
+| `METER_SERVICE_URL` | api-gateway, reading | `http://localhost:8083` | Downstream routing target / reading ownership checks |
+| `READING_SERVICE_URL` | api-gateway | `http://localhost:8084` | Downstream target for `/api/reading-service/**` |
+| `CORS_ALLOWED_ORIGINS` | api-gateway | `http://localhost:3000,http://127.0.0.1:3000` | Browser origins allowed to call the gateway |
+| `LOG_LEVEL` | meter, reading | `info` | Structured-log threshold (`fatal`/`error`/`warn`/`info`/`debug`) |
+
+### Frontend (`frontend/.env.local`, from `frontend/.env.example`)
+
+| Variable | Default | Purpose |
+|---|---|---|
+| `GATEWAY_URL` | `http://localhost:8080` | API gateway base URL (server-side only — the browser talks to Next.js BFF routes) |
+
+The JWT signing keys are deliberately **not** environment variables — each
+environment delivers the two PEM files (`identity.jwt.private-key` /
+`identity.jwt.public-key`) as files: locally via the per-service `certs/`
+symlinks, in Compose as secret mounts at `/run/secrets/`.
 
 ## API Routing
 
 External clients should use the Gateway instead of calling services directly:
 
 ```text
-/api/auth/**        → Identity Service
-/api/households/**  → Household Service
-/api/meters/**      → Meter Service
-/api/readings/**    → Reading Service
+/api/identity-service/**   → Identity Service
+/api/household-service/**  → Household Service
+/api/meter-service/**      → Meter Service
+/api/reading-service/**    → Reading Service
 ```
 
 Direct service ports are intended for local development, debugging, and health checks.

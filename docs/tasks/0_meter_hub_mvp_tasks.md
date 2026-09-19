@@ -578,10 +578,26 @@ unreachable). All suites green: meter 27 unit + 16 e2e, reading 41 unit +
 15 e2e, identity 52, household 19, gateway 20, plus the e2e journey.
 
 ### 10.3 Local developer experience
-- [ ] Add one-command startup documentation.
-- [ ] Add one-command database reset for development.
-- [ ] Document service ports.
-- [ ] Document environment variables.
+- [x] Add one-command startup documentation.
+- [x] Add one-command database reset for development.
+- [x] Document service ports.
+- [x] Document environment variables.
+
+Rewrote the README "Local Setup" flow: full-keygen-and-`.env` first-run steps,
+one-command startup (`docker compose up -d --build` — migrations run
+automatically on container start), a hybrid IDE-development alternative
+(`docker compose up -d postgres` + per-service `bootRun`/`start:dev`), the
+one-command database reset (`docker compose down -v && docker compose up -d
+--build`), and a new "Environment Variables" section with three tables
+(repo-root `.env` for Compose, per-service overrides with their in-repo
+defaults, frontend `.env.local`) plus a note that JWT keys are files, not env
+vars. The "Service Endpoints" table now shows which ports Compose exposes to
+the host (only gateway 8080 and postgres 5432) and the API-routing snippet
+uses the real `/api/<service-name>/**` prefixes. Repo-structure tree and the
+`./mvnw spring-boot:run` placeholder were corrected to match reality (Gradle
+wrappers, actual directory layout). Both one-command flows were verified by
+actually resetting the running stack and re-running the e2e journey test
+(2/2 pass) against the fresh database.
 
 ### 10.4 Basic metrics
 - [ ] Expose basic application metrics where supported.
