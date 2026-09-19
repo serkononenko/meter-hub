@@ -39,6 +39,7 @@ export class CommonExceptionFilter implements ExceptionFilter {
         let code = 'INTERNAL_ERROR';
         let title = 'Internal server error';
         let detail = 'An unexpected error occurred.';
+        let errors: ProblemBody['errors'] | undefined;
 
         if (exception instanceof HttpException) {
             status = exception.getStatus();
@@ -58,6 +59,9 @@ export class CommonExceptionFilter implements ExceptionFilter {
                 title = typeof problem.title === 'string' ? problem.title : title;
                 detail = typeof problem.detail === 'string' ? problem.detail : detail;
             }
+            if (Array.isArray(problem.errors)) {
+                errors = problem.errors as ProblemBody['errors'];
+            }
         }
 
         if (status >= 500) {
@@ -72,6 +76,7 @@ export class CommonExceptionFilter implements ExceptionFilter {
             detail,
             instance: request.originalUrl,
             correlationId: response.getHeader(CORRELATION_ID_HEADER)?.toString(),
+            ...(errors ? {errors} : {}),
         };
 
         response.status(status);

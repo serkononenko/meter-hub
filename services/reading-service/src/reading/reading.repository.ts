@@ -57,6 +57,15 @@ export class ReadingRepository {
         });
         return row ? toReading(row) : null;
     }
+
+    async findPrevious(meterId: string, recordedAt: Date): Promise<Reading | null> {
+        const row = await this.prisma.reading.findFirst({
+            where: {meterId, recordedAt: {lt: recordedAt}},
+            orderBy: {recordedAt: 'desc'},
+            select: READING_SELECT,
+        });
+        return row ? toReading(row) : null;
+    }
 }
 
 function toReading(row: ReadingRow): Reading {

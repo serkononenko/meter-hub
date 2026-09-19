@@ -235,10 +235,17 @@ return `METER_NOT_FOUND`. Failures fail closed with `503
 METER_SERVICE_UNAVAILABLE`. Reading Service never accesses meter-db directly.
 
 ### 6.6 Reading business rules
-- [ ] Load the previous reading for cumulative meters.
-- [ ] Reject decreasing readings unless a correction strategy explicitly allows them.
-- [ ] Return a stable business error code for invalid readings.
-- [ ] Add tests for first reading, equal reading, increasing reading, and decreasing reading.
+- [x] Load the previous reading for cumulative meters.
+- [x] Reject decreasing readings unless a correction strategy explicitly allows them.
+- [x] Return a stable business error code for invalid readings.
+- [x] Add tests for first reading, equal reading, increasing reading, and decreasing reading.
+
+Rule: all MVP meter types are cumulative counters, so a new reading must not
+be lower than the previous reading recorded strictly before it (compared in
+`recordedAt` order, not creation order — backdated entries compare against
+their own past). Violations return `422 READING_DECREASING` with a
+`value` field error. Corrections are out of MVP scope; history is never
+overwritten.
 
 ---
 

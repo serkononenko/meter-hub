@@ -3,6 +3,7 @@ import {ReadingService} from './reading.service.js';
 import {MeterAccessService} from '../meter/meter-access.service.js';
 import {ReadingRepository} from './reading.repository.js';
 import {MeterNotFoundException, ReadingNotFoundException} from '../exceptions/not-found.exception.js';
+import {ReadingDecreasingException} from '../exceptions/reading-argument.exception.js';
 import {RequestValidationException} from '../exceptions/request-validation.exception.js';
 
 const METER_ID = '0d7f8a26-6f6f-4a55-9a71-3bd11c0a1f01';
@@ -21,6 +22,7 @@ function repositoryStub() {
         findById: vi.fn().mockResolvedValue(SAVED),
         findByMeterId: vi.fn().mockResolvedValue([SAVED]),
         findLatestByMeterId: vi.fn().mockResolvedValue(SAVED),
+        findPrevious: vi.fn().mockResolvedValue(null),
     };
 }
 
@@ -240,5 +242,61 @@ describe('ReadingService', () => {
         await service.getLatestReading(METER_ID);
 
         expect(meterAccess.assertAccessible).toHaveBeenCalledWith(METER_ID);
+    });
+
+    it('accepts the first reading for a meter (no previous to compare)', async () => {
+        const repository = repositoryStub();
+        repository.findPrevious = vi.fn().mockResolvedValue(null);
+        const service = serviceWith(repository);
+
+        const reading = await service.createReading({meterId: METER_ID, value: 5, recordedAt: '2026-08-01T08:00:00Z'});
+
+        expect(reading.value).toBe(15432.1);
+        expect(repository.save).toHaveBeenCalled();
+    });
+
+    it('accepts an equal reading for a cumulative meter', async () => {
+        const repository = repositoryStub();
+        repository.findPrevious = vi.fn().mockResolvedValue({...SAVED, value: 15432.1});
+        const service = serviceWith(repository);
+
+        const reading = await service.createReading({meterId: METER_ID, value: 15432.1, recordedAt: '2026-08-02T08:00:00Z'});
+
+        expect(reading.value).toBe(15432.1);
+        expect(repository.save).toHaveBeenCalled();
+    });
+
+    it('accepts an increasing reading for a cumulative meter', async () => {
+        const repository = repositoryStub();
+        repository.findPrevious = vi.fn().mockResolvedValue({...SAVED, value: 100});
+        const service = serviceWith(repository);
+
+        const reading = await service.createReading({meterId: METER_ID, value: 150.5, recordedAt: '2026-08-02T08:00:00Z'});
+
+        expect(reading.value).toBe(15432.1);
+        expect(repository.save).toHaveBeenCalled();
+    });
+
+    it('rejects a decreasing reading with a stable business error', async () => {
+        const repository = repositoryStub();
+        repository.findPrevious = vi.fn().mockResolvedValue({
+            ...SAVED,
+            value: 150,
+            recordedAt: '2026-08-01T08:00:00.000Z',
+        });
+        const service = serviceWith(repository);
+
+        await expect(service.createReading({meterId: METER_ID, value: 100, recordedAt: '2026-08-02T08:00:00Z'}))
+            .rejects.toBeInstanceOf(ReadingDecreasingException);
+        expect(repository.save).not.toHaveBeenCalled();
+    });
+
+    it('compares only readings recorded before the new one', async () => {
+        const repository = repositoryStub();
+        const service = serviceWith(repository);
+
+        await service.createReading({meterId: METER_ID, value: 100, recordedAt: '2026-08-02T08:00:00Z'});
+
+        expect(repository.findPrevious).toHaveBeenCalledWith(METER_ID, new Date('2026-08-02T08:00:00Z'));
     });
 });
