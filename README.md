@@ -62,6 +62,8 @@ meter-hub/
 ├── contracts/
 │   ├── openapi/
 │   └── events/
+├── e2e/
+│   └── journey.e2e.test.mjs
 ├── docs/
 └── docker-compose.yml
 ```
@@ -169,6 +171,21 @@ curl http://localhost:8080/actuator/health
 ```
 
 Individual services should expose a health endpoint according to their framework and the conventions described in `docs/conventions.md`.
+
+### 6. Run the end-to-end journey test
+
+Drives the full MVP flow through the gateway against the running Compose
+environment — registration → login → household → meter → reading → history,
+plus refresh-token rotation, logout, and cross-user isolation:
+
+```bash
+node --test e2e/journey.e2e.test.mjs
+```
+
+Requires the Compose stack (or equivalent local services) to be up; override
+the gateway address with `GATEWAY_URL` if it is not on `http://localhost:8080`.
+Each run uses unique test accounts, so it is safe to re-run against a
+persistent database.
 
 ## Service Endpoints
 
