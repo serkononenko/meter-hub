@@ -109,6 +109,21 @@ services:
       postgres:
         condition: service_healthy
 
+  reading-service:
+    build:
+      context: ./services/reading-service
+    environment:
+      # The auth stack (6.5) adds the identity-jwt anchor and the public-key
+      # secret; DATABASE_URL is all the bootstrap (6.1) needs.
+      DATABASE_URL: postgresql://${READING_DB_USER}:${READING_DB_PASSWORD}@postgres:5432/${READING_DB}
+    expose:
+      - "8084"
+    networks:
+      - meter-hub
+    depends_on:
+      postgres:
+        condition: service_healthy
+
 secrets:
   identity.jwt.private-key:
     file: ./certs/identity.jwt.private-key
