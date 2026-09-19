@@ -404,9 +404,16 @@ KWH, status ACTIVE), `GET ?householdId=` → 200 with the meter, `PATCH` rename
 (ACTIVE → ARCHIVED).
 
 ### 8.4 Reading flow
-- [ ] Create manual reading.
-- [ ] Fetch latest reading.
-- [ ] Fetch history.
+- [x] Create manual reading.
+- [x] Fetch latest reading.
+- [x] Fetch history.
+
+Verified with curl against docker compose, same user as 8.1-8.3 (readings
+posted against the ARCHIVED meter from 8.3 still succeed, matching "archiving
+keeps historical readings addressable"). `POST /api/reading-service/api/v1/readings`
+(`meterId` in body, `source: MANUAL`) → 201 twice; `GET .../meters/{id}/readings/latest`
+→ 200 returns the newest by `recordedAt` (1310.25, not the later-created 1250.5);
+`GET .../meters/{id}/readings` → 200 lists both, newest first.
 
 ### 8.5 Security flow
 - [ ] Verify User A cannot read User B's household.
