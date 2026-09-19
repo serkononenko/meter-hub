@@ -71,6 +71,18 @@ logging:
     console: "{\"timestamp\":\"%d{yyyy-MM-dd'T'HH:mm:ss.SSSXXX,UTC}\",\"level\":\"%p\",\"service\":\"api-gateway\",\"requestId\":\"%X{correlationId:-}\",\"message\":\"%replace(%m){'\"':'\\\\\"'}%n\"}"
     level: "%5p [%X{correlationId:-}]"
 
+management:
+  # Liveness and readiness are separate probe concerns (conventions §13).
+  # The gateway owns no database or other dependency: both probes answer
+  # from process state alone
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: never
+
 identity:
   jwt:
     # Must match what the identity service signs tokens with

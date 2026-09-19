@@ -54,8 +54,10 @@ public class SecurityConfig {
                 // Health probes must not need a token; auth endpoints authenticate
                 // by the request body itself (login, register, refresh, logout).
                 // Path matchers see the original request path, i.e. with the
-                // /api/<service-name> prefix that the gateway routes strip later
-                .requestMatchers("/actuator/health").permitAll()
+                // /api/<service-name> prefix that the gateway routes strip later.
+                // /actuator/health/** covers the liveness and readiness probe
+                // subpaths as well as the aggregate endpoint
+                .requestMatchers("/actuator/health", "/actuator/health/**").permitAll()
                 .requestMatchers("/api/identity-service/api/v1/auth/**").permitAll()
                 .anyRequest().authenticated()
             )

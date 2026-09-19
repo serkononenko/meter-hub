@@ -553,9 +553,29 @@ All suites green: meter 25 unit + 16 e2e, reading 39 unit + 15 e2e,
 identity 49, household 16, gateway 19.
 
 ### 10.2 Health checks
-- [ ] Add liveness endpoints.
-- [ ] Add readiness endpoints.
-- [ ] Verify database dependency status where appropriate.
+- [x] Add liveness endpoints.
+- [x] Add readiness endpoints.
+- [x] Verify database dependency status where appropriate.
+
+Liveness and readiness are separate probe concerns (conventions §13):
+
+- Spring (identity/household/gateway): Spring Boot Actuator probes —
+  `/actuator/health/liveness` (process state only) and
+  `/actuator/health/readiness` (includes the DataSource health indicator on
+  identity/household so orchestration stops routing when PostgreSQL is
+  unreachable; the gateway owns no dependency and answers from process
+  state). Identity gained the actuator dependency; all three security
+  configs now permit `/actuator/health/**` (the gateway previously 401'd
+  the probe subpaths).
+- NestJS (meter/reading): `/health/live` (no dependency checks),
+  `/health/ready` (Prisma ping via Terminus), and `/health` kept as the
+  aggregate view.
+
+Verified by new integration tests (identity/household `HealthProbeIntegrationTest`,
+gateway `livenessAndReadinessProbesArePublic`) and expanded health controller
+specs (liveness never touches the DB; readiness fails with 503 when it is
+unreachable). All suites green: meter 27 unit + 16 e2e, reading 41 unit +
+15 e2e, identity 52, household 19, gateway 20, plus the e2e journey.
 
 ### 10.3 Local developer experience
 - [ ] Add one-command startup documentation.
