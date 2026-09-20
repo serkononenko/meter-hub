@@ -40,8 +40,9 @@ openssl pkey -in /opt/meter-hub/certs/identity.jwt.private-key -pubout \
   -out /opt/meter-hub/certs/identity.jwt.public-key
 sudo chmod 600 /opt/meter-hub/certs/*
 
-# Repo checkout for the bind-mounted configs (postgres init, prometheus,
-# grafana provisioning, loki/promtail configs)
+# Repo checkout for the bind-mounted configs (prometheus, grafana
+# provisioning, loki/promtail). Postgres init is baked into the
+# meter-hub-postgres image and needs no checkout.
 sudo git clone https://github.com/serkononenko/meter-hub.git /opt/meter-hub/repo
 ```
 

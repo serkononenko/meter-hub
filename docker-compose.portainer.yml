@@ -31,17 +31,16 @@ x-identity-jwt-env: &identity-jwt-env
 
 services:
   postgres:
-    image: postgres:17
+    # Custom image with the per-service database init script baked in —
+    # first-boot DB/role creation must not depend on a repo checkout
+    # bind-mounted from the host (REPO_DIR). Built by publish.yml.
+    image: ghcr.io/serkononenko/meter-hub-postgres:main
     environment:
       POSTGRES_DB: ${POSTGRES_DB}
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      # Init scripts split databases/users per service; shipped in the
-      # image of the repo, so this path assumes the repo is checked out
-      # on the host at REPO_DIR.
-      - ${REPO_DIR:-/opt/meter-hub}/infrastructure/postgres/init:/docker-entrypoint-initdb.d:ro
     # No host port: DB access happens inside the compose network. For a
     # one-off local psql use `docker exec`, not a published port.
     expose:
