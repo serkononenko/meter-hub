@@ -2,10 +2,11 @@
 # targets (Portainer stacks) pull these instead of building on-device —
 # see docker-compose.portainer.yml and docs/deploy-portainer.md.
 #
-# One image per built component (five services + the web app), tagged
-# with the branch name (`main`), the commit SHA, and `latest`. amd64
-# only: the deployment target is an x86_64 mini PC; multi-arch would
-# triple build time for no consumer.
+# One image per built component (five services, the web app, and
+# postgres with the DB init script baked in), tagged with the branch
+# name (`main`), the commit SHA, and `latest`. amd64 only: the
+# deployment target is an x86_64 mini PC; multi-arch would triple build
+# time for no consumer.
 name: Publish images
 
 on:
@@ -26,6 +27,8 @@ jobs:
         include:
           - name: api-gateway
             context: services/api-gateway
+          - name: postgres
+            context: infrastructure/postgres
           - name: identity-service
             context: services/identity-service
             build-contexts: contracts=./contracts
