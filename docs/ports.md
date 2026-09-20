@@ -1,18 +1,18 @@
 # Local Service Ports
 
-| Component         | Internal DNS      | Internal Port | External Port | Protocol | Notes                                                   |
-|-------------------|-------------------|--------------:|--------------:|----------|---------------------------------------------------------|
-| Next.js Web       | web               |          3000 |          3000 | HTTP     | Frontend                                                |
-| API Gateway       | api-gateway       |          8080 |          8080 | HTTP     | Main API entry point; prod binds to loopback only       |
-| Identity Service  | identity-service  |          8081 |             - | HTTP     | Auth / identity                                         |
-| Household Service | household-service |          8082 |             - | HTTP     | Household management                                    |
-| Meter Service     | meter-service     |          8083 |             - | HTTP     | Meter management                                        |
-| Reading Service   | reading-service   |          8084 |             - | HTTP     | Reading management                                      |
-| PostgreSQL        | postgres          |          5432 |          5432 | TCP      | Shared local instance; prod binds to loopback only      |
-| Prometheus        | prometheus        |          9090 |          9090 | HTTP     | Scrapes the services' metric endpoints                  |
+| Component         | Internal DNS      | Internal Port | External Port | Protocol | Notes                                                                                              |
+|-------------------|-------------------|--------------:|--------------:|----------|----------------------------------------------------------------------------------------------------|
+| Next.js Web       | web               |          3000 |          3000 | HTTP     | Frontend                                                                                           |
+| API Gateway       | api-gateway       |          8080 |          8080 | HTTP     | Main API entry point; prod binds to loopback only                                                  |
+| Identity Service  | identity-service  |          8081 |             - | HTTP     | Auth / identity                                                                                    |
+| Household Service | household-service |          8082 |             - | HTTP     | Household management                                                                               |
+| Meter Service     | meter-service     |          8083 |             - | HTTP     | Meter management                                                                                   |
+| Reading Service   | reading-service   |          8084 |             - | HTTP     | Reading management                                                                                 |
+| PostgreSQL        | postgres          |          5432 |          5432 | TCP      | Shared local instance; prod binds to loopback only                                                 |
+| Prometheus        | prometheus        |          9090 |          9090 | HTTP     | Scrapes the services' metric endpoints                                                             |
 | Grafana           | grafana           |          3000 |          3001 | HTTP     | Dashboards over Prometheus; prod publishes loopback-only on 13001 (3001 is taken by ZimaOS/CasaOS) |
-| Jaeger            | jaeger            |         16686 |         16686 | HTTP     | Trace UI; OTLP collector on 4318 (internal only)        |
-| Loki              | loki              |          3100 |             - | HTTP     | Log storage; pushed to by Promtail (internal only)      |
+| Jaeger            | jaeger            |         16686 |         16686 | HTTP     | Trace UI; OTLP collector on 4318 (internal only)                                                   |
+| Loki              | loki              |          3100 |             - | HTTP     | Log storage; pushed to by Promtail (internal only)                                                 |
 
 ### Rules
 
