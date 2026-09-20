@@ -130,17 +130,19 @@ jobs:
         # Gateway health only reflects the gateway process; on a cold
         # runner the first journey request raced the services' own
         # warmup (register 500'd — third CI run's failure). The services
-        # are internal-only, so readiness is polled through short-lived
-        # curl containers attached to the compose network. Spring:
-        # /actuator/health/readiness (DB-backed). NestJS: /health/ready
-        # (Prisma warmup included).
+        # are internal-only, so readiness is polled from inside the
+        # stack: the grafana container (busybox wget) shares the compose
+        # network and resolves the service DNS names. (A docker-run
+        # sidecar on the compose network failed: the runner's Docker
+        # did not resolve compose service names for it — fourth run.)
+        # Spring: /actuator/health/readiness (DB-backed). NestJS:
+        # /health/ready (Prisma warmup included).
         run: |
           set -e
           check() {
             local name=$1 url=$2
             for i in $(seq 1 60); do
-              if docker run --rm --network meter-hub-network curlimages/curl:latest \
-                   -fsS -o /dev/null "$url"; then
+              if docker compose exec -T grafana wget -q -O /dev/null "$url"; then
                 echo "$name is ready"; return 0
               fi
               sleep 5
