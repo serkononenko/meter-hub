@@ -1,0 +1,40 @@
+# Production-style deploy: run prebuilt images from ghcr.io instead of
+# building on the target machine (see docs/deploy-zimaos.md). Use as an
+# override over the base file:
+#
+#   docker compose -f docker-compose.yml -f compose.prod.yml pull
+#   docker compose -f docker-compose.yml -f compose.prod.yml up -d
+#
+# Everything not listed here (postgres, prometheus, grafana, jaeger,
+# loki, promtail, networks, secrets, volumes, env) is inherited from
+# docker-compose.yml unchanged — this file only swaps the six built
+# images for their registry counterparts. Tags track the branch CI
+# publishes from (main).
+#
+# Requires Docker Compose v2.24+ for the `!reset null` tags (ZimaOS
+# ships a recent Compose; check with `docker compose version`).
+
+services:
+  api-gateway:
+    image: ghcr.io/serkononenko/meter-hub-api-gateway:main
+    build: !reset null
+
+  identity-service:
+    image: ghcr.io/serkononenko/meter-hub-identity-service:main
+    build: !reset null
+
+  household-service:
+    image: ghcr.io/serkononenko/meter-hub-household-service:main
+    build: !reset null
+
+  meter-service:
+    image: ghcr.io/serkononenko/meter-hub-meter-service:main
+    build: !reset null
+
+  reading-service:
+    image: ghcr.io/serkononenko/meter-hub-reading-service:main
+    build: !reset null
+
+  web:
+    image: ghcr.io/serkononenko/meter-hub-web:main
+    build: !reset null
