@@ -147,9 +147,10 @@ docker compose up -d --build
 
 That single command brings up everything: PostgreSQL (with the four
 databases and users created by `infrastructure/postgres/init/`), all five
-services, and it applies database migrations automatically (Flyway for the
-Spring services, `prisma migrate deploy` for the NestJS services, each on
-container start).
+services, and the web application — and it applies database migrations
+automatically (Flyway for the Spring services, `prisma migrate deploy` for
+the NestJS services, each on container start). The web app is then reachable
+at http://localhost:3000.
 
 Watch it come up and check container status:
 
@@ -249,7 +250,7 @@ The API Gateway is the primary HTTP entry point for clients.
 | Household Service | 8082 | no (internal) | Households and memberships |
 | Meter Service | 8083 | no (internal) | Meter management |
 | Reading Service | 8084 | no (internal) | Meter readings and history |
-| Next.js Web | 3000 | run locally (`npm run dev`) | Web application |
+| Next.js Web | 3000 | yes (`3000:3000`) | Web application |
 | PostgreSQL | 5432 | yes (`5432:5432`) | Shared local database instance |
 
 These ports are local-development defaults and may be overridden through

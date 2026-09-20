@@ -664,6 +664,14 @@ intact afterwards. One transient failure during the first build attempt
 (Docker Hub deadline while resolving the `docker/dockerfile:1` frontend
 image) resolved on retry and is not a repo issue.
 
+Follow-up after the acceptance run: the Next.js web app got its own
+Dockerfile (`frontend/Dockerfile`, standalone output, non-root) and joined
+Compose as the `web` service on port 3000 — `docker compose up -d --build`
+now brings up the whole platform including the UI. The gateway rewrite is
+baked into the build manifest (build arg `GATEWAY_URL`), the BFF route
+handlers read `GATEWAY_URL` at runtime; both verified through the running
+container (register via rewrite 201, BFF login 200).
+
 ---
 
 # Suggested Implementation Order

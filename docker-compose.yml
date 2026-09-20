@@ -138,6 +138,21 @@ services:
       meter-service:
         condition: service_started
 
+  web:
+    build:
+      context: ./frontend
+      args:
+        GATEWAY_URL: http://api-gateway:8080
+    environment:
+      GATEWAY_URL: http://api-gateway:8080
+    ports:
+      - "3000:3000"
+    networks:
+      - meter-hub
+    depends_on:
+      api-gateway:
+        condition: service_started
+
 secrets:
   identity.jwt.private-key:
     file: ./certs/identity.jwt.private-key
