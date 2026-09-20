@@ -1,0 +1,71 @@
+# Publish images to ghcr.io after CI is green on main. Deployment
+# targets (e.g. the ZimaOS home server) pull these instead of building
+# on-device — see compose.prod.yml and docs/deploy-zimaos.md.
+#
+# One image per built component (five services + the web app), tagged
+# with the branch name (`main`), the commit SHA, and `latest`. amd64
+# only: the deployment target is an x86_64 mini PC; multi-arch would
+# triple build time for no consumer.
+name: Publish images
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: api-gateway
+            context: services/api-gateway
+          - name: identity-service
+            context: services/identity-service
+            additional-contexts: contracts=${{ github.workspace }}/contracts
+          - name: household-service
+            context: services/household-service
+            additional-contexts: contracts=${{ github.workspace }}/contracts
+          - name: meter-service
+            context: services/meter-service
+          - name: reading-service
+            context: services/reading-service
+          - name: web
+            context: frontend
+            build-args: GATEWAY_URL=http://api-gateway:8080
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/metadata-action@v5
+        id: meta
+        with:
+          images: ghcr.io/${{ github.repository_owner }}/meter-hub-${{ matrix.name }}
+          tags: |
+            type=ref,event=branch
+            type=sha
+            type=raw,value=latest,enable={{is_default_branch}}
+      - uses: docker/build-push-action@v6
+        with:
+          context: ${{ matrix.context }}
+          file: ${{ matrix.context }}/Dockerfile
+          # Compose builds identity/household with the shared contracts
+          # directory as an extra build context; reproduce that here.
+          additional-contexts: ${{ matrix.additional-contexts }}
+          build-args: ${{ matrix.build-args }}
+          push: true
+          platforms: linux/amd64
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha,scope=${{ matrix.name }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.name }}
