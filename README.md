@@ -212,6 +212,20 @@ curl http://localhost:8080/actuator/prometheus | head   # gateway
 curl http://localhost:8083/metrics | head               # meter service
 ```
 
+### Metrics stack (Prometheus + Grafana)
+
+`docker compose up -d prometheus grafana` starts the observability pair:
+
+- **Prometheus** (http://localhost:9090) scrapes all five services over the
+  internal network every 15s (config: `infrastructure/prometheus/prometheus.yml`),
+  7-day local retention.
+- **Grafana** (http://localhost:3001, `admin`/`admin` by default — override
+  with `GRAFANA_ADMIN_USER`/`GRAFANA_ADMIN_PASSWORD` in `.env`) provisions the
+  Prometheus datasource and the "MeterHub Overview" dashboard automatically
+  (`infrastructure/grafana/`): request rate, p95 latency and 5xx rate per
+  service (Spring and NestJS panels, since the two stacks use different metric
+  names), JVM heap / Node process CPU, and scrape-target health.
+
 ### 6. Run the end-to-end journey test
 
 Drives the full MVP flow through the gateway against the running Compose
@@ -276,6 +290,7 @@ Compose injects into both PostgreSQL and the services so they always agree).
 | `READING_DB` / `READING_DB_USER` / `READING_DB_PASSWORD` | reading-service, postgres init | — (required) | Database name and owner for the Reading Service |
 | `IDENTITY_JWT_ISSUER` | identity-service, api-gateway, meter/reading | `identity-service` | JWT `iss` claim — must match between signer and validators |
 | `IDENTITY_JWT_AUDIENCE` | identity-service, api-gateway, meter/reading | `meterhub-api` | JWT `aud` claim — must match between signer and validators |
+| `GRAFANA_ADMIN_USER` / `GRAFANA_ADMIN_PASSWORD` | grafana container | `admin` / `admin` | Grafana admin login (local-only default; change before any shared environment) |
 
 ### Per-service (only when overriding in-repo defaults)
 
@@ -364,6 +379,8 @@ Cross-service data must be accessed through APIs or asynchronous events.
 | [docs/conventions.md](docs/conventions.md) | Engineering conventions: naming, ports, env vars, health, logging, DB ownership, commit style |
 | [docs/ports.md](docs/ports.md) | Local service port plan |
 | [docs/known-limitations.md](docs/known-limitations.md) | Known limitations: deliberate scope cuts and simplifications in the MVP |
+| [docs/spec/1_metrics_observability_spec.md](docs/spec/1_metrics_observability_spec.md) | Metrics observability spec: Prometheus scraping, Grafana provisioning, dashboard contract, deferred work |
+| [docs/tasks/1_metrics_observability_tasks.md](docs/tasks/1_metrics_observability_tasks.md) | Metrics observability task breakdown (M1–M3) with verification notes |
 | [contracts/openapi/openapi.yaml](contracts/openapi/openapi.yaml) | Root OpenAPI contract; per-service contracts under `contracts/openapi/services/` |
 
 ## Future Roadmap

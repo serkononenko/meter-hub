@@ -1,0 +1,13 @@
+# Grafana datasource provisioned on startup (no UI clicking required).
+# The Prometheus service is reachable by its Compose DNS name on the
+# shared meter-hub network.
+apiVersion: 1
+
+datasources:
+  - name: Prometheus
+    uid: meterhub-prometheus
+    type: prometheus
+    access: proxy
+    url: http://prometheus:9090
+    isDefault: true
+    editable: false

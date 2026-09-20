@@ -1,0 +1,41 @@
+# Prometheus scrape configuration for the MeterHub Compose network.
+#
+# Targets use the Compose service DNS names (docs/ports.md); the services
+# deliberately expose their metric endpoints only inside the meter-hub
+# network, so Prometheus must live on the same network to scrape them.
+#
+# Two metric dialects (task 10.4):
+# - Spring services (gateway, identity, household): Micrometer at
+#   /actuator/prometheus — http_server_requests_seconds{*}
+# - NestJS services (meter, reading): prom-client at /metrics —
+#   http_requests_total, http_request_duration_seconds
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  # Gateway itself also serves as an aggregate "is the platform up" signal.
+  - job_name: api-gateway
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets: ['api-gateway:8080']
+
+  - job_name: identity-service
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets: ['identity-service:8081']
+
+  - job_name: household-service
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets: ['household-service:8082']
+
+  - job_name: meter-service
+    metrics_path: /metrics
+    static_configs:
+      - targets: ['meter-service:8083']
+
+  - job_name: reading-service
+    metrics_path: /metrics
+    static_configs:
+      - targets: ['reading-service:8084']

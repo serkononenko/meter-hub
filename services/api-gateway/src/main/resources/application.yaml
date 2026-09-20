@@ -92,6 +92,13 @@ management:
       server:
         requests:
           name: http.server.requests
+  metrics:
+    distribution:
+      percentiles-histogram:
+        # Publish histogram buckets for the http.server.requests timer so
+        # Prometheus can compute latency quantiles (Grafana dashboard p95);
+        # count/sum exist by default without this.
+        http.server.requests: true
 
 identity:
   jwt:
