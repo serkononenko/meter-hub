@@ -9,5 +9,13 @@ stack.env
 # environments deliver keys from a secret manager, not this repo)
 /certs/
 
+# Runtime data of the bind-mounted state directories (prod uses bind
+# mounts under the repo checkout — see docker-compose.portainer.yml).
+# Postgres/Grafana/Prometheus/Loki write here continuously.
+/infrastructure/postgres/data/
+/infrastructure/prometheus/data/
+/infrastructure/grafana/data/
+/infrastructure/loki/data/
+
 # Playwright MCP session artifacts (snapshots, console logs, screenshots)
 .playwright-mcp/
