@@ -72,7 +72,7 @@ itself (or via an SSH tunnel — see below):
 |---|---|
 | `http://<pc-ip>:13000` | Web app (works from any LAN machine) |
 | `http://localhost:8080` is **not** published in prod — the browser reaches the API through the web app's `/api/*` proxy | Gateway health instead: `curl http://localhost:13000/api/identity/actuator/health` (via the web proxy), or `docker-compose exec api-gateway curl -sf localhost:8080/actuator/health` |
-| `http://localhost:3001` | Grafana (logs/traces/dashboards — Loki, Jaeger, Prometheus included) |
+| `http://localhost:13001` | Grafana (logs/traces/dashboards — Loki, Jaeger, Prometheus included) |
 | `http://localhost:16686` | Jaeger UI |
 | `http://localhost:9090` | Prometheus |
 
@@ -82,7 +82,7 @@ they are host-only. To open their UIs from your own machine, tunnel
 over SSH rather than exposing ports:
 
 ```bash
-ssh -L 13000:localhost:13000 -L 3001:localhost:3001 \
+ssh -L 13000:localhost:13000 -L 13001:localhost:13001 \
     -L 9090:localhost:9090 -L 16686:localhost:16686 user@<pc-ip>
 ```
 
@@ -108,8 +108,9 @@ same way with `docker-compose up -d --build`.
 ## ZimaOS notes
 
 - **Port conflicts.** ZimaOS/CasaOS's own UI commonly occupies ports
-  80/443 — and on this device, 3000. The prod stack therefore publishes
-  the web app on `13000` (`compose.prod.yml`), plus `3001, 5432, 9090,
+  80/443 — and on this device, 3000 plus the loopback-only 3001 (its
+  backend). The prod stack therefore publishes the web app on `13000`
+  and Grafana on `13001` (`compose.prod.yml`), plus `5432, 9090,
   16686` on `127.0.0.1` only (`8080` is not published at all). If
   another clash appears, change only the *host* side in
   `docker-compose.yml` (e.g. `"13000:3000"`) — internal service

@@ -20,7 +20,7 @@
 # their ports but bind to loopback only — use an SSH tunnel from your
 # machine to reach them:
 #
-#   ssh -L 13000:localhost:13000 -L 3001:localhost:3001 \
+#   ssh -L 13000:localhost:13000 -L 13001:localhost:13001 \
 #       -L 9090:localhost:9090 -L 16686:localhost:16686 \
 #       -L 5432:localhost:5432 user@host
 #
@@ -69,9 +69,11 @@ services:
     ports: !override
       - "127.0.0.1:9090:9090"
 
+  # Host 13001, not 3001: ZimaOS/CasaOS's own backend already binds
+  # 127.0.0.1:3001 on the target device.
   grafana:
     ports: !override
-      - "127.0.0.1:3001:3000"
+      - "127.0.0.1:13001:3000"
 
   jaeger:
     ports: !override
