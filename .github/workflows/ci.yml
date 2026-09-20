@@ -126,6 +126,31 @@ jobs:
             sleep 5
           done
           echo "gateway did not come up in time"; docker compose ps; docker compose logs --tail 50; exit 1
+      - name: Wait for every service to be ready
+        # Gateway health only reflects the gateway process; on a cold
+        # runner the first journey request raced the services' own
+        # warmup (register 500'd — third CI run's failure). The services
+        # are internal-only, so readiness is polled through short-lived
+        # curl containers attached to the compose network. Spring:
+        # /actuator/health/readiness (DB-backed). NestJS: /health/ready
+        # (Prisma warmup included).
+        run: |
+          set -e
+          check() {
+            local name=$1 url=$2
+            for i in $(seq 1 60); do
+              if docker run --rm --network meter-hub-network curlimages/curl:latest \
+                   -fsS -o /dev/null "$url"; then
+                echo "$name is ready"; return 0
+              fi
+              sleep 5
+            done
+            echo "$name did not become ready in time"; return 1
+          }
+          check identity  "http://identity-service:8081/actuator/health/readiness"
+          check household "http://household-service:8082/actuator/health/readiness"
+          check meter     "http://meter-service:8083/health/ready"
+          check reading   "http://reading-service:8084/health/ready"
       - name: Run the journey test
         run: node --test e2e/journey.e2e.test.mjs
       - name: Container logs on failure
