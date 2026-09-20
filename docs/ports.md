@@ -10,7 +10,7 @@
 | Reading Service   | reading-service   |          8084 |             - | HTTP     | Reading management                                      |
 | PostgreSQL        | postgres          |          5432 |          5432 | TCP      | Shared local instance; prod binds to loopback only      |
 | Prometheus        | prometheus        |          9090 |          9090 | HTTP     | Scrapes the services' metric endpoints                  |
-| Grafana           | grafana           |          3000 |          3001 | HTTP     | Dashboards over Prometheus; prod binds to loopback only |
+| Grafana           | grafana           |          3000 |          3001 | HTTP     | Dashboards over Prometheus; prod publishes loopback-only on 13001 (3001 is taken by ZimaOS/CasaOS) |
 | Jaeger            | jaeger            |         16686 |         16686 | HTTP     | Trace UI; OTLP collector on 4318 (internal only)        |
 | Loki              | loki              |          3100 |             - | HTTP     | Log storage; pushed to by Promtail (internal only)      |
 
@@ -19,7 +19,7 @@
 - Ports `3000` and `8080` are reserved for the frontend and gateway.
 - Backend services use `8081+` sequentially.
 - Infrastructure uses its conventional default ports where practical.
-- The Grafana host port is `3001` because the container port `3000` is already taken by the web app on the host.
+- The Grafana host port is `3001` because the container port `3000` is already taken by the web app on the host. In prod it is `13001` instead, since ZimaOS/CasaOS binds `127.0.0.1:3001` on the target device.
 - The port listed here is the host port. Container-to-container communication should use the container/service name and the container port.
 
 > **Prod binding.** In `compose.prod.yml`, only `web` is reachable
