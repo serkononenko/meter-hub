@@ -430,7 +430,7 @@ Cross-service data must be accessed through APIs or asynchronous events.
 | [docs/tasks/2_distributed_tracing_tasks.md](docs/tasks/2_distributed_tracing_tasks.md) | Distributed tracing task breakdown (T1–T4) with verification notes |
 | [docs/spec/3_log_aggregation_spec.md](docs/spec/3_log_aggregation_spec.md) | Log aggregation spec: Loki + Promtail, service labels, ID line-filter search, deferred work |
 | [docs/tasks/3_log_aggregation_tasks.md](docs/tasks/3_log_aggregation_tasks.md) | Log aggregation task breakdown (L1–L3) with verification notes |
-| [docs/deploy-portainer.md](docs/deploy-portainer.md) | Portainer deployment guide: pull-based deploys, registry credentials, ports, updates |
+| [docs/deploy-portainer.md](docs/deploy-portainer.md) | Portainer deployment guide: pull-based deploys, registry credentials, stack.env handling, updates |
 | [contracts/openapi/openapi.yaml](contracts/openapi/openapi.yaml) | Root OpenAPI contract; per-service contracts under `contracts/openapi/services/` |
 
 ## Future Roadmap
