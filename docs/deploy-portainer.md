@@ -97,7 +97,18 @@ Leave "Prune volumes" **unchecked** and deploy either way.
 | All 11 containers running | Stack detail page — should show `Running (healthy)` for postgres |
 | Web app from any LAN machine | `http://<host-ip>:13000` |
 | Gateway health via the web proxy | `curl http://<host-ip>:13000/api/identity/actuator/health` |
-| Grafana / Jaeger / Prometheus | Loopback-only on the host (13001 / 16686 / 9090) — reach over SSH tunnel: `ssh -L 13001:localhost:13001 -L 9090:localhost:9090 -L 16686:localhost:16686 user@<host-ip>` |
+| Grafana (logs/traces/dashboards) | `http://<host-ip>:13001` — login with `GRAFANA_ADMIN_USER` / `GRAFANA_ADMIN_PASSWORD` from the stack env |
+
+Only two ports are published: web (13000) and Grafana (13001). Jaeger,
+Prometheus, and Postgres have **no host port** — they are reachable
+only inside the compose network. Browse traces and metrics through
+Grafana's Jaeger/Prometheus datasources; for direct access use
+Portainer's container console or `docker exec`.
+
+> **Grafana is LAN-visible** — it's the only infrastructure UI with a
+> published port, protected solely by its admin login. Set a strong
+> `GRAFANA_ADMIN_PASSWORD` in the stack env before deploying, and keep
+> sign-ups disabled (the stack already sets `GF_USERS_ALLOW_SIGN_UP=false`).
 
 Portainer's container list replaces most of the CLI here: logs,
 console access, and per-container restart are all in the UI.
