@@ -256,9 +256,14 @@ down, services keep logging locally; Promtail buffers and retries.
 the three Spring suites (`./gradlew test`, JDK 25) and two NestJS
 suites (`npm test`, Node 22) as matrix jobs, then — only if those pass —
 a full e2e job that generates throwaway JWT keys and `.env` secrets,
-starts the whole platform with `docker compose up -d --build` and drives
+starts the whole platform with `docker compose up -d --build`, waits for
+each service's readiness endpoint (not just the gateway's), and drives
 `e2e/journey.e2e.test.mjs` against the real gateway. Nothing is mocked
-and no images are published.
+and no images are published. The integration tests run against a
+postgres:17 service container seeded like the local Compose database.
+
+First fully green run: 2026-09-20
+(https://github.com/serkononenko/meter-hub/actions/runs/35507815666).
 
 ### 6. Run the end-to-end journey test
 
