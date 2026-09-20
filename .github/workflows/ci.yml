@@ -95,6 +95,9 @@ jobs:
     name: e2e journey (Docker Compose)
     runs-on: ubuntu-latest
     needs: [spring-tests, nestjs-tests]
+    # Write access only to post the failure-diagnostics commit comment.
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
       - name: Generate dev JWT keys
@@ -158,3 +161,31 @@ jobs:
       - name: Container logs on failure
         if: failure()
         run: docker compose ps; docker compose logs --tail 100
+      - name: Publish diagnostics to a commit comment
+        # Raw job logs need admin auth to read via the API; a commit
+        # comment is publicly readable. This is how a failing e2e run
+        # hands its `docker compose ps` + crash logs back to tooling
+        # without repository access.
+        if: failure()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { execSync } = require('child_process');
+            let logs;
+            try {
+              logs = execSync(
+                'docker compose ps && echo "=== logs ===" && docker compose logs --tail 60',
+                { encoding: 'utf8' }
+              ).slice(0, 60000);
+            } catch (e) { logs = 'failed to collect: ' + e.message; }
+            await github.rest.repos.createCommitComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              commit_sha: context.sha,
+              body: [
+                `## e2e journey failure (${process.env.GITHUB_RUN_ID})`,
+                '```',
+                logs,
+                '```',
+              ].join('\n'),
+            });
