@@ -25,6 +25,25 @@ jobs:
       fail-fast: false
       matrix:
         service: [api-gateway, identity-service, household-service]
+    # identity/household integration tests connect to
+    # jdbc:postgresql://${DB_HOST:localhost}:5432/... (Flyway migrations
+    # run at context startup), exactly like local development where the
+    # Compose postgres is published on 5432. The gateway owns no DB, but
+    # an unused service container is harmless there.
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: meterhub_admin
+          POSTGRES_PASSWORD: ci-postgres
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U meterhub_admin"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
@@ -32,6 +51,19 @@ jobs:
           distribution: temurin
           java-version: 25 # build.gradle.kts toolchain
           cache: gradle
+      - name: Create test databases and users (dev-default passwords)
+        # Mirrors infrastructure/postgres/init/01-create-databases.sh but
+        # with the credentials the test configs default to (identity_dev /
+        # household_dev). The service container publishes 5432 on the
+        # runner, so the psql client container reaches it via
+        # host.docker.internal.
+        run: |
+          docker run --rm postgres:17 \
+            psql "postgres://meterhub_admin:ci-postgres@host.docker.internal:5432/postgres" \
+            -c "CREATE USER identity_user WITH PASSWORD 'identity_dev';" \
+            -c "CREATE USER household_user WITH PASSWORD 'household_dev';" \
+            -c "CREATE DATABASE identity_db OWNER identity_user;" \
+            -c "CREATE DATABASE household_db OWNER household_user;"
       - name: Test ${{ matrix.service }}
         working-directory: services/${{ matrix.service }}
         run: ./gradlew test
