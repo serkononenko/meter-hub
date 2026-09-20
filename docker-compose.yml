@@ -7,13 +7,12 @@ x-identity-jwt-env: &identity-jwt-env
 
 services:
   postgres:
-    build:
-      context: ./infrastructure/postgres
-    image: postgres:17-meterhub
+    image: postgres:17
     env_file:
       - .env
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - ./infrastructure/postgres/init:/docker-entrypoint-initdb.d
     ports:
       - "5432:5432"
     networks:
