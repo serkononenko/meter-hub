@@ -1,0 +1,99 @@
+# CI: every push/PR runs all five service test suites, then the full
+# e2e journey against a real Docker Compose stack (nothing mocked).
+#
+# Layout mirrors the repo: one matrix job per stack (Spring / NestJS)
+# for the unit suites, and one job that boots the whole platform with
+# `docker compose up -d --build` and drives e2e/journey.e2e.test.mjs
+# against the gateway — the same "docker compose up" acceptance run
+# used for the MVP (docs/tasks/0_meter_hub_mvp_tasks.md, 11.2).
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  spring-tests:
+    name: Spring tests — ${{ matrix.service }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        service: [api-gateway, identity-service, household-service]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 25 # build.gradle.kts toolchain
+          cache: gradle
+      - name: Test ${{ matrix.service }}
+        working-directory: services/${{ matrix.service }}
+        run: ./gradlew test
+
+  nestjs-tests:
+    name: NestJS tests — ${{ matrix.service }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        service: [meter-service, reading-service]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22 # matches local dev (README prerequisites)
+          cache: npm
+          cache-dependency-path: services/${{ matrix.service }}/package-lock.json
+      - name: Install dependencies
+        working-directory: services/${{ matrix.service }}
+        run: npm ci
+      - name: Test ${{ matrix.service }}
+        working-directory: services/${{ matrix.service }}
+        run: npm test
+
+  e2e-journey:
+    name: e2e journey (Docker Compose)
+    runs-on: ubuntu-latest
+    needs: [spring-tests, nestjs-tests]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Generate dev JWT keys
+        # Same steps as README §Local Setup 3 — the keys are git-ignored;
+        # CI generates a throwaway pair and links it where the services
+        # and docker compose secrets expect it.
+        run: |
+          mkdir -p certs
+          openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:2048 \
+            -out certs/identity.jwt.private-key
+          openssl pkey -in certs/identity.jwt.private-key -pubout \
+            -out certs/identity.jwt.public-key
+      - name: Create .env from example
+        # Any values work locally (README §2); CI uses throwaway secrets.
+        run: |
+          sed 's/^POSTGRES_PASSWORD=.*/POSTGRES_PASSWORD=ci-postgres/' .env.example > .env
+          sed -i 's/^IDENTITY_DB_PASSWORD=.*/IDENTITY_DB_PASSWORD=ci-identity/' .env
+          sed -i 's/^HOUSEHOLD_DB_PASSWORD=.*/HOUSEHOLD_DB_PASSWORD=ci-household/' .env
+          sed -i 's/^METER_DB_PASSWORD=.*/METER_DB_PASSWORD=ci-meter/' .env
+          sed -i 's/^READING_DB_PASSWORD=.*/READING_DB_PASSWORD=ci-reading/' .env
+      - name: Start the stack
+        run: docker compose up -d --build
+      - name: Wait for the gateway
+        run: |
+          for i in $(seq 1 60); do
+            if curl -fsS http://localhost:8080/actuator/health > /dev/null; then
+              echo "gateway is up"; exit 0
+            fi
+            sleep 5
+          done
+          echo "gateway did not come up in time"; docker compose ps; docker compose logs --tail 50; exit 1
+      - name: Run the journey test
+        run: node --test e2e/journey.e2e.test.mjs
+      - name: Container logs on failure
+        if: failure()
+        run: docker compose ps; docker compose logs --tail 100

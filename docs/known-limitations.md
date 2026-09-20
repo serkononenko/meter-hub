@@ -41,8 +41,11 @@ later MVP phases (see the roadmap in README.md).
 - **No alerting.** The observability stack (Prometheus, Grafana, Jaeger,
   Loki via Promtail) is deployed and dashboards are provisioned, but no
   alert rules fire anywhere — someone has to be looking at the dashboards.
-- **No CI/CD.** Nothing builds or tests automatically on push; tests run
-  locally (per-service suites + `node --test e2e/journey.e2e.test.mjs`).
+- **CI runs tests, not deploys.** A GitHub Actions workflow
+  (`.github/workflows/ci.yml`) runs the five service suites and the e2e
+  journey against a real Compose stack on every push/PR. There is no
+  CD: no image publishing, no environments, and the workflow has never
+  executed yet while the repo has no GitHub remote.
 - **No backups or disaster recovery.** The compose volume is disposable by
   design (`docker compose down -v` wipes it); do not put real data in a
   local MVP stack.
