@@ -104,12 +104,21 @@ jobs:
         # Same steps as README §Local Setup 3 — the keys are git-ignored;
         # CI generates a throwaway pair and links it where the services
         # and docker compose secrets expect it.
+        #
+        # chmod 644: compose mounts secrets with the source file's mode,
+        # and the services read them as a non-root appuser. On a Linux
+        # runner the 0600 that openssl produces is enforced (macOS
+        # Docker Desktop file sharing ignores the bits, which is why
+        # this only failed in CI — run #5's identity crash:
+        # AccessDeniedException: /run/secrets/identity.jwt.private-key).
+        # Throwaway keys on a public repo — no secrecy to preserve.
         run: |
           mkdir -p certs
           openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:2048 \
             -out certs/identity.jwt.private-key
           openssl pkey -in certs/identity.jwt.private-key -pubout \
             -out certs/identity.jwt.public-key
+          chmod 644 certs/identity.jwt.private-key certs/identity.jwt.public-key
       - name: Create .env from example
         # Any values work locally (README §2); CI uses throwaway secrets.
         run: |
