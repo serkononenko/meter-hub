@@ -22,13 +22,13 @@
 - The Grafana host port is `3001` because the container port `3000` is already taken by the web app on the host. In prod it is `13001` instead — home-server UIs (CasaOS-family backends) commonly bind `127.0.0.1:3001`.
 - The port listed here is the host port. Container-to-container communication should use the container/service name and the container port.
 
-> **Prod binding.** In `compose.prod.yml`, only `web` is reachable
-> from other machines, published on host port `13000` (container port
-> stays 3000). `postgres`, `prometheus`, `grafana`, and `jaeger` are
-> bound to `127.0.0.1`, and `api-gateway` has no host port at all (the
-> browser reaches the API through the web app's `/api/*` proxy).
-> Access the loopback-bound UIs over an SSH tunnel — see
-> `docs/deploy-portainer.md`.
+> **Prod binding.** In `compose.portainer.yml` (the production
+> deployment), only `web` is reachable from other machines, published
+> on host port `13000` (container port stays 3000). `postgres`,
+> `prometheus`, `grafana`, and `jaeger` are bound to `127.0.0.1`, and
+> `api-gateway` has no host port at all (the browser reaches the API
+> through the web app's `/api/*` proxy). Access the loopback-bound UIs
+> over an SSH tunnel — see `docs/deploy-portainer.md`.
 
 | Kafka             | —                 |          9092 |             - | TCP      | Planned                                  |
 | Redis             | —                 |          6379 |             - | TCP      | Planned                                  |

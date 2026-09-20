@@ -1,16 +1,17 @@
-# Single-file stack for Portainer (docs/deploy-portainer.md).
+# Production deployment as a Portainer stack (docs/deploy-portainer.md).
 #
 # Portainer stacks take ONE compose file — no override merging — so this
-# is the flattened prod deployment: prebuilt ghcr.io images (published
-# by CI on every green main push, see .github/workflows/publish.yml),
-# the prod port policy from compose.prod.yml, and ${VAR} placeholders
-# filled by the stack's environment editor in Portainer (paste .env
-# contents there — never commit real values).
+# is a standalone file rather than an extension of docker-compose.yml:
+# prebuilt ghcr.io images (published by CI on every green main push,
+# see .github/workflows/publish.yml), the prod port policy, and ${VAR}
+# placeholders filled by the stack's environment (paste .env contents
+# there — never commit real values).
 #
-# Why not generate this file from the other two with `docker compose
-# config`? That would bake the generating machine's env values into the
-# committed file. Keep this file in sync with docker-compose.yml by
-# hand; a CI drift check could compare the two if it becomes a problem.
+# Why not generate this file from docker-compose.yml with `docker
+# compose config`? That would bake the generating machine's env values
+# into the committed file. Keep this file in sync with
+# docker-compose.yml by hand; a CI drift check could compare the two if
+# it becomes a problem.
 #
 # CERTS_DIR must point at the directory on the Docker host holding the
 # two PEM files (identity.jwt.private-key / identity.jwt.public-key).

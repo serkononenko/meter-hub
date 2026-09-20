@@ -2,12 +2,9 @@
 
 The production deployment runs the same prebuilt ghcr.io images that
 CI publishes on every green `main` push, managed through Portainer's
-UI: app tiles, start/stop buttons, log
-viewer, and a one-click redeploy. Uses the dedicated single-file stack
-`compose.portainer.yml` and the `stack.env.example` template —
-Portainer
-stacks take one compose file and don't merge overrides, so the
-`docker-compose.yml` + `compose.prod.yml` pair doesn't work there.
+UI: app tiles, start/stop buttons, log viewer, and a one-click
+redeploy. Uses the dedicated single-file stack `compose.portainer.yml`
+and the `stack.env.example` template.
 
 ## 0. Prerequisites
 
@@ -88,7 +85,7 @@ Repository mode's upside: **GitOps updates** (Community Edition) —
 toggle **GitOps updates → Polling** on the stack and Portainer
 redeploys automatically when the compose file changes in the repo.
 Note that image updates (`:main` tags rebuilt by CI) still need the
-re-pull step from section 6 — polling only reacts to compose file
+re-pull step from section 5 — polling only reacts to compose file
 changes, not new image digests.
 
 Leave "Prune volumes" **unchecked** and deploy either way.
@@ -130,18 +127,19 @@ Two nuances by build method:
 
 ## Portainer-specific notes
 
-- **One file, no overrides.** `compose.portainer.yml` is a flattened
-  copy of `docker-compose.yml` + `compose.prod.yml`. If you change the
-  other two, mirror the change here — the file header documents this.
+- **Standalone file.** `compose.portainer.yml` is a standalone copy of
+  the platform's services — Portainer stacks don't merge overrides, so
+  it can't extend `docker-compose.yml`. If you change the base file,
+  mirror the change here (and in the images if needed) — the file
+  header documents this.
 - **No `!reset`/`!override` tags** — Portainer's compose parser
-  historically chokes on Compose custom tags; the flattened file needs
-  none.
+  historically chokes on Compose custom tags; this file needs none.
 - **Secrets are file-based** (`secrets: file:`), which works on plain
   Docker hosts; they resolve through `CERTS_DIR`. No Portainer secret
   store involved.
 - **Promtail needs the Docker socket** (`/var/run/docker.sock:ro`) —
   that's a host bind mount, unaffected by Portainer's relative-path
   behavior.
-- **Don't also deploy the same stack via the CLI** (`docker-compose.yml`
-  + `compose.prod.yml`) on the same host: two compose projects would
-  fight over the `meter-hub-network` name and the published ports.
+- **Don't also deploy the base `docker-compose.yml` as another stack**
+  on the same host: two compose projects would fight over the
+  `meter-hub-network` name and the published ports.
