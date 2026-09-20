@@ -1,5 +1,8 @@
 .idea
 .env
+# Real Portainer stack environment (copy from stack.env.example) —
+# must never land in this public repo
+stack.env
 .DS_Store
 
 # Local development key material — never commit (dev-generated key pair; real

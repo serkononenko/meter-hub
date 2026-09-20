@@ -4,7 +4,8 @@ The production deployment runs the same prebuilt ghcr.io images that
 CI publishes on every green `main` push, managed through Portainer's
 UI: app tiles, start/stop buttons, log
 viewer, and a one-click redeploy. Uses the dedicated single-file stack
-`compose.portainer.yml` — Portainer
+`compose.portainer.yml` and the `stack.env.example` template —
+Portainer
 stacks take one compose file and don't merge overrides, so the
 `docker-compose.yml` + `compose.prod.yml` pair doesn't work there.
 
@@ -51,33 +52,48 @@ sudo git clone https://github.com/serkononenko/meter-hub.git /opt/meter-hub/repo
 elsewhere, change the values in step 4 instead of editing the stack
 file.
 
-## 3. Create the stack
+## 3. Create the stack and provide environment variables
 
-**Stacks → Add stack → Web editor**, name it `meter-hub`, then either
-paste the contents of `compose.portainer.yml` or use **Repository**
-mode pointing at this repo with that path (Web editor is simpler for
-keeping the file in the repo as the source of truth).
+Portainer treats the two build methods differently where secrets are
+concerned — pick one:
 
-## 4. Environment variables
+### Option A: Web editor (simplest, secrets stay in Portainer)
 
-Under **Environment variables → Advanced mode**, paste the same shape
-as `.env.example` with real values — including two Portainer-specific
-entries:
+**Stacks → Add stack → Web editor**, name it `meter-hub`, paste the
+contents of `compose.portainer.yml`. Then, under **Environment
+variables → Advanced mode**, paste a filled-in copy of
+`stack.env.example` (real passwords instead of `changeme`). Portainer
+auto-creates the stack's `stack.env` from what you enter here —
+nothing secret lands in Git.
 
-```bash
-# Where the JWT PEM files live on the host (step 2)
-CERTS_DIR=/opt/meter-hub/certs
-# Where the repo checkout lives on the host (step 2)
-REPO_DIR=/opt/meter-hub/repo
+### Option B: Repository build method (compose file managed in Git)
 
-# ...plus the usual: POSTGRES_*, the four *_DB_PASSWORD values,
-# GRAFANA_ADMIN_USER / GRAFANA_ADMIN_PASSWORD (change from defaults!).
-# Generate strong values; see .env.example for the full list.
-```
+**Stacks → Add stack → Git Repository**, repository URL of this repo,
+compose path `compose.portainer.yml`.
 
-Leave "Prune volumes" **unchecked** and deploy.
+Per Portainer's docs, a stack deployed from a repository loads its
+environment from a `stack.env` file **that must already exist in the
+repository** — the UI environment editor does not apply. Since this
+repo is public, committing the real `stack.env` here would leak every
+password, so use a **private mirror/fork** of this repo that carries
+the real `stack.env` (copy `stack.env.example`, fill in values,
+commit) and point the stack at that mirror. The public repo stays the
+source of truth for code; the mirror differs only by `stack.env`.
 
-## 5. Verify
+> `stack.env` is in this repo's `.gitignore`, so filling it in a
+> checkout of the public repo won't get pushed by accident — but the
+> repository Portainer pulls from must still be private.
+
+Repository mode's upside: **GitOps updates** (Community Edition) —
+toggle **GitOps updates → Polling** on the stack and Portainer
+redeploys automatically when the compose file changes in the repo.
+Note that image updates (`:main` tags rebuilt by CI) still need the
+re-pull step from section 6 — polling only reacts to compose file
+changes, not new image digests.
+
+Leave "Prune volumes" **unchecked** and deploy either way.
+
+## 4. Verify
 
 | Check | Where |
 |---|---|
@@ -89,17 +105,25 @@ Leave "Prune volumes" **unchecked** and deploy.
 Portainer's container list replaces most of the CLI here: logs,
 console access, and per-container restart are all in the UI.
 
-## 6. Updating
+## 5. Updating
 
 Images are rebuilt by CI (`publish.yml`) on every green `main` push.
-To pick them up: open the stack → **Editor** is unchanged →
-**Update the stack**, tick **"Re-pull image and redeploy"** → Save.
-That forces a fresh pull of the `:main` tags and recreates changed
-containers. Volumes persist across redeploys.
+To pick them up: open the stack → **Update the stack**, tick
+**"Re-pull image and redeploy"** → Save. That forces a fresh pull of
+the `:main` tags and recreates changed containers. Volumes persist
+across redeploys.
 
-> Community Edition has no per-stack auto-update webhook (that's
-> Business). If unattended updates matter, either re-run the redeploy
-> button after CI or run
+Two nuances by build method:
+
+- **Web editor stacks**: compose edits happen in Portainer's editor.
+- **Repository stacks**: compose edits happen in Git (the Portainer
+  editor is read-only for them). With **GitOps polling** enabled,
+  compose-file changes redeploy automatically — but a re-pull of
+  rebuilt images still needs the "Re-pull image and redeploy" click,
+  since polling reacts to repo changes, not new image digests.
+
+> Community Edition has no redeploy **webhook** (that's Business). If
+> fully unattended image updates matter, run
 > `docker compose -f compose.portainer.yml --env-file <env-file> pull && docker compose -f compose.portainer.yml --env-file <env-file> up -d`
 > on the host via cron — Portainer will reflect the externally changed
 > stack state.
