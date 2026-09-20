@@ -63,12 +63,14 @@ spring:
 
 logging:
   # Structured single-line format per conventions §14: timestamp, level,
-  # service, requestId (the correlation ID from the MDC) and message. Every
+  # service, requestId (the correlation ID from the MDC), traceId/spanId
+# (from the MDC via the micrometer-tracing bridge when a span is active)
+# and message. Every
   # log line (access log included) carries the request's correlation ID, so a
   # request can be followed through the gateway's logs and into the services'
   # logs. The %replace escapes double quotes in the message so the line stays valid JSON
   pattern:
-    console: "{\"timestamp\":\"%d{yyyy-MM-dd'T'HH:mm:ss.SSSXXX,UTC}\",\"level\":\"%p\",\"service\":\"api-gateway\",\"requestId\":\"%X{correlationId:-}\",\"message\":\"%replace(%m){'\"':'\\\\\"'}%n\"}"
+    console: "{\"timestamp\":\"%d{yyyy-MM-dd'T'HH:mm:ss.SSSXXX,UTC}\",\"level\":\"%p\",\"service\":\"api-gateway\",\"requestId\":\"%X{correlationId:-}\",\"traceId\":\"%X{traceId:-}\",\"spanId\":\"%X{spanId:-}\",\"message\":\"%replace(%m){'\"':'\\\\\"'}%n\"}"
     level: "%5p [%X{correlationId:-}]"
 
 management:

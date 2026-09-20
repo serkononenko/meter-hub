@@ -92,9 +92,11 @@ management:
 logging:
   # Structured single-line format per conventions §14: timestamp, level,
   # service, requestId (the correlation ID from the MDC, set by
+# CorrelationIdFilter), traceId/spanId (MDC keys populated by the
+# micrometer-tracing bridge when a span is active) and message.
   # CorrelationIdFilter) and message. The correlation ID lets a request be
   # followed from the gateway's logs into this service's logs (conventions §9).
   # The %replace escapes double quotes in the message so the line stays valid JSON
   pattern:
-    console: "{\"timestamp\":\"%d{yyyy-MM-dd'T'HH:mm:ss.SSSXXX,UTC}\",\"level\":\"%p\",\"service\":\"identity-service\",\"requestId\":\"%X{correlationId:-}\",\"message\":\"%replace(%m){'\"':'\\\\\"'}%n\"}"
+    console: "{\"timestamp\":\"%d{yyyy-MM-dd'T'HH:mm:ss.SSSXXX,UTC}\",\"level\":\"%p\",\"service\":\"identity-service\",\"requestId\":\"%X{correlationId:-}\",\"traceId\":\"%X{traceId:-}\",\"spanId\":\"%X{spanId:-}\",\"message\":\"%replace(%m){'\"':'\\\\\"'}%n\"}"
     level: "%5p [%X{correlationId:-}]"
