@@ -13,6 +13,13 @@
 # docker-compose.yml by hand; a CI drift check could compare the two if
 # it becomes a problem.
 #
+# Port policy — only two host ports are published, both on all
+# interfaces: web (13000) and Grafana (13001, auth via the admin login
+# from stack.env). Everything else is internal: services talk over the
+# compose network, and unauthenticated UIs (Jaeger, Prometheus) and the
+# database stay off the host entirely — reach them through Grafana's
+# datasources or `docker exec`. See docs/ports.md.
+#
 # CERTS_DIR must point at the directory on the Docker host holding the
 # two PEM files (identity.jwt.private-key / identity.jwt.public-key).
 # Absolute, not relative: Portainer resolves relative bind paths
@@ -35,8 +42,10 @@ services:
       # image of the repo, so this path assumes the repo is checked out
       # on the host at REPO_DIR.
       - ${REPO_DIR:-/opt/meter-hub}/infrastructure/postgres/init:/docker-entrypoint-initdb.d:ro
-    ports:
-      - "127.0.0.1:5432:5432"
+    # No host port: DB access happens inside the compose network. For a
+    # one-off local psql use `docker exec`, not a published port.
+    expose:
+      - "5432"
     networks:
       - meter-hub
     healthcheck:
@@ -174,8 +183,10 @@ services:
     volumes:
       - ${REPO_DIR:-/opt/meter-hub}/infrastructure/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
       - prometheus_data:/prometheus
-    ports:
-      - "127.0.0.1:9090:9090"
+    # No host port (no auth): reach Prometheus through Grafana or
+    # `docker exec`, not a published port.
+    expose:
+      - "9090"
     networks:
       - meter-hub
 
@@ -190,9 +201,10 @@ services:
       - ${REPO_DIR:-/opt/meter-hub}/infrastructure/grafana/dashboards:/var/lib/grafana/dashboards:ro
       - grafana_data:/var/lib/grafana
     ports:
-      # Host 13001, not 3001: 3001 is commonly taken by other UIs on
-      # home servers (CasaOS-family backends bind it).
-      - "127.0.0.1:13001:3000"
+      # Public on the LAN. Auth is the admin login from stack.env —
+      # set a real GRAFANA_ADMIN_PASSWORD. Host 13001, not 3001: 3001
+      # is commonly taken by other UIs on home servers.
+      - "13001:3000"
     networks:
       - meter-hub
     depends_on:
@@ -202,8 +214,10 @@ services:
     image: jaegertracing/all-in-one:1.76.0
     environment:
       COLLECTOR_OTLP_ENABLED: "true"
-    ports:
-      - "127.0.0.1:16686:16686"
+    # No host port (no auth): browse traces through Grafana's
+    # Jaeger datasource, not a published port.
+    expose:
+      - "16686"
     networks:
       - meter-hub
 

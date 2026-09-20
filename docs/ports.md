@@ -23,12 +23,14 @@
 - The port listed here is the host port. Container-to-container communication should use the container/service name and the container port.
 
 > **Prod binding.** In `docker-compose.portainer.yml` (the production
-> deployment), only `web` is reachable from other machines, published
-> on host port `13000` (container port stays 3000). `postgres`,
-> `prometheus`, `grafana`, and `jaeger` are bound to `127.0.0.1`, and
-> `api-gateway` has no host port at all (the browser reaches the API
-> through the web app's `/api/*` proxy). Access the loopback-bound UIs
-> over an SSH tunnel — see `docs/deploy-portainer.md`.
+> deployment), exactly two host ports are published, both on all
+> interfaces: the web app on `13000` (container port stays 3000) and
+> Grafana on `13001` (protected by its admin login from `stack.env`).
+> Everything else is internal — `api-gateway` has no host port (the
+> browser reaches the API through the web app's `/api/*` proxy), and
+> Jaeger, Prometheus, and Postgres have no host port at all: reach
+> them from inside the network (Grafana datasources, `docker exec`),
+> not from the host. See `docs/deploy-portainer.md`.
 
 | Kafka             | —                 |          9092 |             - | TCP      | Planned                                  |
 | Redis             | —                 |          6379 |             - | TCP      | Planned                                  |
