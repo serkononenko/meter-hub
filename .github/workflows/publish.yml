@@ -1,6 +1,6 @@
 # Publish images to ghcr.io after CI is green on main. Deployment
-# targets (e.g. the ZimaOS home server) pull these instead of building
-# on-device — see compose.prod.yml and docs/deploy-zimaos.md.
+# targets pull these instead of building on-device — see
+# compose.prod.yml, compose.portainer.yml, and docs/deploy-portainer.md.
 #
 # One image per built component (five services + the web app), tagged
 # with the branch name (`main`), the commit SHA, and `latest`. amd64

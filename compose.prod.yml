@@ -1,6 +1,7 @@
 # Production-style deploy: run prebuilt images from ghcr.io instead of
-# building on the target machine (see docs/deploy-zimaos.md). Use as an
-# override over the base file:
+# building on the target machine (see docs/deploy-portainer.md for the
+# Portainer variant of this file). Use as an override over the base
+# file:
 #
 #   docker compose -f docker-compose.yml -f compose.prod.yml pull
 #   docker compose -f docker-compose.yml -f compose.prod.yml up -d
@@ -12,9 +13,8 @@
 # branch CI publishes from (main).
 #
 # Port policy: `web` is the only interface reachable from other
-# machines, published on host port 13000 (container port stays 3000;
-# 3000 is taken by ZimaOS's own UI on the target device). The browser
-# never calls the gateway directly (Next.js rewrites /api/*
+# machines, published on host port 13000 (container port stays 3000).
+# The browser never calls the gateway directly (Next.js rewrites /api/*
 # server-side), so api-gateway's host port is removed.
 # Observability UIs (prometheus, grafana, jaeger) and postgres keep
 # their ports but bind to loopback only — use an SSH tunnel from your
@@ -27,8 +27,8 @@
 # (Prometheus and Jaeger have no auth; Grafana's admin password comes
 # from .env — none of them should be LAN-exposed.)
 #
-# Requires Docker Compose v2.24+ for the `!reset null` tags (ZimaOS
-# ships a recent Compose; check with `docker compose version`).
+# Requires Docker Compose v2.24+ for the `!reset null` tags (check
+# with `docker compose version`).
 
 services:
   api-gateway:
@@ -55,8 +55,8 @@ services:
   web:
     image: ghcr.io/serkononenko/meter-hub-web:main
     build: !reset null
-    # Host 13000, not 3000: 3000 is taken by ZimaOS's own UI on the
-    # target device. Container port stays 3000.
+    # Host 13000: 3000 is commonly taken by other UIs on home servers.
+    # Container port stays 3000.
     ports: !override
       - "13000:3000"
 
@@ -69,8 +69,8 @@ services:
     ports: !override
       - "127.0.0.1:9090:9090"
 
-  # Host 13001, not 3001: ZimaOS/CasaOS's own backend already binds
-  # 127.0.0.1:3001 on the target device.
+  # Host 13001, not 3001: 3001 is commonly taken by other UIs on home
+  # servers (CasaOS-family backends bind it).
   grafana:
     ports: !override
       - "127.0.0.1:13001:3000"

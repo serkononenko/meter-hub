@@ -1,0 +1,246 @@
+# Single-file stack for Portainer (docs/deploy-portainer.md).
+#
+# Portainer stacks take ONE compose file — no override merging — so this
+# is the flattened prod deployment: prebuilt ghcr.io images (published
+# by CI on every green main push, see .github/workflows/publish.yml),
+# the prod port policy from compose.prod.yml, and ${VAR} placeholders
+# filled by the stack's environment editor in Portainer (paste .env
+# contents there — never commit real values).
+#
+# Why not generate this file from the other two with `docker compose
+# config`? That would bake the generating machine's env values into the
+# committed file. Keep this file in sync with docker-compose.yml by
+# hand; a CI drift check could compare the two if it becomes a problem.
+#
+# CERTS_DIR must point at the directory on the Docker host holding the
+# two PEM files (identity.jwt.private-key / identity.jwt.public-key).
+# Absolute, not relative: Portainer resolves relative bind paths
+# against its own data directory, not the host filesystem.
+
+x-identity-jwt-env: &identity-jwt-env
+  IDENTITY_JWT_ISSUER: ${IDENTITY_JWT_ISSUER:-identity-service}
+  IDENTITY_JWT_AUDIENCE: ${IDENTITY_JWT_AUDIENCE:-meterhub-api}
+
+services:
+  postgres:
+    image: postgres:17
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      # Init scripts split databases/users per service; shipped in the
+      # image of the repo, so this path assumes the repo is checked out
+      # on the host at REPO_DIR.
+      - ${REPO_DIR:-/opt/meter-hub}/infrastructure/postgres/init:/docker-entrypoint-initdb.d:ro
+    ports:
+      - "127.0.0.1:5432:5432"
+    networks:
+      - meter-hub
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  api-gateway:
+    image: ghcr.io/serkononenko/meter-hub-api-gateway:main
+    environment:
+      <<: *identity-jwt-env
+      IDENTITY_SERVICE_URL: http://identity-service:8081
+      HOUSEHOLD_SERVICE_URL: http://household-service:8082
+      METER_SERVICE_URL: http://meter-service:8083
+      READING_SERVICE_URL: http://reading-service:8084
+      OTLP_TRACING_ENDPOINT: http://jaeger:4318/v1/traces
+    secrets:
+      - identity.jwt.public-key
+    # No host port: the browser reaches the gateway through the web
+    # app's /api/* proxy.
+    networks:
+      - meter-hub
+    depends_on:
+      identity-service:
+        condition: service_started
+      household-service:
+        condition: service_started
+      meter-service:
+        condition: service_started
+      reading-service:
+        condition: service_started
+
+  identity-service:
+    image: ghcr.io/serkononenko/meter-hub-identity-service:main
+    environment:
+      <<: *identity-jwt-env
+      DB_HOST: postgres
+      DB_NAME: ${IDENTITY_DB}
+      DB_USERNAME: ${IDENTITY_DB_USER}
+      DB_PASSWORD: ${IDENTITY_DB_PASSWORD}
+      OTLP_TRACING_ENDPOINT: http://jaeger:4318/v1/traces
+    secrets:
+      - identity.jwt.private-key
+      - identity.jwt.public-key
+    expose:
+      - "8081"
+    networks:
+      - meter-hub
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  household-service:
+    image: ghcr.io/serkononenko/meter-hub-household-service:main
+    environment:
+      <<: *identity-jwt-env
+      DB_HOST: postgres
+      DB_NAME: ${HOUSEHOLD_DB}
+      DB_USERNAME: ${HOUSEHOLD_DB_USER}
+      DB_PASSWORD: ${HOUSEHOLD_DB_PASSWORD}
+      OTLP_TRACING_ENDPOINT: http://jaeger:4318/v1/traces
+    secrets:
+      - identity.jwt.public-key
+    expose:
+      - "8082"
+    networks:
+      - meter-hub
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  meter-service:
+    image: ghcr.io/serkononenko/meter-hub-meter-service:main
+    environment:
+      <<: *identity-jwt-env
+      DATABASE_URL: postgresql://${METER_DB_USER}:${METER_DB_PASSWORD}@postgres:5432/${METER_DB}
+      IDENTITY_JWT_PUBLIC_KEY_PATH: /run/secrets/identity.jwt.public-key
+      HOUSEHOLD_SERVICE_URL: http://household-service:8082
+      OTEL_SERVICE_NAME: meter-service
+      OTEL_EXPORTER_OTLP_TRACES_ENDPOINT: http://jaeger:4318/v1/traces
+    secrets:
+      - identity.jwt.public-key
+    expose:
+      - "8083"
+    networks:
+      - meter-hub
+    depends_on:
+      postgres:
+        condition: service_healthy
+      household-service:
+        condition: service_started
+
+  reading-service:
+    image: ghcr.io/serkononenko/meter-hub-reading-service:main
+    environment:
+      <<: *identity-jwt-env
+      DATABASE_URL: postgresql://${READING_DB_USER}:${READING_DB_PASSWORD}@postgres:5432/${READING_DB}
+      METER_SERVICE_URL: http://meter-service:8083
+      IDENTITY_JWT_PUBLIC_KEY_PATH: /run/secrets/identity.jwt.public-key
+      OTEL_SERVICE_NAME: reading-service
+      OTEL_EXPORTER_OTLP_TRACES_ENDPOINT: http://jaeger:4318/v1/traces
+    secrets:
+      - identity.jwt.public-key
+    expose:
+      - "8084"
+    networks:
+      - meter-hub
+    depends_on:
+      postgres:
+        condition: service_healthy
+      meter-service:
+        condition: service_started
+
+  web:
+    image: ghcr.io/serkononenko/meter-hub-web:main
+    environment:
+      GATEWAY_URL: http://api-gateway:8080
+    # Only interface reachable from other machines. Host 13000: 3000
+    # is commonly taken by other UIs on home servers.
+    ports:
+      - "13000:3000"
+    networks:
+      - meter-hub
+    depends_on:
+      api-gateway:
+        condition: service_started
+
+  prometheus:
+    image: prom/prometheus:v3.7.3
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.retention.time=7d
+    volumes:
+      - ${REPO_DIR:-/opt/meter-hub}/infrastructure/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    ports:
+      - "127.0.0.1:9090:9090"
+    networks:
+      - meter-hub
+
+  grafana:
+    image: grafana/grafana:12.2.1
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-admin}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    volumes:
+      - ${REPO_DIR:-/opt/meter-hub}/infrastructure/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ${REPO_DIR:-/opt/meter-hub}/infrastructure/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana_data:/var/lib/grafana
+    ports:
+      # Host 13001, not 3001: 3001 is commonly taken by other UIs on
+      # home servers (CasaOS-family backends bind it).
+      - "127.0.0.1:13001:3000"
+    networks:
+      - meter-hub
+    depends_on:
+      - prometheus
+
+  jaeger:
+    image: jaegertracing/all-in-one:1.76.0
+    environment:
+      COLLECTOR_OTLP_ENABLED: "true"
+    ports:
+      - "127.0.0.1:16686:16686"
+    networks:
+      - meter-hub
+
+  loki:
+    image: grafana/loki:3.5.7
+    command: -config.file=/etc/loki/loki-config.yml
+    volumes:
+      - ${REPO_DIR:-/opt/meter-hub}/infrastructure/loki/loki-config.yml:/etc/loki/loki-config.yml:ro
+      - loki_data:/loki
+    expose:
+      - "3100"
+    networks:
+      - meter-hub
+
+  promtail:
+    image: grafana/promtail:3.5.7
+    command: -config.file=/etc/promtail/promtail-config.yml
+    volumes:
+      - ${REPO_DIR:-/opt/meter-hub}/infrastructure/loki/promtail-config.yml:/etc/promtail/promtail-config.yml:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    depends_on:
+      - loki
+    networks:
+      - meter-hub
+
+secrets:
+  identity.jwt.private-key:
+    file: ${CERTS_DIR}/identity.jwt.private-key
+  identity.jwt.public-key:
+    file: ${CERTS_DIR}/identity.jwt.public-key
+
+volumes:
+  postgres_data:
+  prometheus_data:
+  grafana_data:
+  loki_data:
+
+networks:
+  meter-hub:
+    name: meter-hub-network
+    driver: bridge
