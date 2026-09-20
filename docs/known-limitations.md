@@ -38,9 +38,9 @@ later MVP phases (see the roadmap in README.md).
 
 ## Operations
 
-- **No deployed scraper or dashboards.** Services expose Prometheus metrics
-  and structured logs, but nothing scrapes/alerts/displays them yet —
-  observability infrastructure is a later phase.
+- **No alerting.** The observability stack (Prometheus, Grafana, Jaeger,
+  Loki via Promtail) is deployed and dashboards are provisioned, but no
+  alert rules fire anywhere — someone has to be looking at the dashboards.
 - **No CI/CD.** Nothing builds or tests automatically on push; tests run
   locally (per-service suites + `node --test e2e/journey.e2e.test.mjs`).
 - **No backups or disaster recovery.** The compose volume is disposable by

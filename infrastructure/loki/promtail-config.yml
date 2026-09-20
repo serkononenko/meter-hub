@@ -1,0 +1,42 @@
+# Promtail scrapes every running container's stdout through the Docker
+# socket (read-only) and pushes it to Loki. Deliberately minimal
+# relabeling: only a low-cardinality `service` label is kept (spec §6 —
+# never label by requestId/traceId/paths; those are line filters at
+# query time, not index labels).
+
+server:
+  http_listen_port: 9080
+  grpc_listen_port: 0
+
+positions:
+  filename: /tmp/positions.yaml
+
+clients:
+  - url: http://loki:3100/loki/api/v1/push
+
+scrape_configs:
+  - job_name: docker
+    docker_sd_configs:
+      - host: unix:///var/run/docker.sock
+        refresh_interval: 15s
+        # Note: docker_sd "filters" are INCLUDE filters, not excludes —
+        # do not add one here (an exclude-style filter silently limits
+        # discovery to the matching container only). Promtail's own logs
+        # are dropped by the pipeline stage below instead.
+    relabel_configs:
+      # Keep only the Compose service name as the `service` label, e.g.
+      # com.docker.compose.service=api-gateway -> service="api-gateway".
+      - source_labels: [ __meta_docker_container_label_com_docker_compose_service ]
+        target_label: service
+      - action: labelmap
+        regex: __meta_docker_container_label_com_docker_compose_(service)
+        replacement: ${1}
+      # Fallback for containers outside Compose: container name.
+      - source_labels: [ __meta_docker_container_name ]
+        regex: /(.*)
+        target_label: container
+    pipeline_stages:
+      # Drop promtail's own lines: without this, every log line it emits
+      # about shipping logs gets shipped, recursively.
+      - drop:
+          expression: '.*promtail.*'

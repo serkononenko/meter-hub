@@ -193,6 +193,28 @@ services:
     networks:
       - meter-hub
 
+  loki:
+    image: grafana/loki:3.5.7
+    command: -config.file=/etc/loki/loki-config.yml
+    volumes:
+      - ./infrastructure/loki/loki-config.yml:/etc/loki/loki-config.yml:ro
+      - loki_data:/loki
+    expose:
+      - "3100"
+    networks:
+      - meter-hub
+
+  promtail:
+    image: grafana/promtail:3.5.7
+    command: -config.file=/etc/promtail/promtail-config.yml
+    volumes:
+      - ./infrastructure/loki/promtail-config.yml:/etc/promtail/promtail-config.yml:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    depends_on:
+      - loki
+    networks:
+      - meter-hub
+
 secrets:
   identity.jwt.private-key:
     file: ./certs/identity.jwt.private-key
@@ -203,6 +225,7 @@ volumes:
   postgres_data:
   prometheus_data:
   grafana_data:
+  loki_data:
 
 networks:
   meter-hub:

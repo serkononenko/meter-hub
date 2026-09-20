@@ -1,0 +1,13 @@
+# Grafana datasource provisioned on startup (no UI clicking required).
+# Loki is reachable by its Compose DNS name on the shared meter-hub
+# network; traceId/requestId search is a line filter, not a label (spec
+# 3_log_aggregation_spec.md §6).
+apiVersion: 1
+
+datasources:
+  - name: Loki
+    uid: meterhub-loki
+    type: loki
+    access: proxy
+    url: http://loki:3100
+    editable: false
