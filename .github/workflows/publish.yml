@@ -28,10 +28,10 @@ jobs:
             context: services/api-gateway
           - name: identity-service
             context: services/identity-service
-            additional-contexts: contracts=${{ github.workspace }}/contracts
+            build-contexts: contracts=../../contracts
           - name: household-service
             context: services/household-service
-            additional-contexts: contracts=${{ github.workspace }}/contracts
+            build-contexts: contracts=../../contracts
           - name: meter-service
             context: services/meter-service
           - name: reading-service
@@ -60,8 +60,11 @@ jobs:
           context: ${{ matrix.context }}
           file: ${{ matrix.context }}/Dockerfile
           # Compose builds identity/household with the shared contracts
-          # directory as an extra build context; reproduce that here.
-          additional-contexts: ${{ matrix.additional-contexts }}
+          # directory as an extra build context; reproduce that here
+          # (relative paths resolve against the job workspace; the input
+          # is `build-contexts` — `additional-contexts` is silently
+          # ignored with a warning, which cost one failed run).
+          build-contexts: ${{ matrix.build-contexts }}
           build-args: ${{ matrix.build-args }}
           push: true
           platforms: linux/amd64
