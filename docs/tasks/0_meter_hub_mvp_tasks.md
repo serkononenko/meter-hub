@@ -644,14 +644,25 @@ documented in docs/service-boundaries.md §Data Ownership and conventions
 §16, now linked from a new README "Documentation" index table.
 
 ### 11.2 MVP acceptance
-- [ ] Clean checkout starts successfully with Docker Compose.
-- [ ] User can register and log in.
-- [ ] User can create a household.
-- [ ] User can add a meter.
-- [ ] User can add a manual reading.
-- [ ] User can view reading history.
-- [ ] User data is isolated from other users.
-- [ ] Data survives service/container restart.
+- [x] Clean checkout starts successfully with Docker Compose.
+- [x] User can register and log in.
+- [x] User can create a household.
+- [x] User can add a meter.
+- [x] User can add a manual reading.
+- [x] User can view reading history.
+- [x] User data is isolated from other users.
+- [x] Data survives service/container restart.
+
+Verified against a fresh `git clone` into a temp directory (no local
+state): `.env` from the example, keys generated per README step 3,
+`docker compose up -d --build` brought up all six containers, gateway
+`/actuator/health` went UP. The e2e journey test passed 2/2 against that
+stack, covering criteria 2–7 including cross-user isolation. For
+criterion 8, a dedicated user's household/meter/reading survived a full
+`docker compose restart` — login worked and the reading history was
+intact afterwards. One transient failure during the first build attempt
+(Docker Hub deadline while resolving the `docker/dockerfile:1` frontend
+image) resolved on retry and is not a repo issue.
 
 ---
 
