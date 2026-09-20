@@ -250,6 +250,16 @@ filter: `{service=~".+"} |= "<traceId>"` (or the `X-Correlation-ID`
 cardinality labels would wreck Loki's index (spec 3 §6). With Loki
 down, services keep logging locally; Promtail buffers and retries.
 
+### CI (GitHub Actions)
+
+`.github/workflows/ci.yml` runs on every push to `main` and every PR:
+the three Spring suites (`./gradlew test`, JDK 25) and two NestJS
+suites (`npm test`, Node 22) as matrix jobs, then — only if those pass —
+a full e2e job that generates throwaway JWT keys and `.env` secrets,
+starts the whole platform with `docker compose up -d --build` and drives
+`e2e/journey.e2e.test.mjs` against the real gateway. Nothing is mocked
+and no images are published.
+
 ### 6. Run the end-to-end journey test
 
 Drives the full MVP flow through the gateway against the running Compose
