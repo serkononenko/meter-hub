@@ -38,7 +38,7 @@ discovery beyond Compose DNS names, no federation or long-term storage.
 - Alerting (Alertmanager, notification channels) — later phase.
 - Log aggregation (Loki) — separate spec; correlation IDs in structured
   logs are the current story.
-- Distributed tracing (OpenTelemetry) — separate deferred experiment.
+- Distributed tracing (OpenTelemetry) — done since; see [2_distributed_tracing_spec.md](2_distributed_tracing_spec.md).
 - Long-term storage, high availability, federation, multi-environment
   scraping.
 - TLS / authentication on the metrics plane (fine for localhost; revisit

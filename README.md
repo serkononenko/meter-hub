@@ -85,7 +85,7 @@ meter-hub/
 - PostgreSQL
 - Kafka (later MVP phase)
 - Redis (later)
-- OpenTelemetry / Prometheus / Grafana / Loki (later)
+- Loki log aggregation (Prometheus + Grafana + Jaeger tracing are in place)
 
 ## Local Development Prerequisites
 
@@ -225,6 +225,19 @@ curl http://localhost:8083/metrics | head               # meter service
   (`infrastructure/grafana/`): request rate, p95 latency and 5xx rate per
   service (Spring and NestJS panels, since the two stacks use different metric
   names), JVM heap / Node process CPU, and scrape-target health.
+
+### Distributed tracing (Jaeger)
+
+All five services emit OpenTelemetry spans to Jaeger all-in-one:
+W3C `traceparent` propagates across the gateway → service → service hops,
+so one request shows up as a single waterfall in the Jaeger UI
+(http://localhost:16686) — e.g. a reading submission traces from the
+gateway through reading-service, meter-service's ownership check
+(Prisma/PostgreSQL spans included) and household-service. The NestJS
+services also stamp `traceId` into their structured logs next to the
+correlation ID. Traces are in-memory only (all-in-one is a dev-grade
+backend), and services start fine with Jaeger absent — export failures
+never fail a request.
 
 ### 6. Run the end-to-end journey test
 
@@ -381,6 +394,8 @@ Cross-service data must be accessed through APIs or asynchronous events.
 | [docs/known-limitations.md](docs/known-limitations.md) | Known limitations: deliberate scope cuts and simplifications in the MVP |
 | [docs/spec/1_metrics_observability_spec.md](docs/spec/1_metrics_observability_spec.md) | Metrics observability spec: Prometheus scraping, Grafana provisioning, dashboard contract, deferred work |
 | [docs/tasks/1_metrics_observability_tasks.md](docs/tasks/1_metrics_observability_tasks.md) | Metrics observability task breakdown (M1–M3) with verification notes |
+| [docs/spec/2_distributed_tracing_spec.md](docs/spec/2_distributed_tracing_spec.md) | Distributed tracing spec: Jaeger all-in-one, W3C propagation, per-stack instrumentation, deferred work |
+| [docs/tasks/2_distributed_tracing_tasks.md](docs/tasks/2_distributed_tracing_tasks.md) | Distributed tracing task breakdown (T1–T4) with verification notes |
 | [contracts/openapi/openapi.yaml](contracts/openapi/openapi.yaml) | Root OpenAPI contract; per-service contracts under `contracts/openapi/services/` |
 
 ## Future Roadmap
@@ -393,7 +408,7 @@ The platform is expected to evolve in roughly this order:
 4. Add Provider Service and provider integrations.
 5. Add Telegram notifications.
 6. Add Device Service and automated meter reading.
-7. Add observability with OpenTelemetry, Prometheus, Grafana, and Loki.
+7. Add observability: Loki log aggregation to complete the Prometheus/Grafana/Jaeger stack.
 8. Introduce Kubernetes as a separate infrastructure exercise.
 
 ## License

@@ -614,7 +614,10 @@ no custom instrumentation needed. NestJS services (meter, reading): added
 `prom-client` with a small metrics module — `http_requests_total` counter
 and `http_request_duration_seconds` histogram labeled method/path/status
 (errors counted via the status label), Node.js default metrics, served at
-`/metrics`. The observer is a middleware rather than an interceptor
+`/metrics`. Later expanded with the Prometheus/Grafana stack
+(docs/spec/1_metrics_observability_spec.md) and Jaeger distributed
+tracing (docs/spec/2_distributed_tracing_spec.md). The observer is a
+middleware rather than an interceptor
 because Nest runs guards before interceptors, so auth-rejected 401s would
 otherwise never be counted. Path labels strip query strings and are
 capped to bound cardinality. All endpoints verified live in Compose after

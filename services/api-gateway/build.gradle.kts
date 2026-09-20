@@ -22,6 +22,7 @@ extra["springCloudVersion"] = "2025.1.3"
 dependencies {
 	implementation("org.springframework.boot:spring-boot-starter-actuator")
 	implementation("io.micrometer:micrometer-registry-prometheus")
+	implementation("org.springframework.boot:spring-boot-starter-opentelemetry")
 	implementation("org.springframework.cloud:spring-cloud-starter-gateway-server-webmvc")
 	implementation("org.springframework.boot:spring-boot-starter-security")
 	implementation("org.springframework.security:spring-security-oauth2-jose")

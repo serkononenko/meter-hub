@@ -56,6 +56,35 @@ management:
         # Prometheus can compute latency quantiles (Grafana dashboard p95);
         # count/sum exist by default without this.
         http.server.requests: true
+  tracing:
+    # Distributed tracing (spec 2_distributed_tracing_spec.md §5.1): the
+    # bridge turns actuator observations into spans. MVP volume keeps every
+    # trace; export failures never fail a request (batched, fire-and-forget).
+    sampling:
+      probability: 1.0
+    propagation:
+      # W3C trace context; X-Correlation-ID handling stays with the
+      # correlation filter and is deliberately untouched.
+      produce: [w3c]
+      consume: [w3c]
+  opentelemetry:
+    tracing:
+      export:
+        otlp:
+          # Jaeger all-in-one on the Compose network (only the UI is
+          # host-published, docs/ports.md). Boot 4 property namespace
+          # (management.opentelemetry.tracing.export.otlp.endpoint).
+          endpoint: ${OTLP_TRACING_ENDPOINT:http://localhost:4318/v1/traces}
+  # The starter also auto-enables OTLP *metrics* export (OtlpMeterRegistry),
+  # which nothing consumes here (Prometheus already scrapes the actuator
+  # endpoint) — disable to avoid export-failure warnings. Note the namespace:
+  # the registry flag is management.otlp.metrics.export.enabled (a sibling of
+  # management.opentelemetry, per OnMetricsExportEnabledCondition), NOT
+  # management.opentelemetry.metrics.export.otlp.enabled.
+  otlp:
+    metrics:
+      export:
+        enabled: false
   health:
     db:
       enabled: true
