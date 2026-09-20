@@ -11,6 +11,8 @@
 | PostgreSQL        | postgres          |          5432 |          5432 | TCP      | Shared local instance                    |
 | Prometheus        | prometheus        |          9090 |          9090 | HTTP     | Scrapes the services' metric endpoints   |
 | Grafana           | grafana           |          3000 |          3001 | HTTP     | Dashboards over Prometheus               |
+| Jaeger            | jaeger            |          16686 |         16686 | HTTP     | Trace UI; OTLP collector on 4318 (internal only) |
+
 | Kafka             | —                 |          9092 |             - | TCP      | Planned                                  |
 | Redis             | —                 |          6379 |             - | TCP      | Planned                                  |
 

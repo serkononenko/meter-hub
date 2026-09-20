@@ -33,6 +33,7 @@ services:
       HOUSEHOLD_SERVICE_URL: http://household-service:8082
       METER_SERVICE_URL: http://meter-service:8083
       READING_SERVICE_URL: http://reading-service:8084
+      OTLP_TRACING_ENDPOINT: http://jaeger:4318/v1/traces
     secrets:
       - identity.jwt.public-key
     ports:
@@ -60,6 +61,7 @@ services:
       DB_NAME: ${IDENTITY_DB}
       DB_USERNAME: ${IDENTITY_DB_USER}
       DB_PASSWORD: ${IDENTITY_DB_PASSWORD}
+      OTLP_TRACING_ENDPOINT: http://jaeger:4318/v1/traces
     secrets:
       - identity.jwt.private-key
       - identity.jwt.public-key
@@ -82,6 +84,7 @@ services:
       DB_NAME: ${HOUSEHOLD_DB}
       DB_USERNAME: ${HOUSEHOLD_DB_USER}
       DB_PASSWORD: ${HOUSEHOLD_DB_PASSWORD}
+      OTLP_TRACING_ENDPOINT: http://jaeger:4318/v1/traces
     secrets:
       - identity.jwt.public-key
     expose:
@@ -97,13 +100,11 @@ services:
       context: ./services/meter-service
     environment:
       <<: *identity-jwt-env
-      # Prisma (client + migrate deploy) reads a single connection URL;
-      # credentials flow from .env, never committed (conventions §12).
       DATABASE_URL: postgresql://${METER_DB_USER}:${METER_DB_PASSWORD}@postgres:5432/${METER_DB}
-      # Where the Identity Service public key PEM lives (5.4 adds the
-      # household-service base URL for ownership checks).
       IDENTITY_JWT_PUBLIC_KEY_PATH: /run/secrets/identity.jwt.public-key
       HOUSEHOLD_SERVICE_URL: http://household-service:8082
+      OTEL_SERVICE_NAME: meter-service
+      OTEL_EXPORTER_OTLP_TRACES_ENDPOINT: http://jaeger:4318/v1/traces
     secrets:
       - identity.jwt.public-key
     expose:
@@ -122,10 +123,10 @@ services:
     environment:
       <<: *identity-jwt-env
       DATABASE_URL: postgresql://${READING_DB_USER}:${READING_DB_PASSWORD}@postgres:5432/${READING_DB}
-      # Ownership checks call Meter Service's HTTP API (6.5); the token is
-      # forwarded so Meter Service applies its own masking.
       METER_SERVICE_URL: http://meter-service:8083
       IDENTITY_JWT_PUBLIC_KEY_PATH: /run/secrets/identity.jwt.public-key
+      OTEL_SERVICE_NAME: reading-service
+      OTEL_EXPORTER_OTLP_TRACES_ENDPOINT: http://jaeger:4318/v1/traces
     secrets:
       - identity.jwt.public-key
     expose:
@@ -182,6 +183,15 @@ services:
       - meter-hub
     depends_on:
       - prometheus
+
+  jaeger:
+    image: jaegertracing/all-in-one:1.76.0
+    environment:
+      COLLECTOR_OTLP_ENABLED: "true"
+    ports:
+      - "16686:16686"
+    networks:
+      - meter-hub
 
 secrets:
   identity.jwt.private-key:

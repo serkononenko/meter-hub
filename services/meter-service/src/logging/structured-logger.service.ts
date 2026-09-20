@@ -1,4 +1,5 @@
 import {Injectable, LoggerService} from '@nestjs/common';
+import {context, trace} from '@opentelemetry/api';
 import {CURRENT_CORRELATION_ID} from '../middlewares/correlation.middleware.js';
 
 /**
@@ -81,6 +82,12 @@ export class StructuredLoggerService implements LoggerService {
             service: SERVICE,
             requestId: CURRENT_CORRELATION_ID.getStore() ?? null,
             message,
+            // OpenTelemetry trace ID when a span is active (spec
+            // 2_distributed_tracing_spec.md §FR-6): joins log lines to the
+            // Jaeger trace alongside the correlation ID.
+            ...(trace.getSpan(context.active())
+                ? {traceId: trace.getSpan(context.active())?.spanContext().traceId}
+                : {}),
             ...(fields ? {fields} : {}),
         };
         process.stdout.write(`${JSON.stringify(payload)}\n`);
