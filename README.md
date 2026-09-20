@@ -233,11 +233,11 @@ W3C `traceparent` propagates across the gateway → service → service hops,
 so one request shows up as a single waterfall in the Jaeger UI
 (http://localhost:16686) — e.g. a reading submission traces from the
 gateway through reading-service, meter-service's ownership check
-(Prisma/PostgreSQL spans included) and household-service. The NestJS
-services also stamp `traceId` into their structured logs next to the
-correlation ID. Traces are in-memory only (all-in-one is a dev-grade
-backend), and services start fine with Jaeger absent — export failures
-never fail a request.
+(Prisma/PostgreSQL spans included) and household-service. Every backend
+service also stamps `traceId`/`spanId` into its structured logs next to
+the correlation ID, so log lines join to Jaeger traces by ID. Traces
+are in-memory only (all-in-one is a dev-grade backend), and services
+start fine with Jaeger absent — export failures never fail a request.
 
 ### 6. Run the end-to-end journey test
 

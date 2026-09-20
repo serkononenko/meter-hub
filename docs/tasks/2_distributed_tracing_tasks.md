@@ -112,12 +112,16 @@ all-in-one is a dev-grade backend.)
 NestJS services: done — `traceId` added to the structured JSON payload
 via `trace.getSpan(context.active())`, verified matching Jaeger traces,
 correlation-ID middleware untouched.
-Spring services: not added — the existing JSON logging there carries
-the `requestId` correlation ID; injecting trace IDs would mean touching
-the log pattern/logback setup, which is more than the "cheaply" bar
-this task set. Documented in the spec's verification notes as a known
-limitation; revisit if logs and traces ever need to be joined from the
-Spring side.
+Spring services: initially not added (deemed beyond the "cheaply" bar),
+then done as a follow-up — it turned out to be two MDC keys per log
+pattern: `traceId`/`spanId` are populated by the micrometer-tracing
+bridge automatically, so the only change is
+`"traceId":"%X{traceId:-}","spanId":"%X{spanId:-}"` in each service's
+`logging.pattern.console`. Verified live: register → login →
+households through the gateway produced log lines with populated
+traceId/spanId in all three Spring services, and the logged traceIds
+resolve in Jaeger to traces spanning api-gateway → the target service.
+The `requestId` correlation ID is unchanged.
 
 ### T4.4 Docs
 - [x] README observability section + ports table (`jaeger`, 16686).

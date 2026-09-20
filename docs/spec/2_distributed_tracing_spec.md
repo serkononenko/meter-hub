@@ -142,8 +142,6 @@ browser ──HTTP──▶ gateway :8080 ──▶ identity  :8081   (Spring ×
   (ownership check) → Prisma spans.
 - [x] The trace's `traceId` appears in the structured log lines of the
   involved services, joinable with `X-Correlation-ID`.
-  *(NestJS services only — the Spring side still logs the `requestId`
-  correlation ID without trace IDs; see 8. Notes.)*
 - [x] Stop Jaeger; all services keep serving requests (health green,
   journey passes) — export errors are swallowed.
 - [x] Full test suites still pass; no behavioral change to API responses.
@@ -184,9 +182,13 @@ browser ──HTTP──▶ gateway :8080 ──▶ identity  :8081   (Spring ×
   `management.opentelemetry.metrics.export.otlp.enabled`, which does
   not bind). Verified zero "Failed to publish metrics" warnings and
   trace export unaffected.
-- Known limitation: Spring services do not put `traceId` in log lines
-  (would require logback pattern changes; correlation ID remains the
-  cross-stack join). Revisit if logs/traces ever need joining from the
-  Spring side.
+- Log linkage on the Spring side (initially left out as beyond the
+  "cheaply" bar) was added in a follow-up the same day: `traceId`/
+  `spanId` MDC keys appended to each service's JSON log pattern —
+  the micrometer-tracing bridge populates them automatically when a
+  span is active. Verified live: log traceIds from identity- and
+  household-service resolve to real Jaeger traces spanning
+  api-gateway → service. All five backend services' logs are now
+  joinable to traces by `traceId` alongside `X-Correlation-ID`.
 - Test suites after the change: meter-service 33 unit + 16 e2e,
   reading-service 47 unit + 15 e2e — all pass.
