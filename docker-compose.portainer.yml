@@ -1,30 +1,3 @@
-# Production deployment as a Portainer stack (docs/deploy-portainer.md).
-#
-# Portainer stacks take ONE compose file — no override merging — so this
-# is a standalone file rather than an extension of docker-compose.yml:
-# prebuilt ghcr.io images (published by CI on every green main push,
-# see .github/workflows/publish.yml), the prod port policy, and ${VAR}
-# placeholders filled by the stack's environment (paste .env contents
-# there — never commit real values).
-#
-# Why not generate this file from docker-compose.yml with `docker
-# compose config`? That would bake the generating machine's env values
-# into the committed file. Keep this file in sync with
-# docker-compose.yml by hand; a CI drift check could compare the two if
-# it becomes a problem.
-#
-# Port policy — only two host ports are published, both on all
-# interfaces: web (13000) and Grafana (13001, auth via the admin login
-# from stack.env). Everything else is internal: services talk over the
-# compose network, and unauthenticated UIs (Jaeger, Prometheus) and the
-# database stay off the host entirely — reach them through Grafana's
-# datasources or `docker exec`. See docs/ports.md.
-#
-# CERTS_DIR must point at the directory on the Docker host holding the
-# two PEM files (identity.jwt.private-key / identity.jwt.public-key).
-# Absolute, not relative: Portainer resolves relative bind paths
-# against its own data directory, not the host filesystem.
-
 x-identity-jwt-env: &identity-jwt-env
   IDENTITY_JWT_ISSUER: ${IDENTITY_JWT_ISSUER:-identity-service}
   IDENTITY_JWT_AUDIENCE: ${IDENTITY_JWT_AUDIENCE:-meterhub-api}
@@ -37,13 +10,8 @@ services:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     volumes:
-      - postgres_data:/var/lib/postgresql/data
-      # Init scripts split databases/users per service; shipped in the
-      # image of the repo, so this path assumes the repo is checked out
-      # on the host at REPO_DIR.
+      - ${REPO_DIR:-/opt/meter-hub}/infrastructure/postgres/data:/var/lib/postgresql/data
       - ${REPO_DIR:-/opt/meter-hub}/infrastructure/postgres/init:/docker-entrypoint-initdb.d:ro
-    # No host port: DB access happens inside the compose network. For a
-    # one-off local psql use `docker exec`, not a published port.
     expose:
       - "5432"
     networks:
@@ -66,8 +34,6 @@ services:
       OTLP_TRACING_ENDPOINT: http://jaeger:4318/v1/traces
     secrets:
       - identity.jwt.public-key
-    # No host port: the browser reaches the gateway through the web
-    # app's /api/* proxy.
     networks:
       - meter-hub
     depends_on:
@@ -165,8 +131,6 @@ services:
     image: ghcr.io/serkononenko/meter-hub-web:main
     environment:
       GATEWAY_URL: http://api-gateway:8080
-    # Only interface reachable from other machines. Host 13000: 3000
-    # is commonly taken by other UIs on home servers.
     ports:
       - "13000:3000"
     networks:
@@ -182,9 +146,7 @@ services:
       - --storage.tsdb.retention.time=7d
     volumes:
       - ${REPO_DIR:-/opt/meter-hub}/infrastructure/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
-      - prometheus_data:/prometheus
-    # No host port (no auth): reach Prometheus through Grafana or
-    # `docker exec`, not a published port.
+      - ${REPO_DIR:-/opt/meter-hub}/infrastructure/prometheus/data:/prometheus
     expose:
       - "9090"
     networks:
@@ -199,11 +161,8 @@ services:
     volumes:
       - ${REPO_DIR:-/opt/meter-hub}/infrastructure/grafana/provisioning:/etc/grafana/provisioning:ro
       - ${REPO_DIR:-/opt/meter-hub}/infrastructure/grafana/dashboards:/var/lib/grafana/dashboards:ro
-      - grafana_data:/var/lib/grafana
+      - ${REPO_DIR:-/opt/meter-hub}/infrastructure/grafana/data:/var/lib/grafana
     ports:
-      # Public on the LAN. Auth is the admin login from stack.env —
-      # set a real GRAFANA_ADMIN_PASSWORD. Host 13001, not 3001: 3001
-      # is commonly taken by other UIs on home servers.
       - "13001:3000"
     networks:
       - meter-hub
@@ -214,8 +173,6 @@ services:
     image: jaegertracing/all-in-one:1.76.0
     environment:
       COLLECTOR_OTLP_ENABLED: "true"
-    # No host port (no auth): browse traces through Grafana's
-    # Jaeger datasource, not a published port.
     expose:
       - "16686"
     networks:
@@ -226,7 +183,7 @@ services:
     command: -config.file=/etc/loki/loki-config.yml
     volumes:
       - ${REPO_DIR:-/opt/meter-hub}/infrastructure/loki/loki-config.yml:/etc/loki/loki-config.yml:ro
-      - loki_data:/loki
+      - ${REPO_DIR:-/opt/meter-hub}/infrastructure/loki/data:/loki
     expose:
       - "3100"
     networks:
@@ -248,12 +205,6 @@ secrets:
     file: ${CERTS_DIR}/identity.jwt.private-key
   identity.jwt.public-key:
     file: ${CERTS_DIR}/identity.jwt.public-key
-
-volumes:
-  postgres_data:
-  prometheus_data:
-  grafana_data:
-  loki_data:
 
 networks:
   meter-hub:
