@@ -3,7 +3,7 @@
 The production deployment runs the same prebuilt ghcr.io images that
 CI publishes on every green `main` push, managed through Portainer's
 UI: app tiles, start/stop buttons, log viewer, and a one-click
-redeploy. Uses the dedicated single-file stack `compose.portainer.yml`
+redeploy. Uses the dedicated single-file stack `docker-compose.portainer.yml`
 and the `stack.env.example` template.
 
 ## 0. Prerequisites
@@ -57,7 +57,7 @@ concerned — pick one:
 ### Option A: Web editor (simplest, secrets stay in Portainer)
 
 **Stacks → Add stack → Web editor**, name it `meter-hub`, paste the
-contents of `compose.portainer.yml`. Then, under **Environment
+contents of `docker-compose.portainer.yml`. Then, under **Environment
 variables → Advanced mode**, paste a filled-in copy of
 `stack.env.example` (real passwords instead of `changeme`). Portainer
 auto-creates the stack's `stack.env` from what you enter here —
@@ -66,7 +66,7 @@ nothing secret lands in Git.
 ### Option B: Repository build method (compose file managed in Git)
 
 **Stacks → Add stack → Git Repository**, repository URL of this repo,
-compose path `compose.portainer.yml`.
+compose path `docker-compose.portainer.yml`.
 
 Per Portainer's docs, a stack deployed from a repository loads its
 environment from a `stack.env` file **that must already exist in the
@@ -121,13 +121,13 @@ Two nuances by build method:
 
 > Community Edition has no redeploy **webhook** (that's Business). If
 > fully unattended image updates matter, run
-> `docker compose -f compose.portainer.yml --env-file <env-file> pull && docker compose -f compose.portainer.yml --env-file <env-file> up -d`
+> `docker compose -f docker-compose.portainer.yml --env-file <env-file> pull && docker compose -f docker-compose.portainer.yml --env-file <env-file> up -d`
 > on the host via cron — Portainer will reflect the externally changed
 > stack state.
 
 ## Portainer-specific notes
 
-- **Standalone file.** `compose.portainer.yml` is a standalone copy of
+- **Standalone file.** `docker-compose.portainer.yml` is a standalone copy of
   the platform's services — Portainer stacks don't merge overrides, so
   it can't extend `docker-compose.yml`. If you change the base file,
   mirror the change here (and in the images if needed) — the file
