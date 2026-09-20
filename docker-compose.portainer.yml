@@ -1,3 +1,20 @@
+# Production deployment as a Portainer stack (docs/deploy-portainer.md).
+#
+# Portainer stacks take ONE compose file, so this is standalone (not an
+# override of docker-compose.yml). State lives in bind mounts under the
+# repo checkout (REPO_DIR) instead of named volumes — easier to back up
+# and inspect, at the cost of a one-time host fix: the data dirs must be
+# owned by the containers' uids or writes fail (Grafana 472, Postgres
+# 999, Prometheus 65534, Loki 10001), and `data/` is gitignored so
+# runtime writes never dirty the checkout.
+#
+# Port policy: only web (13000) and Grafana (13001, admin login from
+# stack.env) are published. Everything else is internal-only.
+#
+# CERTS_DIR points at the host directory holding the two JWT PEM files
+# (absolute path — Portainer resolves relative bind paths against its
+# own data directory, not the host filesystem).
+
 x-identity-jwt-env: &identity-jwt-env
   IDENTITY_JWT_ISSUER: ${IDENTITY_JWT_ISSUER:-identity-service}
   IDENTITY_JWT_AUDIENCE: ${IDENTITY_JWT_AUDIENCE:-meterhub-api}
