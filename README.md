@@ -85,7 +85,7 @@ meter-hub/
 - PostgreSQL
 - Kafka (later MVP phase)
 - Redis (later)
-- Loki log aggregation (Prometheus + Grafana + Jaeger tracing are in place)
+- Log-based alerting (logs are in Loki; alert rules on them are not set up)
 
 ## Local Development Prerequisites
 
@@ -238,6 +238,17 @@ service also stamps `traceId`/`spanId` into its structured logs next to
 the correlation ID, so log lines join to Jaeger traces by ID. Traces
 are in-memory only (all-in-one is a dev-grade backend), and services
 start fine with Jaeger absent — export failures never fail a request.
+
+### Log aggregation (Loki)
+
+Every container's stdout is scraped by Promtail (via the Docker socket)
+into Loki, queryable in Grafana (Explore or the provisioned "MeterHub
+Logs" dashboard). Each stream is labeled with the Compose `service`
+name; find one request across all services by pasting its ID as a line
+filter: `{service=~".+"} |= "<traceId>"` (or the `X-Correlation-ID`
+`requestId`). IDs are deliberately line filters, not labels — high
+cardinality labels would wreck Loki's index (spec 3 §6). With Loki
+down, services keep logging locally; Promtail buffers and retries.
 
 ### 6. Run the end-to-end journey test
 
@@ -396,6 +407,8 @@ Cross-service data must be accessed through APIs or asynchronous events.
 | [docs/tasks/1_metrics_observability_tasks.md](docs/tasks/1_metrics_observability_tasks.md) | Metrics observability task breakdown (M1–M3) with verification notes |
 | [docs/spec/2_distributed_tracing_spec.md](docs/spec/2_distributed_tracing_spec.md) | Distributed tracing spec: Jaeger all-in-one, W3C propagation, per-stack instrumentation, deferred work |
 | [docs/tasks/2_distributed_tracing_tasks.md](docs/tasks/2_distributed_tracing_tasks.md) | Distributed tracing task breakdown (T1–T4) with verification notes |
+| [docs/spec/3_log_aggregation_spec.md](docs/spec/3_log_aggregation_spec.md) | Log aggregation spec: Loki + Promtail, service labels, ID line-filter search, deferred work |
+| [docs/tasks/3_log_aggregation_tasks.md](docs/tasks/3_log_aggregation_tasks.md) | Log aggregation task breakdown (L1–L3) with verification notes |
 | [contracts/openapi/openapi.yaml](contracts/openapi/openapi.yaml) | Root OpenAPI contract; per-service contracts under `contracts/openapi/services/` |
 
 ## Future Roadmap
@@ -408,7 +421,7 @@ The platform is expected to evolve in roughly this order:
 4. Add Provider Service and provider integrations.
 5. Add Telegram notifications.
 6. Add Device Service and automated meter reading.
-7. Add observability: Loki log aggregation to complete the Prometheus/Grafana/Jaeger stack.
+7. Add observability: log-based alerting to complete the Loki stack (Prometheus/Grafana/Jaeger/Loki are in place).
 8. Introduce Kubernetes as a separate infrastructure exercise.
 
 ## License

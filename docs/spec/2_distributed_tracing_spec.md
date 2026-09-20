@@ -36,7 +36,7 @@ collector-level change — services keep exporting OTLP regardless.
 
 ## 3. Non-Goals
 
-- Log aggregation (Loki) — separate effort; trace ↔ log linkage here is
+- Log aggregation (Loki) — done since ([3_log_aggregation_spec.md](3_log_aggregation_spec.md)); trace ↔ log linkage here is
   the `traceId` in log lines + `X-Correlation-ID`, not a shared backend.
 - Sampling strategy beyond the default (MVP volume: keep every trace;
   revisit if head sampling becomes noise).

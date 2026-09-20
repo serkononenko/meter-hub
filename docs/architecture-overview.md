@@ -100,6 +100,13 @@ boundary table.
   services) — HTTP request count, latency and error counts plus JVM/Node
   process metrics. No Prometheus server is deployed in the MVP; any scraper
   pointed at the services works.
+- **Distributed tracing** (spec 2): OpenTelemetry spans from every service
+  to Jaeger all-in-one (UI on 16686); W3C `traceparent` propagation gives
+  one waterfall per request across services; `traceId` is stamped into log
+  lines of all backend services.
+- **Log aggregation** (spec 3): Promtail ships every container's stdout to
+  Loki; logs are searchable in Grafana by `service` label and by
+  `traceId`/`requestId` line filters.
 
 ## Environments
 

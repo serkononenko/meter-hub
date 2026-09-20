@@ -36,8 +36,7 @@ discovery beyond Compose DNS names, no federation or long-term storage.
 ## 3. Non-Goals
 
 - Alerting (Alertmanager, notification channels) — later phase.
-- Log aggregation (Loki) — separate spec; correlation IDs in structured
-  logs are the current story.
+- Log aggregation (Loki) — done since; see [3_log_aggregation_spec.md](3_log_aggregation_spec.md).
 - Distributed tracing (OpenTelemetry) — done since; see [2_distributed_tracing_spec.md](2_distributed_tracing_spec.md).
 - Long-term storage, high availability, federation, multi-environment
   scraping.
