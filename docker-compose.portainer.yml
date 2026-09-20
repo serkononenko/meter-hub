@@ -26,6 +26,22 @@ services:
       POSTGRES_DB: ${POSTGRES_DB}
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      # The init script creates one DB/role per service from these.
+      # They must be listed explicitly: stack env vars are available
+      # for ${VAR} interpolation in this file but are NOT injected
+      # into containers (unlike the dev compose, which uses env_file).
+      IDENTITY_DB: ${IDENTITY_DB}
+      IDENTITY_DB_USER: ${IDENTITY_DB_USER}
+      IDENTITY_DB_PASSWORD: ${IDENTITY_DB_PASSWORD}
+      HOUSEHOLD_DB: ${HOUSEHOLD_DB}
+      HOUSEHOLD_DB_USER: ${HOUSEHOLD_DB_USER}
+      HOUSEHOLD_DB_PASSWORD: ${HOUSEHOLD_DB_PASSWORD}
+      METER_DB: ${METER_DB}
+      METER_DB_USER: ${METER_DB_USER}
+      METER_DB_PASSWORD: ${METER_DB_PASSWORD}
+      READING_DB: ${READING_DB}
+      READING_DB_USER: ${READING_DB_USER}
+      READING_DB_PASSWORD: ${READING_DB_PASSWORD}
     volumes:
       - ${REPO_DIR:-/opt/meter-hub}/infrastructure/postgres/data:/var/lib/postgresql/data
       - ${REPO_DIR:-/opt/meter-hub}/infrastructure/postgres/init:/docker-entrypoint-initdb.d:ro
