@@ -55,11 +55,13 @@ jobs:
         # Mirrors infrastructure/postgres/init/01-create-databases.sh but
         # with the credentials the test configs default to (identity_dev /
         # household_dev). The service container publishes 5432 on the
-        # runner, so the psql client container reaches it via
-        # host.docker.internal.
+        # runner, so the runner's own psql client reaches it on localhost
+        # (docker-run client containers can't use host.docker.internal on
+        # Linux runners — that is a Docker Desktop name; that approach
+        # failed on the first attempt).
         run: |
-          docker run --rm postgres:17 \
-            psql "postgres://meterhub_admin:ci-postgres@host.docker.internal:5432/postgres" \
+          sudo apt-get update -qq && sudo apt-get install -y -qq postgresql-client
+          psql "postgres://meterhub_admin:ci-postgres@localhost:5432/postgres" \
             -c "CREATE USER identity_user WITH PASSWORD 'identity_dev';" \
             -c "CREATE USER household_user WITH PASSWORD 'household_dev';" \
             -c "CREATE DATABASE identity_db OWNER identity_user;" \
