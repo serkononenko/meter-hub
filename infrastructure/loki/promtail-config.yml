@@ -35,6 +35,14 @@ scrape_configs:
       - source_labels: [ __meta_docker_container_name ]
         regex: /(.*)
         target_label: container
+      # Ship only this stack's containers: drop anything without the
+      # Compose project label (zigbee2mqtt etc. run on the same Docker
+      # host and would otherwise land in the same Loki). Containers from
+      # other Compose projects are dropped too — intended, the `service`
+      # label alone would make their log streams indistinguishable.
+      - source_labels: [ __meta_docker_container_label_com_docker_compose_project ]
+        regex: meter-hub.*
+        action: drop
     pipeline_stages:
       # Drop promtail's own lines: without this, every log line it emits
       # about shipping logs gets shipped, recursively.
