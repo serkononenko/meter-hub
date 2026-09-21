@@ -64,6 +64,19 @@ export function AuthProvider({children}: {children: React.ReactNode}): React.JSX
           return;
         }
 
+        // Skip the silent refresh when no refresh cookie exists (guests,
+        // first visit to /auth/*) — otherwise every guest page load fires
+        // a refresh that can only 401.
+        const sessionCheck = await fetch("/api/auth/session");
+        const {hasSession} = (await sessionCheck.json()) as {hasSession: boolean};
+
+        if (!hasSession) {
+          if (!cancelled) {
+            setStatus("guest");
+          }
+          return;
+        }
+
         const refreshedUser = await refreshSession();
 
         if (!cancelled) {
