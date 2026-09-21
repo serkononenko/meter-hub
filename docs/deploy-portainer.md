@@ -81,6 +81,13 @@ source of truth for code; the mirror differs only by `stack.env`.
 > checkout of the public repo won't get pushed by accident — but the
 > repository Portainer pulls from must still be private.
 
+> **CORS:** the gateway only accepts browser origins listed in
+> `CORS_ALLOWED_ORIGINS` (see `stack.env.example`). When the web client is
+> reached as `http://<host-ip>:<WEB_PUBLIC_PORT>` from the LAN, add that
+> exact origin
+> (scheme, host, port) — otherwise every API call from the browser gets a
+> bare `403 Forbidden` from the gateway's CORS filter.
+
 Repository mode's upside: **GitOps updates** (Community Edition) —
 toggle **GitOps updates → Polling** on the stack and Portainer
 redeploys automatically when the compose file changes in the repo.
@@ -95,11 +102,12 @@ Leave "Prune volumes" **unchecked** and deploy either way.
 | Check | Where |
 |---|---|
 | All 11 containers running | Stack detail page — should show `Running (healthy)` for postgres |
-| Web app from any LAN machine | `http://<host-ip>:13000` |
-| Gateway health via the web proxy | `curl http://<host-ip>:13000/api/identity/actuator/health` |
+| Web app from any LAN machine | `http://<host-ip>:<WEB_PUBLIC_PORT>` (default 3000) |
+| Gateway health via the web proxy | `curl http://<host-ip>:<WEB_PUBLIC_PORT>/api/identity/actuator/health` |
 | Grafana (logs/traces/dashboards) | `http://<host-ip>:13001` — login with `GRAFANA_ADMIN_USER` / `GRAFANA_ADMIN_PASSWORD` from the stack env |
 
-Only two ports are published: web (13000) and Grafana (13001). Jaeger,
+Only two ports are published: web (`WEB_PUBLIC_PORT`, default 3000) and
+Grafana (13001). Jaeger,
 Prometheus, and Postgres have **no host port** — they are reachable
 only inside the compose network. Browse traces and metrics through
 Grafana's Jaeger/Prometheus datasources; for direct access use
