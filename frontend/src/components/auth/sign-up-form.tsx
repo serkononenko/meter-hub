@@ -81,11 +81,12 @@ export function SignUpForm(): React.JSX.Element {
         return;
       }
 
-      // Registration does not sign in; send the user to sign-in with the
-      // email prefilled via query param.
-      router.replace(`${paths.auth.signIn}?email=${encodeURIComponent(values.email)}`);
+      // Registration does not sign in; send the user to sign-in. No email
+      // in the query string: the sign-in form never consumed it, and it
+      // would leak into browser history, access logs, and Referer headers.
+      router.replace(paths.auth.signIn);
     },
-    [values, router],
+    [router],
   );
 
   return (
