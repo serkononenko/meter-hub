@@ -431,20 +431,24 @@ Cross-service data must be accessed through APIs or asynchronous events.
 | [docs/spec/3_log_aggregation_spec.md](docs/spec/3_log_aggregation_spec.md) | Log aggregation spec: Loki + Promtail, service labels, ID line-filter search, deferred work |
 | [docs/tasks/3_log_aggregation_tasks.md](docs/tasks/3_log_aggregation_tasks.md) | Log aggregation task breakdown (L1–L3) with verification notes |
 | [docs/deploy-portainer.md](docs/deploy-portainer.md) | Portainer deployment guide: pull-based deploys, registry credentials, stack.env handling, updates |
+| [docs/roadmap.md](docs/roadmap.md) | Phased roadmap: hardening, Kafka backbone, reminders, notifications, providers, devices, scale-out |
 | [contracts/openapi/openapi.yaml](contracts/openapi/openapi.yaml) | Root OpenAPI contract; per-service contracts under `contracts/openapi/services/` |
 
 ## Future Roadmap
 
-The platform is expected to evolve in roughly this order:
+The MVP, observability triad, CI/CD and gateway rate limiting are done.
+The platform is expected to evolve in phases — see
+[docs/roadmap.md](docs/roadmap.md) for the full breakdown:
 
-1. Complete the MVP end-to-end flow.
-2. Add Kafka and domain events.
-3. Add Notification Service and reminders.
-4. Add Provider Service and provider integrations.
-5. Add Telegram notifications.
-6. Add Device Service and automated meter reading.
-7. Add observability: log-based alerting to complete the Loki stack (Prometheus/Grafana/Jaeger/Loki are in place).
-8. Introduce Kubernetes as a separate infrastructure exercise.
+1. **Hardening** — pagination, idempotency keys, token revocation,
+   household membership roles, service-to-service auth, alerting, backups.
+2. **Async backbone** — Kafka, outbox pattern, idempotent consumers, DLQ.
+3. **Reminders** — reading schedules, scheduler, reminder state tracking.
+4. **Notifications** — Notification Service, Telegram + email channels.
+5. **Provider integrations** — Provider Service, automatic submission.
+6. **Device automation** — Device Service, MQTT, ESP32 ingestion.
+7. **Scale-out experiments** — Redis-backed rate limits, per-service
+   databases, Kubernetes (all optional).
 
 ## License
 
