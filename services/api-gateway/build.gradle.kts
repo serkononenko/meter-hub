@@ -29,6 +29,7 @@ dependencies {
 	implementation("org.springframework.security:spring-security-oauth2-resource-server")
 	implementation("org.bouncycastle:bcprov-jdk18on:1.84")
 	implementation("org.bouncycastle:bcpkix-jdk18on:1.84")
+	implementation("com.bucket4j:bucket4j_jdk17-core:8.14.0")
 	testImplementation("org.springframework.boot:spring-boot-starter-actuator-test")
 	testImplementation("org.springframework.boot:spring-boot-starter-test")
 	testImplementation("org.springframework.security:spring-security-test")

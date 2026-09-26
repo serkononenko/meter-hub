@@ -2,6 +2,7 @@ import {NextRequest, NextResponse} from "next/server";
 import {cookies} from "next/headers";
 
 import {loginUser} from "@/lib/api/generated/identity-service/auth/auth";
+import {forwardedForHeaders} from "@/lib/api/forwarded-for";
 import type {Problem} from "@/lib/api/generated/identity-service/model";
 import {REFRESH_COOKIE, cookieOptions} from "@/lib/auth/session";
 
@@ -21,7 +22,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   }
 
   try {
-    const response = await loginUser({email: body.email ?? "", password: body.password ?? ""});
+    const response = await loginUser(
+      {email: body.email ?? "", password: body.password ?? ""},
+      {headers: forwardedForHeaders(request)},
+    );
 
     if (response.status !== 200) {
       // Pass the identity service's problem detail through (e.g. "Email or

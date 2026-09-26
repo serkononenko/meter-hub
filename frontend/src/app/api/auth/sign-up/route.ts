@@ -2,6 +2,7 @@ import {NextRequest, NextResponse} from "next/server";
 
 import {registerUser} from "@/lib/api/generated/identity-service/auth/auth";
 import type {Problem} from "@/lib/api/generated/identity-service/model";
+import {forwardedForHeaders} from "@/lib/api/forwarded-for";
 
 /** BFF registration: calls the identity service via the generated client.
  * Does NOT sign the user in — the register response carries no tokens; the
@@ -19,11 +20,14 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   }
 
   try {
-    const response = await registerUser({
-      email: body.email ?? "",
-      username: body.username ?? "",
-      password: body.password ?? "",
-    });
+    const response = await registerUser(
+      {
+        email: body.email ?? "",
+        username: body.username ?? "",
+        password: body.password ?? "",
+      },
+      {headers: forwardedForHeaders(request)},
+    );
 
     if (response.status !== 201) {
       const problem = response.data as Problem;
