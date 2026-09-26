@@ -3,6 +3,7 @@ import {cookies} from "next/headers";
 
 import {refreshToken as refreshTokenApi} from "@/lib/api/generated/identity-service/auth/auth";
 import {REFRESH_COOKIE, cookieOptions} from "@/lib/auth/session";
+import {forwardedForHeaders} from "@/lib/api/forwarded-for";
 
 /**
  * BFF silent refresh: presents the httpOnly cookie's refresh token to the
@@ -10,7 +11,7 @@ import {REFRESH_COOKIE, cookieOptions} from "@/lib/auth/session";
  * single-use, so a successful call rotates the cookie; a failed call
  * clears it (forces re-login).
  */
-export async function POST(_request: NextRequest): Promise<NextResponse> {
+export async function POST(request: NextRequest): Promise<NextResponse> {
   const store = await cookies();
   const refreshToken = store.get(REFRESH_COOKIE)?.value;
 
@@ -22,7 +23,10 @@ export async function POST(_request: NextRequest): Promise<NextResponse> {
   }
 
   try {
-    const response = await refreshTokenApi({refreshToken});
+    const response = await refreshTokenApi(
+      {refreshToken},
+      {headers: forwardedForHeaders(request)},
+    );
 
     if (response.status !== 200) {
       store.delete(REFRESH_COOKIE);

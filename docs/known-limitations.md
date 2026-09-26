@@ -27,9 +27,10 @@ later MVP phases (see the roadmap in README.md).
 - **No pagination metadata.** Reading history takes `limit`/`offset` and
   returns a bare array — no total count, no next/prev links, and limits are
   not capped, so a huge `limit` returns a huge response.
-- **No rate limiting.** The gateway design reserves the concern
-  (docs/service-boundaries.md) but no per-client limits are enforced; login
-  and register are brute-forceable locally.
+- **Rate limiting is in-process.** Implemented at the gateway
+  (docs/service-boundaries.md §Rate limiting) — token buckets keyed by token
+  subject or client IP — but buckets live in one JVM instance; they do not
+  survive restarts and are not shared if the gateway ever scales out.
 - **No idempotency keys.** Retried POSTs (readings especially, on flaky
   networks) can create duplicates; clients must treat `409`/`422` as
   authoritative instead of blindly retrying.

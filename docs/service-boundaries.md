@@ -139,12 +139,13 @@ It is responsible for infrastructure-level concerns such as:
 
 Business authorization should remain in the service that owns the relevant business context.
 
-### Rate limiting (design)
+### Rate limiting
 
 Rate limiting is a gateway concern; per-client limits protect the downstream
 services from abusive traffic and accidental loops.
 
-- **Scope:** all `/api/v1/**` routes at the gateway.
+- **Scope:** all `/api/**` routes at the gateway; `/actuator/**` is never
+  limited (health probes and Prometheus scrapes must not be starvable).
 - **Key:** access token `sub` claim for authenticated requests; client IP for
   public requests (registration, login, refresh — these are the
   credential-stuffing/brute-force targets, so they get the tightest limits).
@@ -152,13 +153,23 @@ services from abusive traffic and accidental loops.
   sustained rate. Implemented in-process at the gateway (single instance for
   the MVP); a shared store (e.g. Redis) is only needed once the gateway
   scales out.
-- **Library hook:** `Bucket4jFilterFunctions.rateLimit(...)` from
-  spring-cloud-gateway-server-webmvc (requires adding the `bucket4j`
-  dependency).
+- **Implementation:** `RateLimitFilter`, a servlet filter ordered after the
+  Spring Security chain (so the JWT is validated and its `sub` available
+  before keying), backed by Bucket4j (`bucket4j_jdk17-core`). The original
+  `Bucket4jFilterFunctions.rateLimit(...)` MVC hook was not used because it
+  cannot produce the RFC 9457 problem+json body the conventions require.
+- **Client IP behind the proxy:** the browser never calls the gateway
+  directly — the Next.js server proxies both rewritten API calls and the BFF
+  auth routes. The BFF routes forward `X-Forwarded-For`
+  (`frontend/src/lib/api/forwarded-for.ts`); the gateway reads its first
+  entry and falls back to the remote address. The web container is the only
+  trusted proxy hop.
 - **Behavior on limit:** HTTP 429 with the standard problem+json body and the
   `Retry-After` header; the correlation ID filter still runs.
-- **Status:** implementation deferred — design agreed here, wiring planned
-  after the MVP routes are stable.
+- **Tuning:** `gateway.rate-limit.*` properties, overridable via the
+  `RATE_LIMIT_*` env vars (defaults in `.env.example`). Defaults: general
+  bucket 60 burst / 30 per minute per subject; auth bucket 10 burst / 5 per
+  minute per client IP.
 
 ---
 

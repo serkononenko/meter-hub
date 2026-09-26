@@ -136,3 +136,20 @@ identity:
     # Must match what the identity service signs tokens with
     issuer: ${IDENTITY_JWT_ISSUER:identity-service}
     audience: ${IDENTITY_JWT_AUDIENCE:meterhub-api}
+
+gateway:
+  rate-limit:
+    # Token-bucket limits per client (docs/service-boundaries.md §1):
+    # authenticated requests key on the token subject, public ones on client
+    # IP; /api/identity-service/api/v1/auth/** gets its own tighter IP-keyed
+    # bucket. Buckets are in-process (single gateway instance in the MVP).
+    enabled: ${RATE_LIMIT_ENABLED:true}
+    # General bucket: short bursts, modest sustained rate
+    capacity: ${RATE_LIMIT_CAPACITY:60}
+    refill-tokens: ${RATE_LIMIT_REFILL_TOKENS:30}
+    refill-period: ${RATE_LIMIT_REFILL_PERIOD:1m}
+    # Auth bucket: tight enough to make brute-forcing impractical, loose
+    # enough that a human retrying a mistyped password is not locked out
+    auth-capacity: ${RATE_LIMIT_AUTH_CAPACITY:10}
+    auth-refill-tokens: ${RATE_LIMIT_AUTH_REFILL_TOKENS:5}
+    auth-refill-period: ${RATE_LIMIT_AUTH_REFILL_PERIOD:1m}
