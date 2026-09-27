@@ -1,8 +1,8 @@
 openapi: 3.0.3
 info:
   title: MeterHub Meter Service API
-  description: Meter Service HTTP API. Covers meter registration and lifecycle for households owned by the authenticated user.
-  version: 1.0.0
+  description: Meter Service HTTP API. Covers meter registration and lifecycle for households the authenticated user is a member of. Membership roles are owned by household-service (A3) — any member may read, MEMBER and above may create/modify meters, VIEWER is read-only.
+  version: 1.1.0
 
 tags:
   - name: Meters
@@ -13,12 +13,13 @@ paths:
     post:
       tags: [Meters]
       operationId: createMeter
-      summary: Register a meter in a household owned by the authenticated user
+      summary: Register a meter in a household the authenticated user can write to
       description: >-
         Creates a meter under the given household. The household must exist and
-        be owned by the user that owns the presented access token; households
-        of other users are not addressable and return the same not-found
-        problem as unknown ones.
+        the caller must hold at least a MEMBER role there (membership roles are
+        owned by household-service); VIEWERs are rejected with 403
+        FORBIDDEN_ROLE and non-members are not addressable, returning the same
+        not-found problem as unknown households.
       security:
         - bearerAuth: []
       parameters:
@@ -77,6 +78,25 @@ paths:
                     status: 404
                     code: HOUSEHOLD_NOT_FOUND
                     detail: No household with this identifier is visible to the authenticated user.
+                    correlationId: 7d6f5f2c-0a49-4e10-8ef7-7c3d2b1f4a10
+        '403':
+          description: Caller is a member of the household but holds a read-only role (VIEWER).
+          headers:
+            X-Correlation-ID:
+              $ref: '../../components/headers/correlation-id.yaml'
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../../openapi.yaml#/components/schemas/Problem'
+              examples:
+                forbiddenRole:
+                  summary: VIEWER cannot create meters
+                  value:
+                    type: https://api.meterhub.local/problems/forbidden-role
+                    title: Forbidden for role
+                    status: 403
+                    code: FORBIDDEN_ROLE
+                    detail: The VIEWER role does not allow creating meters.
                     correlationId: 7d6f5f2c-0a49-4e10-8ef7-7c3d2b1f4a10
         '409':
           description: A meter with the same serial number is already registered in this household.
@@ -280,6 +300,25 @@ paths:
                     status: 404
                     code: METER_NOT_FOUND
                     detail: No meter with this identifier is visible to the authenticated user.
+                    correlationId: 7d6f5f2c-0a49-4e10-8ef7-7c3d2b1f4a10
+        '403':
+          description: Caller is a member of the meter's household but holds a read-only role (VIEWER).
+          headers:
+            X-Correlation-ID:
+              $ref: '../../components/headers/correlation-id.yaml'
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../../openapi.yaml#/components/schemas/Problem'
+              examples:
+                forbiddenRole:
+                  summary: VIEWER cannot modify meters
+                  value:
+                    type: https://api.meterhub.local/problems/forbidden-role
+                    title: Forbidden for role
+                    status: 403
+                    code: FORBIDDEN_ROLE
+                    detail: The VIEWER role does not allow modifying meters.
                     correlationId: 7d6f5f2c-0a49-4e10-8ef7-7c3d2b1f4a10
         '409':
           description: A meter with the same serial number is already registered in this household.

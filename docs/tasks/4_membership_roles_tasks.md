@@ -56,10 +56,11 @@ R2.6 Internal access endpoint
 
 ## Epic R3 — Meter service: role-aware authorization
 
-- [ ] Replace household-existence check with the internal access verdict: new provider against `/api/v1/internal/household-access`, short-TTL in-JVM cache (30 s, A4-style poll/lookup — decide request-path fetch vs. poll per measured call cost).
-- [ ] Reads (list/get meters) require any membership role; create/modify meter requires MEMBER+; VIEWER gets `403 FORBIDDEN_ROLE`; not-a-member keeps today's enumeration-safe masking (404, do not reveal existence).
-- [ ] Household unreachable → fail closed (503 `HOUSEHOLD_SERVICE_UNAVAILABLE`), same as today.
-- [ ] Update e2e spec: VIEWER can read but not create/patch; non-member unchanged (404s); owner+member can write.
+- [x] Replace household-existence check with the internal access verdict: new `InternalHouseholdApiProvider` + request-scoped `HouseholdAccessService` against `/api/v1/internal/household-access`, process-wide `VerdictCache` with 30 s TTL (cache is singleton, API request-scoped — NestJS scope propagation avoided by splitting them). (Verified live: re-invited member denied for ≤30 s after redemption, then allowed.)
+- [x] Reads (list/get meters) require any membership role; create/modify meter requires MEMBER+; VIEWER gets `403 FORBIDDEN_ROLE`; not-a-member keeps today's enumeration-safe masking (404, do not reveal existence). (Live: viewer read 200 / create+patch 403 FORBIDDEN_ROLE; outsider list+get 404 with the same problem bodies as before.)
+- [x] Household unreachable → fail closed (503 `HOUSEHOLD_SERVICE_UNAVAILABLE`), same as today. (E2e: cold verdict during outage → 503.)
+- [x] Update e2e spec: VIEWER can read but not create/patch; non-member unchanged (404s); owner+member can write. (19/19 e2e, 33/33 unit, stub in `global-setup.ts` now answers the internal verdict protocol with `grantRole`/`revokeMembership` fixtures.)
+- Contract note: meter-service openapi bumped to 1.1.0 with FORBIDDEN_ROLE 403 examples on create/patch; the 30 s stale-allow window after a removal is the accepted §11 trade-off and documented on the access service.
 
 ## Epic R4 — Reading service: role-aware authorization
 

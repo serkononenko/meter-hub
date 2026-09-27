@@ -4,9 +4,9 @@ All URIs are relative to *http://localhost*
 
 | Method | HTTP request | Description |
 |------------- | ------------- | -------------|
-| [**createHousehold**](HouseholdsApi.md#createhouseholdoperation) | **POST** /api/v1/households | Create a household owned by the authenticated user |
+| [**createHousehold**](HouseholdsApi.md#createhouseholdoperation) | **POST** /api/v1/households | Create household owned by authenticated user |
 | [**getHousehold**](HouseholdsApi.md#gethousehold) | **GET** /api/v1/households/{householdId} | Return a single household |
-| [**listHouseholds**](HouseholdsApi.md#listhouseholds) | **GET** /api/v1/households | List households owned by the authenticated user |
+| [**listHouseholds**](HouseholdsApi.md#listhouseholds) | **GET** /api/v1/households | List households the authenticated user belongs to |
 
 
 
@@ -14,9 +14,9 @@ All URIs are relative to *http://localhost*
 
 > Household createHousehold(createHouseholdRequest, xCorrelationID)
 
-Create a household owned by the authenticated user
+Create household owned by authenticated user
 
-Creates a household with the authenticated user as its owner. The caller\&#39;s identity is taken from the presented access token.
+Creates a household with the authenticated user as its owner. The caller\&#39;s identity is taken from the presented access token. The creator\&#39;s membership row (role OWNER) is created in the same transaction.
 
 ### Example
 
@@ -81,7 +81,7 @@ example().catch(console.error);
 |-------------|-------------|------------------|
 | **201** | Household created. |  * X-Correlation-ID -  <br>  |
 | **400** | Invalid request or validation error. |  -  |
-| **401** | No access token was supplied, or it is invalid or expired. |  * X-Correlation-ID -  <br>  |
+| **401** | No access token supplied, or it is invalid or expired. |  * X-Correlation-ID -  <br>  |
 | **500** | Unexpected server-side error. |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
@@ -93,7 +93,7 @@ example().catch(console.error);
 
 Return a single household
 
-Returns the household with the given identifier when it is owned by the authenticated user. Households of other users are not visible.
+Returns the household identified by &#x60;householdId&#x60; if the authenticated user is a member (any role). Households the caller does not belong to are masked as 404 — existence is not revealed to non-members.
 
 ### Example
 
@@ -113,7 +113,7 @@ async function example() {
   const api = new HouseholdsApi(config);
 
   const body = {
-    // string | Identifier of the household to return.
+    // string | Identifier of the household.
     householdId: 38400000-8cf0-11bd-b23e-10b96e4ef00d,
     // string | Identifier used to trace a request across MeterHub services. (optional)
     xCorrelationID: 7d6f5f2c-0a49-4e10-8ef7-7c3d2b1f4a10,
@@ -136,7 +136,7 @@ example().catch(console.error);
 
 | Name | Type | Description  | Notes |
 |------------- | ------------- | ------------- | -------------|
-| **householdId** | `string` | Identifier of the household to return. | [Defaults to `undefined`] |
+| **householdId** | `string` | Identifier of the household. | [Defaults to `undefined`] |
 | **xCorrelationID** | `string` | Identifier used to trace a request across MeterHub services. | [Optional] [Defaults to `undefined`] |
 
 ### Return type
@@ -156,8 +156,8 @@ example().catch(console.error);
 ### HTTP response details
 | Status code | Description | Response headers |
 |-------------|-------------|------------------|
-| **200** | The household. |  * X-Correlation-ID -  <br>  |
-| **401** | No access token was supplied, or it is invalid or expired. |  * X-Correlation-ID -  <br>  |
+| **200** | Household the caller belongs to, with the caller\&#39;s role. |  * X-Correlation-ID -  <br>  |
+| **401** | No access token supplied, or it is invalid or expired. |  * X-Correlation-ID -  <br>  |
 | **404** | No household with this identifier is visible to the authenticated user. |  * X-Correlation-ID -  <br>  |
 | **500** | Unexpected server-side error. |  -  |
 
@@ -168,9 +168,9 @@ example().catch(console.error);
 
 > Array&lt;Household&gt; listHouseholds(xCorrelationID)
 
-List households owned by the authenticated user
+List households the authenticated user belongs to
 
-Returns the households of the user that owns the presented access token, most recently created first.
+Returns every household the authenticated user has any membership in, each with the caller\&#39;s role in it. Households the caller does not belong to are never visible, regardless of role.
 
 ### Example
 
@@ -230,8 +230,8 @@ example().catch(console.error);
 ### HTTP response details
 | Status code | Description | Response headers |
 |-------------|-------------|------------------|
-| **200** | The authenticated user\&#39;s households. |  * X-Correlation-ID -  <br>  |
-| **401** | No access token was supplied, or it is invalid or expired. |  * X-Correlation-ID -  <br>  |
+| **200** | Households the caller belongs to, with the caller\&#39;s role per household. |  * X-Correlation-ID -  <br>  |
+| **401** | No access token supplied, or it is invalid or expired. |  * X-Correlation-ID -  <br>  |
 | **500** | Unexpected server-side error. |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)

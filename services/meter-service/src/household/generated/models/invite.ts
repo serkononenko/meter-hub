@@ -22,19 +22,15 @@ import {
 } from './household-role.js';
 
 /**
- * 
+ * A live (unredeemed, unexpired, not revoked) invitation. Code material is never included.
  * @export
- * @interface Household
+ * @interface Invite
  */
-export interface Household {
+export interface Invite {
     /**
-     * UUID v4 in canonical lowercase form.
+     * Identifier of the invitation.
      */
     id: string;
-    /**
-     * Display name of the household.
-     */
-    name: string;
     /**
      * 
      */
@@ -46,45 +42,44 @@ export interface Household {
     /**
      * RFC 3339 timestamp in UTC. Must use the Z suffix.
      */
-    updatedAt?: Date;
+    expiresAt: Date;
 }
 
 
 
 /**
- * Check if a given object implements the Household interface.
+ * Check if a given object implements the Invite interface.
  */
-export function instanceOfHousehold(value: object): value is Household {
+export function instanceOfInvite(value: object): value is Invite {
     if (!('id' in value) || value['id'] === undefined) return false;
-    if (!('name' in value) || value['name'] === undefined) return false;
     if (!('role' in value) || value['role'] === undefined) return false;
     if (!('createdAt' in value) || value['createdAt'] === undefined) return false;
+    if (!('expiresAt' in value) || value['expiresAt'] === undefined) return false;
     return true;
 }
 
-export function HouseholdFromJSON(json: any): Household {
-    return HouseholdFromJSONTyped(json, false);
+export function InviteFromJSON(json: any): Invite {
+    return InviteFromJSONTyped(json, false);
 }
 
-export function HouseholdFromJSONTyped(json: any, ignoreDiscriminator: boolean): Household {
+export function InviteFromJSONTyped(json: any, ignoreDiscriminator: boolean): Invite {
     if (json == null) {
         return json;
     }
     return {
         
         'id': json['id'],
-        'name': json['name'],
         'role': HouseholdRoleFromJSON(json['role']),
         'createdAt': (json['createdAt'] == null ? json['createdAt'] : parseDateTime(json['createdAt'])),
-        'updatedAt': json['updatedAt'] == null ? undefined : (parseDateTime(json['updatedAt'])),
+        'expiresAt': (json['expiresAt'] == null ? json['expiresAt'] : parseDateTime(json['expiresAt'])),
     };
 }
 
-export function HouseholdToJSON(json: any): Household {
-    return HouseholdToJSONTyped(json, false);
+export function InviteToJSON(json: any): Invite {
+    return InviteToJSONTyped(json, false);
 }
 
-export function HouseholdToJSONTyped(value?: Household | null, ignoreDiscriminator: boolean = false): any {
+export function InviteToJSONTyped(value?: Invite | null, ignoreDiscriminator: boolean = false): any {
     if (value == null) {
         return value;
     }
@@ -92,10 +87,9 @@ export function HouseholdToJSONTyped(value?: Household | null, ignoreDiscriminat
     return {
         
         'id': value['id'],
-        'name': value['name'],
         'role': HouseholdRoleToJSON(value['role']),
         'createdAt': value['createdAt'] == null ? value['createdAt'] : serializeDateTime(value['createdAt']),
-        'updatedAt': value['updatedAt'] == null ? value['updatedAt'] : serializeDateTime(value['updatedAt']),
+        'expiresAt': value['expiresAt'] == null ? value['expiresAt'] : serializeDateTime(value['expiresAt']),
     };
 }
 

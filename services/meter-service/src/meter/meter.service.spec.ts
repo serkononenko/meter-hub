@@ -2,7 +2,8 @@ import {describe, expect, it, vi} from 'vitest';
 import {Prisma} from '../database/generated/prisma/client.js';
 import {MeterService} from './meter.service.js';
 import {MeterRepository} from './meter.repository.js';
-import {HouseholdService} from '../household/household.service.js';
+import {HouseholdAccessService, NotFoundMaskedError} from '../household/household-access.service.js';
+import {ForbiddenRoleException} from '../exceptions/forbidden-role.exception.js';
 import {MeterNotFoundException} from '../exceptions/not-found.exception.js';
 import {MeterSerialNumberConflictException} from '../exceptions/conflict.exception.js';
 import {HouseholdServiceUnavailableException} from '../exceptions/service-unavailable.exception.js';
@@ -34,21 +35,39 @@ function repositoryStub(): MeterRepository {
     } as unknown as MeterRepository;
 }
 
-/** Stub household port: every test household resolves (access granted). */
-function householdStub(): HouseholdService {
-    return {
-        getHousehold: vi.fn().mockResolvedValue({id: HOUSEHOLD}),
-    } as unknown as HouseholdService;
+/** Stub access port: the test subject is a MEMBER of every household. */
+function householdStub(): HouseholdAccessService {
+    return accessStub({member: true, role: 'MEMBER'});
 }
 
-/** Stub household port that always fails (service unreachable). */
-function householdDownStub(): HouseholdService {
+/** Stub access port that always fails (household service unreachable). */
+function householdDownStub(): HouseholdAccessService {
     return {
-        getHousehold: vi.fn().mockRejectedValue(new HouseholdServiceUnavailableException()),
-    } as unknown as HouseholdService;
+        assertCanRead: vi.fn().mockRejectedValue(new HouseholdServiceUnavailableException()),
+        assertCanWrite: vi.fn().mockRejectedValue(new HouseholdServiceUnavailableException()),
+    } as unknown as HouseholdAccessService;
 }
 
-function serviceWith(repository: MeterRepository, household: HouseholdService = householdStub()) {
+function accessStub(verdict: {member: boolean; role?: string}): HouseholdAccessService {
+    if (!verdict.member) {
+        return {
+            assertCanRead: vi.fn().mockRejectedValue(new NotFoundMaskedError(HOUSEHOLD)),
+            assertCanWrite: vi.fn().mockRejectedValue(new NotFoundMaskedError(HOUSEHOLD)),
+        } as unknown as HouseholdAccessService;
+    }
+
+    return {
+        assertCanRead: vi.fn().mockResolvedValue(undefined),
+        assertCanWrite: vi.fn().mockImplementation(() => {
+            if (verdict.role === 'VIEWER') {
+                return Promise.reject(new ForbiddenRoleException('VIEWER', 'creating or modifying meters'));
+            }
+            return Promise.resolve(undefined);
+        }),
+    } as unknown as HouseholdAccessService;
+}
+
+function serviceWith(repository: MeterRepository, household: HouseholdAccessService = householdStub()) {
     return new MeterService(repository, household);
 }
 
@@ -66,7 +85,7 @@ describe('MeterService', () => {
             unit: METER.unit,
         });
 
-        expect(household.getHousehold).toHaveBeenCalledWith(HOUSEHOLD);
+        expect(household.assertCanWrite).toHaveBeenCalledWith(HOUSEHOLD, '')
         expect(repository.save).toHaveBeenCalledWith(
             expect.objectContaining({householdId: HOUSEHOLD, serialNumber: METER.serialNumber}),
         );
@@ -94,7 +113,7 @@ describe('MeterService', () => {
 
         const meters = await service.listMeters(HOUSEHOLD);
 
-        expect(household.getHousehold).toHaveBeenCalledWith(HOUSEHOLD);
+        expect(household.assertCanRead).toHaveBeenCalledWith(HOUSEHOLD, '')
         expect(repository.findByHouseholdId).toHaveBeenCalledWith(HOUSEHOLD);
         expect(meters).toHaveLength(1);
     });

@@ -3,11 +3,14 @@ import { Test } from '@nestjs/testing';
 import request from 'supertest';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { AppModule } from '../src/app.module.js';
+import { VerdictCache } from '../src/household/verdict-cache.js';
 import {
   ALICE_HOUSEHOLD,
   BOB_HOUSEHOLD,
   bringHouseholdBack,
+  grantRole,
   mintToken,
+  revokeMembership,
   takeHouseholdDown,
 } from './global-setup.js';
 
@@ -35,6 +38,108 @@ describe('Meter authorization (e2e)', () => {
 
   afterAll(async () => {
     await app.close();
+  });
+
+  it('lets a VIEWER read meters but rejects creating and patching with FORBIDDEN_ROLE', async () => {
+    const viewer = '33333333-3333-4333-8333-333333333333';
+    grantRole(ALICE_HOUSEHOLD, viewer, 'VIEWER');
+    const alice = await mintToken({ subject: ALICE });
+    const created = await createMeter(alice, ALICE_HOUSEHOLD);
+    const viewerToken = await mintToken({ subject: viewer });
+
+    try {
+      const list = await request(app.getHttpServer())
+        .get('/api/v1/meters')
+        .query({ householdId: ALICE_HOUSEHOLD })
+        .set('Authorization', `Bearer ${viewerToken}`);
+      expect(list.status).toBe(200);
+
+      const read = await request(app.getHttpServer())
+        .get(`/api/v1/meters/${created.id}`)
+        .set('Authorization', `Bearer ${viewerToken}`);
+      expect(read.status).toBe(200);
+
+      const createAttempt = await request(app.getHttpServer())
+        .post('/api/v1/meters')
+        .set('Authorization', `Bearer ${viewerToken}`)
+        .send({
+          householdId: ALICE_HOUSEHOLD,
+          type: 'ELECTRICITY',
+          name: 'Viewer meter',
+          serialNumber: uniqueSerial(),
+          unit: 'KWH',
+        });
+      expect(createAttempt.status).toBe(403);
+      expect(createAttempt.body.code).toBe('FORBIDDEN_ROLE');
+
+      const patchAttempt = await request(app.getHttpServer())
+        .patch(`/api/v1/meters/${created.id}`)
+        .set('Authorization', `Bearer ${viewerToken}`)
+        .send({ name: 'Viewer was here' });
+      expect(patchAttempt.status).toBe(403);
+      expect(patchAttempt.body.code).toBe('FORBIDDEN_ROLE');
+
+      // Nothing was written.
+      const readBack = await request(app.getHttpServer())
+        .get(`/api/v1/meters/${created.id}`)
+        .set('Authorization', `Bearer ${alice}`);
+      expect(readBack.body.name).toBe('Cross-user meter');
+    } finally {
+      revokeMembership(ALICE_HOUSEHOLD, viewer);
+    }
+  });
+
+  it('lets a MEMBER create meters but not manage the household roster', async () => {
+    const member = '44444444-4444-4444-8444-444444444444';
+    grantRole(ALICE_HOUSEHOLD, member, 'MEMBER');
+    try {
+      const memberToken = await mintToken({ subject: member });
+
+      const created = await request(app.getHttpServer())
+        .post('/api/v1/meters')
+        .set('Authorization', `Bearer ${memberToken}`)
+        .send({
+          householdId: ALICE_HOUSEHOLD,
+          type: 'HOT_WATER',
+          name: 'Member meter',
+          serialNumber: uniqueSerial(),
+          unit: 'M3',
+        });
+
+      expect(created.status).toBe(201);
+    } finally {
+      revokeMembership(ALICE_HOUSEHOLD, member);
+    }
+  });
+
+  it('re-rejects a removed member after the verdict cache expires', async () => {
+    const member = '55555555-5555-4555-8555-555555555555';
+    grantRole(ALICE_HOUSEHOLD, member, 'MEMBER');
+    const memberToken = await mintToken({ subject: member });
+
+    const created = await request(app.getHttpServer())
+      .post('/api/v1/meters')
+      .set('Authorization', `Bearer ${memberToken}`)
+      .send({
+        householdId: ALICE_HOUSEHOLD,
+        type: 'GAS',
+        name: 'Doomed member meter',
+        serialNumber: uniqueSerial(),
+        unit: 'M3',
+      });
+    expect(created.status).toBe(201);
+
+    // Owner removes the member; the next cold verdict (after cache reset)
+    // must deny them.
+    revokeMembership(ALICE_HOUSEHOLD, member);
+    app.get(VerdictCache).clear();
+
+    const afterRemoval = await request(app.getHttpServer())
+      .get('/api/v1/meters')
+      .query({ householdId: ALICE_HOUSEHOLD })
+      .set('Authorization', `Bearer ${memberToken}`);
+    expect(afterRemoval.status).toBe(404);
+    expect(afterRemoval.body.code).toBe('HOUSEHOLD_NOT_FOUND');
   });
 
   it("rejects creating a meter in someone else's household with HOUSEHOLD_NOT_FOUND", async () => {
@@ -158,6 +263,10 @@ describe('Meter authorization (e2e)', () => {
     const alice = await mintToken({ subject: ALICE });
     await takeHouseholdDown();
     try {
+      // The verdict cache may still hold an entry from earlier tests in this
+      // run; a cold verdict is what proves the fail-closed path.
+      app.get(VerdictCache).clear();
+
       const response = await request(app.getHttpServer())
         .get('/api/v1/meters')
         .query({ householdId: ALICE_HOUSEHOLD })

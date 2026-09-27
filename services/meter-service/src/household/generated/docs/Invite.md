@@ -1,30 +1,29 @@
 
-# Household
+# Invite
 
+A live (unredeemed, unexpired, not revoked) invitation. Code material is never included.
 
 ## Properties
 
 Name | Type
 ------------ | -------------
 `id` | string
-`name` | string
 `role` | [HouseholdRole](HouseholdRole.md)
 `createdAt` | Date
-`updatedAt` | Date
+`expiresAt` | Date
 
 ## Example
 
 ```typescript
-import type { Household } from ''
+import type { Invite } from ''
 
 // TODO: Update the object below with actual values
 const example = {
-  "id": 3f9c1a2e-8d4b-4a1f-9e2c-5b7d6a8e1c30,
-  "name": null,
+  "id": null,
   "role": null,
-  "createdAt": 2026-08-27T08:30Z,
-  "updatedAt": 2026-08-27T08:30Z,
-} satisfies Household
+  "createdAt": 2026-09-27T10:00Z,
+  "expiresAt": 2026-10-04T10:00Z,
+} satisfies Invite
 
 console.log(example)
 
@@ -33,7 +32,7 @@ const exampleJSON: string = JSON.stringify(example)
 console.log(exampleJSON)
 
 // Parse the JSON string back to an object
-const exampleParsed = JSON.parse(exampleJSON) as Household
+const exampleParsed = JSON.parse(exampleJSON) as Invite
 console.log(exampleParsed)
 ```
 

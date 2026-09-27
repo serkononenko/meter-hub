@@ -8,10 +8,11 @@ import jwt from 'jsonwebtoken';
 
 /**
  * Global e2e setup: mints an RSA key pair for the run, points the service at
- * its public half, and runs a household-service stand-in so ownership checks
- * (5.4) have something owner-scoped to talk to. The stand-in answers like
- * household-service's GET /api/v1/households/{id}: 200 when the token's
- * subject owns the household, 404 otherwise (unknown or foreign).
+ * its public half, and runs a household-service stand-in so the role-aware
+ * authorization (A3) has something membership-scoped to talk to. The stand-in
+ * answers like household-service's internal access verdict
+ * (GET /api/v1/internal/household-access): the caller's role for their own
+ * household, `{exists: false}` otherwise (unknown or foreign).
  */
 const ALICE = '11111111-1111-4111-8111-111111111111';
 const BOB = '22222222-2222-4222-8222-222222222222';
@@ -88,16 +89,40 @@ const OWNED: Record<string, string> = {
     [BOB_HOUSEHOLD]: BOB,
 };
 
+/**
+ * Roles per (household, subject), mirroring the A3 membership model: owners
+ * and members may write, the viewer fixture may only read. Any other pair is
+ * a non-member.
+ */
+const ROLES: Record<string, string> = {
+    [`${ALICE_HOUSEHOLD}:${ALICE}`]: 'OWNER',
+    [`${BOB_HOUSEHOLD}:${BOB}`]: 'OWNER',
+};
+
+/** Grants a subject a role in a household for the current run. */
+export function grantRole(householdId: string, subject: string, role: 'MEMBER' | 'VIEWER'): void {
+    ROLES[`${householdId}:${subject}`] = role;
+}
+
+/** Removes a subject's membership in a household for the current run. */
+export function revokeMembership(householdId: string, subject: string): void {
+    delete ROLES[`${householdId}:${subject}`];
+}
+
 function householdStubHandler(request: IncomingMessage, response: ServerResponse): void {
-    const match = /^\/api\/v1\/households\/([0-9a-f-]{36})(\?.*)?$/.exec(request.url ?? '');
+    const match = /^\/api\/v1\/internal\/household-access\?householdId=([0-9a-f-]{36})&userId=([0-9a-f-]{36})$/
+        .exec(request.url ?? '');
     const householdId = match?.[1];
-    const subject = subjectOf(request.headers.authorization);
-    const owned = householdId !== undefined && OWNED[householdId] === subject;
-    response.writeHead(owned ? 200 : 404, {'Content-Type': 'application/json'});
+    const userId = match?.[2];
+    const role = householdId !== undefined && userId !== undefined
+        ? ROLES[`${householdId}:${userId}`]
+        : undefined;
+
+    response.writeHead(200, {'Content-Type': 'application/json'});
     response.end(
-        owned
-            ? JSON.stringify({id: householdId, name: 'Test household', createdAt: '2026-09-01T10:00:00Z'})
-            : JSON.stringify({code: 'HOUSEHOLD_NOT_FOUND', status: 404}),
+        role
+            ? JSON.stringify({exists: true, role})
+            : JSON.stringify({exists: false}),
     );
 }
 

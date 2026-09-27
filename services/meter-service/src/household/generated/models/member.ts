@@ -24,17 +24,17 @@ import {
 /**
  * 
  * @export
- * @interface Household
+ * @interface Member
  */
-export interface Household {
+export interface Member {
     /**
-     * UUID v4 in canonical lowercase form.
+     * Identifier of the membership.
      */
     id: string;
     /**
-     * Display name of the household.
+     * Identifier of the member user.
      */
-    name: string;
+    userId: string;
     /**
      * 
      */
@@ -43,48 +43,43 @@ export interface Household {
      * RFC 3339 timestamp in UTC. Must use the Z suffix.
      */
     createdAt: Date;
-    /**
-     * RFC 3339 timestamp in UTC. Must use the Z suffix.
-     */
-    updatedAt?: Date;
 }
 
 
 
 /**
- * Check if a given object implements the Household interface.
+ * Check if a given object implements the Member interface.
  */
-export function instanceOfHousehold(value: object): value is Household {
+export function instanceOfMember(value: object): value is Member {
     if (!('id' in value) || value['id'] === undefined) return false;
-    if (!('name' in value) || value['name'] === undefined) return false;
+    if (!('userId' in value) || value['userId'] === undefined) return false;
     if (!('role' in value) || value['role'] === undefined) return false;
     if (!('createdAt' in value) || value['createdAt'] === undefined) return false;
     return true;
 }
 
-export function HouseholdFromJSON(json: any): Household {
-    return HouseholdFromJSONTyped(json, false);
+export function MemberFromJSON(json: any): Member {
+    return MemberFromJSONTyped(json, false);
 }
 
-export function HouseholdFromJSONTyped(json: any, ignoreDiscriminator: boolean): Household {
+export function MemberFromJSONTyped(json: any, ignoreDiscriminator: boolean): Member {
     if (json == null) {
         return json;
     }
     return {
         
         'id': json['id'],
-        'name': json['name'],
+        'userId': json['userId'],
         'role': HouseholdRoleFromJSON(json['role']),
         'createdAt': (json['createdAt'] == null ? json['createdAt'] : parseDateTime(json['createdAt'])),
-        'updatedAt': json['updatedAt'] == null ? undefined : (parseDateTime(json['updatedAt'])),
     };
 }
 
-export function HouseholdToJSON(json: any): Household {
-    return HouseholdToJSONTyped(json, false);
+export function MemberToJSON(json: any): Member {
+    return MemberToJSONTyped(json, false);
 }
 
-export function HouseholdToJSONTyped(value?: Household | null, ignoreDiscriminator: boolean = false): any {
+export function MemberToJSONTyped(value?: Member | null, ignoreDiscriminator: boolean = false): any {
     if (value == null) {
         return value;
     }
@@ -92,10 +87,9 @@ export function HouseholdToJSONTyped(value?: Household | null, ignoreDiscriminat
     return {
         
         'id': value['id'],
-        'name': value['name'],
+        'userId': value['userId'],
         'role': HouseholdRoleToJSON(value['role']),
         'createdAt': value['createdAt'] == null ? value['createdAt'] : serializeDateTime(value['createdAt']),
-        'updatedAt': value['updatedAt'] == null ? value['updatedAt'] : serializeDateTime(value['updatedAt']),
     };
 }
 

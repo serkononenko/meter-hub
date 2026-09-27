@@ -7,7 +7,8 @@ import {MeterSerialNumberConflictException} from "../exceptions/conflict.excepti
 import {RequestValidationException} from "../exceptions/request-validation.exception.js";
 import {MetersApi} from "./generated/api/index.js";
 import {MeterRepository} from './meter.repository.js';
-import {HouseholdService} from '../household/household.service.js';
+import {HouseholdAccessService, NotFoundMaskedError} from '../household/household-access.service.js';
+import {REQUEST_USER} from '../auth/auth.constants.js';
 import {CreateMeterCommand} from "./commands/create-meter.command.js";
 import {UpdateMeterCommand} from "./commands/update-meter.command.js";
 
@@ -19,16 +20,24 @@ import type {UpdateMeterRequest} from "./generated/models/index.js";
 export class MeterService extends MetersApi {
     constructor(
         readonly repository: MeterRepository,
-        private readonly householdService: HouseholdService,
+        private readonly householdAccess: HouseholdAccessService,
     ) {
         super();
     }
 
-    async createMeter(payload: CreateMeterRequest) {
+    async createMeter(payload: CreateMeterRequest, _correlationId?: string, request?: Request) {
         const command = plainToInstance(CreateMeterCommand, payload);
 
         await this.validate(command);
-        await this.canAccess(command.householdId);
+
+        try {
+            await this.canWrite(command.householdId, request);
+        } catch (error) {
+            if (error instanceof NotFoundMaskedError) {
+                throw new HouseholdNotFoundException(command.householdId);
+            }
+            throw error;
+        }
 
         return this.guardSerialConflict(() => this.repository.save({
             id: crypto.randomUUID(),
@@ -43,7 +52,7 @@ export class MeterService extends MetersApi {
         }), command.serialNumber);
     }
 
-    async getMeter(meterId: string) {
+    async getMeter(meterId: string, _correlationId?: string, request?: Request) {
         this.requireNotEmpty(meterId);
 
         const meter = await this.repository.findById(meterId);
@@ -53,9 +62,9 @@ export class MeterService extends MetersApi {
         }
 
         try {
-            await this.canAccess(meter.householdId);
+            await this.canRead(meter.householdId, request);
         } catch (error) {
-            if (error instanceof HouseholdNotFoundException) {
+            if (error instanceof NotFoundMaskedError) {
                 throw new MeterNotFoundException(meterId);
             }
             throw error;
@@ -64,21 +73,43 @@ export class MeterService extends MetersApi {
         return meter;
     }
 
-    async listMeters(householdId: string) {
+
+
+    async listMeters(householdId: string, _correlationId?: string, request?: Request) {
         this.requireNotEmpty(householdId);
-        await this.canAccess(householdId);
+
+        try {
+            await this.canRead(householdId, request);
+        } catch (error) {
+            if (error instanceof NotFoundMaskedError) {
+                throw new HouseholdNotFoundException(householdId);
+            }
+            throw error;
+        }
 
         return this.repository.findByHouseholdId(householdId);
     }
 
-    async updateMeter(meterId: string, payload: UpdateMeterRequest) {
+    async updateMeter(meterId: string, payload: UpdateMeterRequest, _correlationId?: string, request?: Request) {
         this.requireNotEmpty(meterId);
 
         const command = plainToInstance(UpdateMeterCommand, payload);
 
         await this.validate(command);
 
-        const prevMeter = await this.getMeter(meterId);
+        const prevMeter = await this.getMeter(meterId, _correlationId, request);
+
+        try {
+            await this.canWrite(prevMeter.householdId, request);
+        } catch (error) {
+            // getMeter already masked the meter itself; a VIEWER here gets
+            // FORBIDDEN_ROLE, and only an unexpected membership race would
+            // surface NotFoundMaskedError again.
+            if (error instanceof NotFoundMaskedError) {
+                throw new MeterNotFoundException(meterId);
+            }
+            throw error;
+        }
 
         const meter = await this.guardSerialConflict(
             () => this.repository.update(prevMeter.id, command),
@@ -103,8 +134,21 @@ export class MeterService extends MetersApi {
         }
     }
 
-    private async canAccess(householdId: string) {
-        return !!await this.householdService.getHousehold(householdId);
+    /**
+     * Reads need any membership role (A3); VIEWERs read, non-members keep
+     * the enumeration-safe 404 mask from the old existence check.
+     */
+    private canRead(householdId: string, request?: Request): Promise<void> {
+        return this.householdAccess.assertCanRead(householdId, userIdOf(request));
+    }
+
+    /**
+     * Creating/modifying meters requires MEMBER or OWNER; VIEWER gets
+     * 403 FORBIDDEN_ROLE. NotFoundMaskedError propagates so each call site
+     * masks with its own vocabulary (HOUSEHOLD_NOT_FOUND vs METER_NOT_FOUND).
+     */
+    private canWrite(householdId: string, request?: Request): Promise<void> {
+        return this.householdAccess.assertCanWrite(householdId, userIdOf(request));
     }
 
     private async validate(command: Object) {
@@ -122,4 +166,11 @@ export class MeterService extends MetersApi {
 
         return obj;
     }
+}
+
+/** The auth guard stores the verified subject on the request (A0 pattern). */
+function userIdOf(request?: Request): string {
+    const authenticated = request as unknown as { [REQUEST_USER]?: {userId: string} } | undefined;
+
+    return authenticated?.[REQUEST_USER]?.userId ?? '';
 }
