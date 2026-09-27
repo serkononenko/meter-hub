@@ -136,6 +136,17 @@ identity:
     # Must match what the identity service signs tokens with
     issuer: ${IDENTITY_JWT_ISSUER:identity-service}
     audience: ${IDENTITY_JWT_AUDIENCE:meterhub-api}
+  revocation:
+    # Access-token revocation cache (backlog A4): poll identity's internal
+    # feed directly (service-to-service), not through the gateway's own
+    # routing — the internal path is denied on the proxied surface. A
+    # logout carrying a Bearer token propagates to request rejection
+    # within poll-interval. Fail-open: if identity is unreachable,
+    # validation continues on the last known set; every revoked token
+    # also dies at exp anyway.
+    poll-interval: ${REVOCATION_POLL_INTERVAL:5s}
+    token-ttl: ${ACCESS_TOKEN_TTL:15m}
+    feed-base-url: ${IDENTITY_SERVICE_URL:http://localhost:8081}
 
 gateway:
   rate-limit:

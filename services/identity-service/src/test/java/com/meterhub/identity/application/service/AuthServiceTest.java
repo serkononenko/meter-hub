@@ -5,12 +5,14 @@ import com.meterhub.identity.domain.exception.InvalidCredentialsException;
 import com.meterhub.identity.domain.exception.InvalidRefreshTokenException;
 import com.meterhub.identity.domain.model.AccountStatus;
 import com.meterhub.identity.domain.model.RefreshToken;
+import com.meterhub.identity.domain.model.RevokedAccessToken;
 import com.meterhub.identity.domain.model.User;
 import com.meterhub.identity.ports.model.LoginCommand;
 import com.meterhub.identity.ports.model.LoginResult;
 import com.meterhub.identity.ports.model.RefreshCommand;
 import com.meterhub.identity.ports.outbound.AccessTokenIssuer;
 import com.meterhub.identity.ports.outbound.RefreshTokenRepository;
+import com.meterhub.identity.ports.outbound.RevokedAccessTokenRepository;
 import com.meterhub.identity.ports.outbound.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -56,6 +58,9 @@ class AuthServiceTest {
     private RefreshTokenRepository refreshTokenRepository;
 
     @Mock
+    private RevokedAccessTokenRepository revokedAccessTokenRepository;
+
+    @Mock
     private PasswordEncoder passwordEncoder;
 
     @Mock
@@ -76,6 +81,7 @@ class AuthServiceTest {
         authService = new AuthService(
             userRepository,
             refreshTokenRepository,
+            revokedAccessTokenRepository,
             passwordEncoder,
             accessTokenIssuer,
             jwtProperties
@@ -87,7 +93,7 @@ class AuthServiceTest {
         User user = activeUser();
         when(userRepository.findByEmail(EMAIL)).thenReturn(Optional.of(user));
         when(passwordEncoder.matches(PASSWORD, PASSWORD_HASH)).thenReturn(true);
-        when(accessTokenIssuer.issue(USER_ID)).thenReturn(new com.meterhub.identity.ports.model.IssuedToken("jwt-value", 900L));
+        when(accessTokenIssuer.issue(USER_ID)).thenReturn(new com.meterhub.identity.ports.model.IssuedToken("jwt-value", UUID.randomUUID(), 900L));
         when(refreshTokenRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
         LoginResult result = authService.login(new LoginCommand(EMAIL, PASSWORD));
@@ -102,7 +108,7 @@ class AuthServiceTest {
     void loginStoresOnlyTheHashOfTheIssuedRefreshToken() {
         when(userRepository.findByEmail(EMAIL)).thenReturn(Optional.of(activeUser()));
         when(passwordEncoder.matches(PASSWORD, PASSWORD_HASH)).thenReturn(true);
-        when(accessTokenIssuer.issue(USER_ID)).thenReturn(new com.meterhub.identity.ports.model.IssuedToken("jwt-value", 900L));
+        when(accessTokenIssuer.issue(USER_ID)).thenReturn(new com.meterhub.identity.ports.model.IssuedToken("jwt-value", UUID.randomUUID(), 900L));
         when(refreshTokenRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
         LoginResult result = authService.login(new LoginCommand(EMAIL, PASSWORD));
@@ -165,7 +171,7 @@ class AuthServiceTest {
         RefreshToken stored = storedToken(rawToken, null);
         when(refreshTokenRepository.findByTokenHash(sha256Hex(rawToken))).thenReturn(Optional.of(stored));
         when(userRepository.findById(USER_ID)).thenReturn(Optional.of(activeUser()));
-        when(accessTokenIssuer.issue(USER_ID)).thenReturn(new com.meterhub.identity.ports.model.IssuedToken("new-jwt", 900L));
+        when(accessTokenIssuer.issue(USER_ID)).thenReturn(new com.meterhub.identity.ports.model.IssuedToken("new-jwt", UUID.randomUUID(), 900L));
         when(refreshTokenRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
         LoginResult result = authService.refresh(new RefreshCommand(rawToken));
@@ -224,8 +230,27 @@ class AuthServiceTest {
         RefreshToken stored = storedToken(rawToken, null);
         when(refreshTokenRepository.findByTokenHash(sha256Hex(rawToken))).thenReturn(Optional.of(stored));
 
-        authService.logout(new RefreshCommand(rawToken));
+        authService.logout(new RefreshCommand(rawToken), null, null);
 
+        verify(refreshTokenRepository).revoke(stored);
+        // No access token presented — nothing to record for the cache
+        verify(revokedAccessTokenRepository, never()).save(any());
+    }
+
+    @Test
+    void logoutWithAccessTokenRecordsItsRevocation() {
+        String rawToken = "logout-token";
+        RefreshToken stored = storedToken(rawToken, null);
+        when(refreshTokenRepository.findByTokenHash(sha256Hex(rawToken))).thenReturn(Optional.of(stored));
+        UUID jti = UUID.randomUUID();
+        OffsetDateTime expiresAt = OffsetDateTime.now().plusMinutes(10);
+
+        authService.logout(new RefreshCommand(rawToken), jti, expiresAt);
+
+        ArgumentCaptor<RevokedAccessToken> captor = ArgumentCaptor.forClass(RevokedAccessToken.class);
+        verify(revokedAccessTokenRepository).save(captor.capture());
+        assertThat(captor.getValue().jti()).isEqualTo(jti);
+        assertThat(captor.getValue().expiresAt()).isEqualTo(expiresAt);
         verify(refreshTokenRepository).revoke(stored);
     }
 
@@ -233,7 +258,7 @@ class AuthServiceTest {
     void logoutIsIdempotentForUnknownTokens() {
         when(refreshTokenRepository.findByTokenHash(any())).thenReturn(Optional.empty());
 
-        authService.logout(new RefreshCommand("unknown-token"));
+        authService.logout(new RefreshCommand("unknown-token"), null, null);
 
         verify(refreshTokenRepository, never()).revoke(any());
     }

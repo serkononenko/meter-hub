@@ -1,5 +1,7 @@
 package com.meterhub.gateway.config;
 
+import com.meterhub.gateway.auth.JwtRevocationValidator;
+import com.meterhub.gateway.auth.RevocationCache;
 import com.meterhub.gateway.security.BearerTokenAuthenticationEntryPoint;
 import com.meterhub.gateway.web.CorrelationIdFilter;
 
@@ -37,6 +39,7 @@ public class SecurityConfig {
         HttpSecurity http,
         JwtProperties jwtProperties,
         RsaKeyMaterial rsaKeyMaterial,
+        RevocationCache revocationCache,
         BearerTokenAuthenticationEntryPoint authenticationEntryPoint,
         CorsConfigurationSource corsConfigurationSource
     ) {
@@ -61,10 +64,14 @@ public class SecurityConfig {
                 // Prometheus scrapes metrics without a token (task 10.4)
                 .requestMatchers("/actuator/prometheus").permitAll()
                 .requestMatchers("/api/identity-service/api/v1/auth/**").permitAll()
+                // Identity's internal feed is gateway-only; never expose it
+                // through the gateway's public surface (belt-and-braces with
+                // the route table: this path must not be proxied)
+                .requestMatchers("/api/identity-service/api/v1/internal/**").denyAll()
                 .anyRequest().authenticated()
             )
             .oauth2ResourceServer(oauth2 -> oauth2
-                .jwt(jwt -> jwt.decoder(jwtDecoder(jwtProperties, rsaKeyMaterial)))
+                .jwt(jwt -> jwt.decoder(jwtDecoder(jwtProperties, rsaKeyMaterial, revocationCache)))
                 .authenticationEntryPoint(authenticationEntryPoint)
             );
 
@@ -92,11 +99,12 @@ public class SecurityConfig {
         return source;
     }
 
-    private JwtDecoder jwtDecoder(JwtProperties jwtProperties, RsaKeyMaterial rsaKeyMaterial) {
+    private JwtDecoder jwtDecoder(JwtProperties jwtProperties, RsaKeyMaterial rsaKeyMaterial, RevocationCache revocationCache) {
         NimbusJwtDecoder decoder = NimbusJwtDecoder.withPublicKey(rsaKeyMaterial.publicKey()).build();
         OAuth2TokenValidator<Jwt> validator = new DelegatingOAuth2TokenValidator<>(
             JwtValidators.createDefaultWithIssuer(jwtProperties.issuer()),
-            new JwtAudienceValidator(jwtProperties.audience())
+            new JwtAudienceValidator(jwtProperties.audience()),
+            new JwtRevocationValidator(revocationCache)
         );
         decoder.setJwtValidator(validator);
         return decoder;

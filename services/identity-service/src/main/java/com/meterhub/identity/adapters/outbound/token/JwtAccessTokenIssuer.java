@@ -25,7 +25,9 @@ import java.util.UUID;
 /**
  * Signs short-lived RS256 access tokens with Nimbus (Spring Security OAuth2
  * JOSE). Claims follow the MeterHub security contract: iss, sub, aud, exp,
- * iat — nothing else, so downstream services validate a small stable set.
+ * iat, jti — jti makes tokens individually revocable (logout records it in
+ * {@code revoked_access_tokens}; the gateway's cache rejects it). Downstream
+ * services validate the small stable set and ignore claims they don't need.
  */
 @Component
 public class JwtAccessTokenIssuer implements AccessTokenIssuer {
@@ -42,6 +44,7 @@ public class JwtAccessTokenIssuer implements AccessTokenIssuer {
     public IssuedToken issue(UUID subject) {
         Instant now = Instant.now();
         Instant expiresAt = now.plus(properties.accessTokenTtl());
+        UUID jti = UUID.randomUUID();
 
         JwtClaimsSet claims = JwtClaimsSet.builder()
             .issuer(properties.issuer())
@@ -49,11 +52,12 @@ public class JwtAccessTokenIssuer implements AccessTokenIssuer {
             .audience(List.of(properties.audience()))
             .issuedAt(now)
             .expiresAt(expiresAt)
+            .id(jti.toString())
             .build();
         JwsHeader jwsHeader = JwsHeader.with(SignatureAlgorithm.RS256).build();
         String token = jwtEncoder.encode(JwtEncoderParameters.from(jwsHeader, claims)).getTokenValue();
 
-        return new IssuedToken(token, properties.accessTokenTtl().toSeconds());
+        return new IssuedToken(token, jti, properties.accessTokenTtl().toSeconds());
     }
 
     private NimbusJwtEncoder buildJwtEncoder(RsaKeyMaterial keyMaterial) {

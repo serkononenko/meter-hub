@@ -9,6 +9,8 @@ tags:
     description: Registration and authentication endpoints
   - name: Users
     description: Current user information
+  - name: Internal
+    description: Service-to-service endpoints (API gateway only; not part of the public API surface)
 
 paths:
   /api/v1/auth/register:
@@ -212,11 +214,17 @@ paths:
     post:
       tags: [Auth]
       operationId: logoutUser
-      summary: Revoke a refresh token
+      summary: Revoke a refresh token and, optionally, the presented access token
       description: >-
         Revokes the supplied refresh token so it can no longer be used to
-        refresh. Idempotent — revoking an unknown, expired, or already revoked
-        token succeeds the same way.
+        refresh. When the request carries a Bearer access token, that token is
+        revoked too (by its `jti`) so an already-issued access token stops
+        working within the gateway's revocation propagation delay instead of
+        living out its full 15-minute TTL. Idempotent — revoking an unknown,
+        expired, or already revoked token succeeds the same way.
+      security:
+        - bearerAuth: []
+        - {}
       parameters:
         - $ref: '../../openapi.yaml#/components/parameters/CorrelationId'
       requestBody:
@@ -235,6 +243,51 @@ paths:
               $ref: '../../components/headers/correlation-id.yaml'
         '400':
           $ref: '../../openapi.yaml#/components/responses/BadRequest'
+        '500':
+          $ref: '../../openapi.yaml#/components/responses/InternalServerError'
+
+  #
+  # Internal endpoint — consumed by the API gateway only. Not reachable
+  # through the gateway's public routes; on the internal network it is
+  # trusted environment until A1 (service-to-service auth) lands.
+  #
+  /api/v1/internal/revoked-access-tokens:
+    get:
+      tags: [Internal]
+      operationId: listRevokedAccessTokens
+      summary: Feed of revoked access tokens for the gateway's revocation cache
+      description: >-
+        Returns access-token revocations (by `jti`) recorded after `since`,
+        oldest first, capped at 1000 entries per page — the gateway polls
+        this every few seconds and paginates with the returned cursor.
+        Response bodies are intentionally compact (bare arrays of jti
+        strings): the endpoint is polled continuously by one consumer.
+        Only the identity service's own database records revocations; a
+        revocation survives until its token's original expiry passes
+        (cleanup drops the row once every token that could carry the jti
+        is expired anyway).
+      security: []
+      parameters:
+        - name: since
+          in: query
+          required: false
+          description: >-
+            Only revocations recorded strictly after this cursor. A missing
+            cursor returns the oldest retained revocations (cold start).
+          schema:
+            type: string
+            format: date-time
+        - $ref: '../../openapi.yaml#/components/parameters/CorrelationId'
+      responses:
+        '200':
+          description: Revocation batch (possibly empty).
+          headers:
+            X-Correlation-ID:
+              $ref: '../../components/headers/correlation-id.yaml'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RevocationBatch'
         '500':
           $ref: '../../openapi.yaml#/components/responses/InternalServerError'
 
@@ -366,6 +419,25 @@ components:
           minLength: 1
           maxLength: 256
           description: Opaque refresh token to revoke. Invalid tokens are ignored.
+
+    RevocationBatch:
+      type: object
+      additionalProperties: false
+      required: [jtis, next]
+      properties:
+        jtis:
+          type: array
+          items:
+            type: string
+            format: uuid
+          description: Revoked access-token IDs, oldest revocation first. At most 1000 entries.
+        next:
+          type: string
+          format: date-time
+          description: >-
+            Cursor for the following poll. Null when the batch is empty —
+            the consumer keeps using its previous cursor.
+          nullable: true
 
     LoginResponse:
       type: object

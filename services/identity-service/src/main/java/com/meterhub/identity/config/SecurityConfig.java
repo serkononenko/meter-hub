@@ -43,6 +43,13 @@ public class SecurityConfig {
                 // Login, registration, refresh and logout authenticate by the
                 // request body itself; everything else requires a bearer token
                 .requestMatchers("/api/v1/auth/**").permitAll()
+                // The gateway's revocation-cache poll (backlog A4). Carries no
+                // token — service-to-service auth is backlog A1; until then
+                // this relies on the internal Docker network being trusted.
+                // Not routed publicly: the gateway has no /api/identity-service
+                // route matching /api/v1/internal/** (its routes forward the
+                // full contract surface, which deliberately excludes this).
+                .requestMatchers("/api/v1/internal/**").permitAll()
                 .anyRequest().authenticated()
             )
             .oauth2ResourceServer(oauth2 -> oauth2

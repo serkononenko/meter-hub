@@ -103,8 +103,14 @@ export async function signUp(values: {
 export async function logout(): Promise<void> {
   try {
     // The BFF route revokes the refresh token server-side (it reads the
-    // httpOnly cookie) and clears the cookie.
-    await fetch("/api/auth/logout", {method: "POST"});
+    // httpOnly cookie) and clears the cookie. Forwarding the in-memory
+    // access token lets the BFF also revoke that token's jti (backlog A4):
+    // without it the token would stay valid until its TTL runs out.
+    const headers: Record<string, string> = {};
+    if (accessToken) {
+      headers.Authorization = `Bearer ${accessToken}`;
+    }
+    await fetch("/api/auth/logout", {method: "POST", headers});
   } finally {
     accessToken = null;
   }

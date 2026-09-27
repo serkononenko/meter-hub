@@ -1,4 +1,6 @@
 package com.meterhub.identity.ports.model;
 
-public record IssuedToken(String tokenValue, long expiresIn) {
+import java.util.UUID;
+
+public record IssuedToken(String tokenValue, UUID jti, long expiresIn) {
 }

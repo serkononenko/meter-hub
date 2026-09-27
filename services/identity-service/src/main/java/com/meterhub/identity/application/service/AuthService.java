@@ -4,6 +4,7 @@ import com.meterhub.identity.domain.exception.InvalidCredentialsException;
 import com.meterhub.identity.domain.exception.InvalidRefreshTokenException;
 import com.meterhub.identity.domain.model.AccountStatus;
 import com.meterhub.identity.domain.model.RefreshToken;
+import com.meterhub.identity.domain.model.RevokedAccessToken;
 import com.meterhub.identity.domain.model.User;
 import com.meterhub.identity.ports.inbound.LoginUseCase;
 import com.meterhub.identity.ports.inbound.LogoutUseCase;
@@ -14,6 +15,7 @@ import com.meterhub.identity.ports.model.LoginResult;
 import com.meterhub.identity.ports.model.RefreshCommand;
 import com.meterhub.identity.ports.outbound.AccessTokenIssuer;
 import com.meterhub.identity.ports.outbound.RefreshTokenRepository;
+import com.meterhub.identity.ports.outbound.RevokedAccessTokenRepository;
 import com.meterhub.identity.ports.outbound.UserRepository;
 import com.meterhub.identity.config.JwtProperties;
 import org.slf4j.Logger;
@@ -29,6 +31,7 @@ import java.security.SecureRandom;
 import java.time.OffsetDateTime;
 import java.util.Base64;
 import java.util.HexFormat;
+import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -41,6 +44,7 @@ public class AuthService implements LoginUseCase, RefreshUseCase, LogoutUseCase 
 
     private final UserRepository userRepository;
     private final RefreshTokenRepository refreshTokenRepository;
+    private final RevokedAccessTokenRepository revokedAccessTokenRepository;
     private final PasswordEncoder passwordEncoder;
     private final AccessTokenIssuer accessTokenIssuer;
     private final JwtProperties jwtProperties;
@@ -48,12 +52,14 @@ public class AuthService implements LoginUseCase, RefreshUseCase, LogoutUseCase 
     public AuthService(
         UserRepository userRepository,
         RefreshTokenRepository refreshTokenRepository,
+        RevokedAccessTokenRepository revokedAccessTokenRepository,
         PasswordEncoder passwordEncoder,
         AccessTokenIssuer accessTokenIssuer,
         JwtProperties jwtProperties
     ) {
         this.userRepository = userRepository;
         this.refreshTokenRepository = refreshTokenRepository;
+        this.revokedAccessTokenRepository = revokedAccessTokenRepository;
         this.passwordEncoder = passwordEncoder;
         this.accessTokenIssuer = accessTokenIssuer;
         this.jwtProperties = jwtProperties;
@@ -97,9 +103,18 @@ public class AuthService implements LoginUseCase, RefreshUseCase, LogoutUseCase 
 
     @Override
     @Transactional
-    public void logout(RefreshCommand command) {
-        refreshTokenRepository.findByTokenHash(hash(command.refreshToken()))
-            .ifPresent(refreshTokenRepository::revoke);
+    public void logout(RefreshCommand command, UUID accessTokenJti, OffsetDateTime accessTokenExpiresAt) {
+        Optional<RefreshToken> stored = refreshTokenRepository.findByTokenHash(hash(command.refreshToken()));
+        stored.ifPresent(refreshTokenRepository::revoke);
+
+        if (accessTokenJti != null) {
+            revokedAccessTokenRepository.save(new RevokedAccessToken(
+                accessTokenJti,
+                stored.map(RefreshToken::userId).orElse(null),
+                accessTokenExpiresAt,
+                OffsetDateTime.now()
+            ));
+        }
     }
 
     private LoginResult issueTokens(User user) {
