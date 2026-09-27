@@ -639,7 +639,7 @@ New docs/architecture-overview.md (components, auth flow, cross-service
 trust, observability, environments), docs/api-examples.md (runnable curl
 walkthrough of the full MVP flow with real payloads and the error-code
 table — every `code` verified against the OpenAPI contracts), and
-docs/known-limitations.md (deliberate scope cuts: no service-to-service
+docs/backlog.md (deliberate scope cuts: no service-to-service
 auth, shared PostgreSQL, no rate limiting/pagination/CI, etc.). The local
 setup guide requirement was already covered by the 10.3 README rewrite
 (clone → .env → keygen → one-command startup/reset); data ownership is

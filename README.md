@@ -423,7 +423,7 @@ Cross-service data must be accessed through APIs or asynchronous events.
 | [docs/api-conventions.md](docs/api-conventions.md) | API conventions: versioning, IDs, timestamps, correlation ID, RFC 9457 problem responses |
 | [docs/conventions.md](docs/conventions.md) | Engineering conventions: naming, ports, env vars, health, logging, DB ownership, commit style |
 | [docs/ports.md](docs/ports.md) | Local service port plan |
-| [docs/known-limitations.md](docs/known-limitations.md) | Known limitations: deliberate scope cuts and simplifications in the MVP |
+| [docs/backlog.md](docs/backlog.md) | Known limitations backlog: every MVP scope cut with ID, impact, resolution path and roadmap phase |
 | [docs/spec/1_metrics_observability_spec.md](docs/spec/1_metrics_observability_spec.md) | Metrics observability spec: Prometheus scraping, Grafana provisioning, dashboard contract, deferred work |
 | [docs/tasks/1_metrics_observability_tasks.md](docs/tasks/1_metrics_observability_tasks.md) | Metrics observability task breakdown (M1–M3) with verification notes |
 | [docs/spec/2_distributed_tracing_spec.md](docs/spec/2_distributed_tracing_spec.md) | Distributed tracing spec: Jaeger all-in-one, W3C propagation, per-stack instrumentation, deferred work |
