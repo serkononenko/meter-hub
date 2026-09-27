@@ -19,9 +19,24 @@ paths:
         owned by the user that owns the presented access token; meters of
         other users are not addressable and return the same not-found problem
         as unknown ones. The source is always MANUAL in the MVP.
+        Retried submissions should carry an `Idempotency-Key` header: within
+        the retention window, a repeated key returns the original response
+        instead of creating a second reading. Sending a key again with a
+        different payload is a client error and returns 409.
       security:
         - bearerAuth: []
       parameters:
+        - name: Idempotency-Key
+          in: header
+          required: false
+          schema:
+            type: string
+            minLength: 16
+            maxLength: 255
+          description: >-
+            Client-generated unique key for this submission (a UUID is a good
+            choice). Repeated within the retention window (24 hours), the
+            server replays the original response. Keys are scoped per user.
         - $ref: '../../openapi.yaml#/components/parameters/CorrelationId'
       requestBody:
         required: true
@@ -35,7 +50,9 @@ paths:
               recordedAt: '2026-08-27T08:30:00Z'
       responses:
         '201':
-          description: Reading created.
+          description: >
+            Reading created — or, when a previously seen Idempotency-Key was
+            presented, the original reading replayed.
           headers:
             X-Correlation-ID:
               $ref: '../../components/headers/correlation-id.yaml'
@@ -116,6 +133,25 @@ paths:
                       - field: recordedAt
                         message: must not be older than 5 years
                     correlationId: 7d6f5f2c-0a49-4e10-8ef7-7c3d2b1f4a10
+        '409':
+          description: >
+            The Idempotency-Key was already used with a different request
+            body. This is a client bug, not a retry: a key identifies one
+            logical submission.
+          headers:
+            X-Correlation-ID:
+              $ref: '../../components/headers/correlation-id.yaml'
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../../openapi.yaml#/components/schemas/Problem'
+              example:
+                type: https://api.meterhub.local/problems/idempotency-key-reuse
+                title: Idempotency key already used
+                status: 409
+                code: IDEMPOTENCY_KEY_REUSE
+                detail: The Idempotency-Key was already used with a different request body. Generate a new key for a different submission.
+                correlationId: 7d6f5f2c-0a49-4e10-8ef7-7c3d2b1f4a10
         '500':
           $ref: '../../openapi.yaml#/components/responses/InternalServerError'
 

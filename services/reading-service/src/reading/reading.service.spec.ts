@@ -2,6 +2,7 @@ import {describe, expect, it, vi} from 'vitest';
 import {ReadingService} from './reading.service.js';
 import {MeterAccessService} from '../meter/meter-access.service.js';
 import {ReadingRepository} from './reading.repository.js';
+import {IdempotencyKeyRepository} from './idempotency-key.repository.js';
 import {MeterNotFoundException, ReadingNotFoundException} from '../exceptions/not-found.exception.js';
 import {ReadingDecreasingException} from '../exceptions/reading-argument.exception.js';
 import {RequestValidationException} from '../exceptions/request-validation.exception.js';
@@ -33,11 +34,24 @@ function meterAccessStub() {
     };
 }
 
+function idempotencyKeyStub() {
+    return {
+        find: vi.fn().mockResolvedValue(null),
+        save: vi.fn().mockResolvedValue(undefined),
+        deleteExpired: vi.fn().mockResolvedValue(0),
+    };
+}
+
 function serviceWith(
     repository: ReturnType<typeof repositoryStub>,
     meterAccess: ReturnType<typeof meterAccessStub> = meterAccessStub(),
+    idempotencyKeys: ReturnType<typeof idempotencyKeyStub> = idempotencyKeyStub(),
 ) {
-    return new ReadingService(repository as unknown as ReadingRepository, meterAccess as unknown as MeterAccessService);
+    return new ReadingService(
+        repository as unknown as ReadingRepository,
+        idempotencyKeys as unknown as IdempotencyKeyRepository,
+        meterAccess as unknown as MeterAccessService,
+    );
 }
 
 describe('ReadingService', () => {

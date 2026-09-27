@@ -1,8 +1,9 @@
 import {Injectable} from '@nestjs/common';
 import {PrismaService} from '../database/prisma.service.js';
+import {Prisma} from '../generated/prisma/client.js';
 
-import type {Reading as ReadingRow, Prisma} from '../database/generated/prisma/client.js';
-import type {Reading} from "./generated/models/index.js";
+import type {Reading as ReadingRow} from '../generated/prisma/client.js';
+import type {Reading} from "../generated/reading/models/index.js";
 
 
 const READING_SELECT = {

@@ -64,7 +64,10 @@ function localDateTimeNow(): string {
  */
 export function ReadingCreateDialog({meter, onClose, open}: ReadingCreateDialogProps): React.JSX.Element {
   const queryClient = useQueryClient();
-  const createReadingMutation = useCreateReading();
+  const [idempotencyKey, setIdempotencyKey] = React.useState(() => crypto.randomUUID());
+  const createReadingMutation = useCreateReading({
+    request: {headers: {"Idempotency-Key": idempotencyKey}},
+  });
   const latestQuery = useGetLatestReading(meterId(meter), {query: {enabled: open}});
   const latest = latestReadingOf(latestQuery.data);
 
@@ -79,6 +82,7 @@ export function ReadingCreateDialog({meter, onClose, open}: ReadingCreateDialogP
     setLastOpen(open);
     setValues({value: "", recordedAt: localDateTimeNow()});
     setErrors({});
+    setIdempotencyKey(crypto.randomUUID());
   }
 
   const meterColor = meterTypeColor(meter.type);

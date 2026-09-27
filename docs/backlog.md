@@ -26,7 +26,6 @@ Last reviewed: 2026-09-27
 | ID | Limitation | Impact | Resolution path | Phase | Status |
 |---|---|---|---|---|---|
 | C2 | Rate limiting is in-process — gateway token buckets (keyed by token subject / client IP, [service-boundaries.md](service-boundaries.md) §Rate limiting) live in a single JVM instance | Buckets do not survive restarts and are not shared if the gateway ever scales out | Shared rate-limit store (Redis) when the gateway scales to multiple instances | 7 | Accepted — fine while the gateway is one instance |
-| C3 | No idempotency keys — retried POSTs (readings especially, on flaky networks) can create duplicates | Clients can only treat `409`/`422` as duplicate signals, which is ambiguous | `Idempotency-Key` on `POST /readings`; duplicate submissions within a window return the original response | 1.1 | Open |
 
 ## O — Operations
 
@@ -53,9 +52,10 @@ Last reviewed: 2026-09-27
 | O6 | Reading source enum unresolved — clients could not assume what `source` values exist | 2026-09-26 | Contract pins `source` to `MANUAL` for the MVP (`contracts/openapi/services/reading-service/openapi.yaml`); `DEVICE` arrives with Phase 6 |
 | C1 | No pagination metadata — history endpoints took `limit`/`offset` and returned a bare array, no total count, no links | 2026-09-27 | Offset-based `ReadingPage` envelope `{items, total, limit, offset}` in the reading contract; server clamps and echoes paging values; frontend and e2e updated (`ReadingPage` in `contracts/openapi/services/reading-service/openapi.yaml`) |
 | D2 | Timezone discipline relied on the client — nothing stopped a `recordedAt` far in the past or future | 2026-09-27 | Reading Service rejects out-of-window timestamps with 422 `RECORDED_AT_IN_FUTURE` / `RECORDED_AT_TOO_OLD` (5-year window), enforced via `@DateNotInFuture` / `@DateNotOlderThan` command decorators |
+| C3 | No idempotency keys — retried POSTs (readings especially, on flaky networks) could create duplicates; `409`/`422` were ambiguous duplicate signals | 2026-09-27 | `Idempotency-Key` on `POST /readings` (optional header, per-user scoped): repeats within the 24h window replay the original response; reuse with a different body is 409 `IDEMPOTENCY_KEY_REUSE`; records stored in the reading DB with expiry cleanup hook. Web app sends one key per dialog session |
 
 ---
 
 ## Done when
 
-The Phase 1 slice of this backlog is done when: C3 shipped and covered by e2e tests (C1 already resolved); A3 roles enforced end to end; O1 fires a real notification; O2 restore-tested at least once (mirrors roadmap Phase 1 exit criteria). Accepted items (A2, C2) revisit at their stated trigger in Phase 7.
+The Phase 1 slice of this backlog is done when: A3 roles enforced end to end (C1, C3 already resolved); O1 fires a real notification; O2 restore-tested at least once (mirrors roadmap Phase 1 exit criteria). Accepted items (A2, C2) revisit at their stated trigger in Phase 7.

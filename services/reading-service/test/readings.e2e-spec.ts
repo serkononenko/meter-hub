@@ -309,6 +309,107 @@ describe('Create reading (e2e)', () => {
         expect(pastEnd.body.items).toEqual([]);
         expect(pastEnd.body.total).toBe(3);
     });
+
+    it('replays the original response for a repeated Idempotency-Key (backlog C3)', async () => {
+        const token = await mintToken({subject: ALICE});
+        const meterId = freshMeter();
+        const key = crypto.randomUUID();
+        const payload = {meterId, value: 777, recordedAt: '2026-08-15T08:00:00Z'};
+
+        const first = await request(app.getHttpServer())
+            .post('/api/v1/readings')
+            .set('Authorization', `Bearer ${token}`)
+            .set('Idempotency-Key', key)
+            .send(payload);
+        expect(first.status).toBe(201);
+
+        const retry = await request(app.getHttpServer())
+            .post('/api/v1/readings')
+            .set('Authorization', `Bearer ${token}`)
+            .set('Idempotency-Key', key)
+            .send(payload);
+
+        expect(retry.status).toBe(201);
+        expect(retry.body).toEqual(first.body);
+
+        // Exactly one reading was created.
+        const history = await request(app.getHttpServer())
+            .get(`/api/v1/meters/${meterId}/readings`)
+            .set('Authorization', `Bearer ${token}`);
+        expect(history.body.total).toBe(1);
+    });
+
+    it('rejects an Idempotency-Key reused with a different body (backlog C3)', async () => {
+        const token = await mintToken({subject: ALICE});
+        const meterId = freshMeter();
+        const key = crypto.randomUUID();
+
+        const first = await request(app.getHttpServer())
+            .post('/api/v1/readings')
+            .set('Authorization', `Bearer ${token}`)
+            .set('Idempotency-Key', key)
+            .send({meterId, value: 100, recordedAt: '2026-08-15T08:00:00Z'});
+        expect(first.status).toBe(201);
+
+        const reuse = await request(app.getHttpServer())
+            .post('/api/v1/readings')
+            .set('Authorization', `Bearer ${token}`)
+            .set('Idempotency-Key', key)
+            .send({meterId, value: 200, recordedAt: '2026-08-15T08:00:00Z'});
+
+        expect(reuse.status).toBe(409);
+        expect(reuse.headers['content-type']).toContain('application/problem+json');
+        expect(reuse.body).toMatchObject({
+            code: 'IDEMPOTENCY_KEY_REUSE',
+            status: 409,
+            title: 'Idempotency key already used',
+        });
+    });
+
+    it('rejects another user presenting a key they did not create (backlog C3)', async () => {
+        const alice = await mintToken({subject: ALICE});
+        const bob = await mintToken({subject: '22222222-2222-4222-8222-222222222222'});
+        const aliceMeter = freshMeter();
+        const key = crypto.randomUUID();
+
+        const first = await request(app.getHttpServer())
+            .post('/api/v1/readings')
+            .set('Authorization', `Bearer ${alice}`)
+            .set('Idempotency-Key', key)
+            .send({meterId: aliceMeter, value: 100, recordedAt: '2026-08-15T08:00:00Z'});
+        expect(first.status).toBe(201);
+
+        // Bob replays Alice's key against his own meter — keys are scoped
+        // per user, so this is a reuse conflict, not a cross-user leak.
+        const stolen = await request(app.getHttpServer())
+            .post('/api/v1/readings')
+            .set('Authorization', `Bearer ${bob}`)
+            .set('Idempotency-Key', key)
+            .send({meterId: BOB_METER, value: 100, recordedAt: '2026-08-15T08:00:00Z'});
+
+        expect(stolen.status).toBe(409);
+        expect(stolen.body.code).toBe('IDEMPOTENCY_KEY_REUSE');
+    });
+
+    it('treats requests without an Idempotency-Key as before', async () => {
+        const token = await mintToken({subject: ALICE});
+        const meterId = freshMeter();
+        const payload = {meterId, value: 50, recordedAt: '2026-08-15T08:00:00Z'};
+
+        const first = await request(app.getHttpServer())
+            .post('/api/v1/readings')
+            .set('Authorization', `Bearer ${token}`)
+            .send(payload);
+        const second = await request(app.getHttpServer())
+            .post('/api/v1/readings')
+            .set('Authorization', `Bearer ${token}`)
+            .send(payload);
+
+        expect(first.status).toBe(201);
+        expect(second.status).toBe(201);
+        // No key: both submissions create readings (duplicate allowed, as documented).
+        expect(first.body.id).not.toBe(second.body.id);
+    });
 });
 
 /** A meter owned by ALICE that no other test run has seen. */

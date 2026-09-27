@@ -1,5 +1,5 @@
 import {describe, expect, it, vi} from 'vitest';
-import {ReadingSource} from '../database/generated/prisma/enums.js';
+import {ReadingSource} from '../generated/prisma/enums.js';
 import {PrismaService} from '../database/prisma.service.js';
 import {ReadingRepository} from './reading.repository.js';
 

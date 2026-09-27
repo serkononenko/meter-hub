@@ -1,5 +1,6 @@
 import {Module} from '@nestjs/common';
 import {ReadingRepository} from './reading.repository.js';
+import {IdempotencyKeyRepository} from "./idempotency-key.repository.js";
 import {ReadingService} from './reading.service.js';
 import {ApiImplementations, ApiModule} from "../generated/reading/index.js";
 import {MeterApiProvider} from "../meter/meter-api.provider.js";
@@ -17,6 +18,7 @@ const apiImplementations: ApiImplementations = {
             apiImplementations: apiImplementations,
             providers: [
                 ReadingRepository,
+                IdempotencyKeyRepository,
                 MeterApiProvider,
                 MeterAccessService,
             ]
