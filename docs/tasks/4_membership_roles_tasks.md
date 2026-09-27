@@ -19,40 +19,40 @@ R1.1 OpenAPI contract update (`contracts/openapi/services/household-service/open
 - [x] Redocly lint clean; regenerate Orval clients (frontend) and NestJS client for meter/reading consumption paths.
 
 R1.2 Migration (`db/migration/households/`)
-- [ ] Extend `MembershipRole` with `VIEWER` (check constraint / enum migration).
-- [ ] Replace `UNIQUE (household_id)` on `household_members` with `UNIQUE (household_id, user_id)`; backfill nothing (existing rows stay OWNER).
-- [ ] New `household_invites` table: `id`, `household_id`, `role`, `code_hash`, `created_by`, `expires_at`, `redeemed_at` nullable, `redeemed_by` nullable — codes hashed like refresh tokens.
-- [ ] Verify migration up/down against a copy of a populated MVP database (existing single-owner household must survive untouched).
+- [x] Extend `MembershipRole` with `VIEWER` (check constraint / enum migration).
+- [x] Replace `UNIQUE (household_id)` on `household_members` with `UNIQUE (household_id, user_id)`; backfill nothing (existing rows stay OWNER).
+- [x] New `household_invites` table: `id`, `household_id`, `role`, `code_hash`, `created_by`, `expires_at`, `redeemed_at` nullable, `redeemed_by` nullable — codes hashed like refresh tokens. (jOOQ DDLDatabase codegen can't simulate `DROP CONSTRAINT` — runtime-only drops wrapped in `/*[ignore]*/` with final shape expressed directly; also added `revoked_at` for invite revocation.)
+- [x] Verify migration up/down against a copy of a populated MVP database (existing single-owner household must survive untouched).
 
 ## Epic R2 — Household service: membership, invites, members
 
 R2.1 Role model & membership resolution
-- [ ] Domain: membership per (household, user); creator stays OWNER; owner role immutable; removing owner rejected.
-- [ ] Every authorization path resolves through the requester's membership — no "creator ⇒ trusted" shortcut left in `HouseholdService`.
+- [x] Domain: membership per (household, user); creator stays OWNER; owner role immutable; removing owner rejected.
+- [x] Every authorization path resolves through the requester's membership — no "creator ⇒ trusted" shortcut left in `HouseholdService`.
 
 R2.2 Members API
-- [ ] `GET /api/v1/households/{id}/members` — any member of that household (403-masked otherwise, no enumeration).
-- [ ] `DELETE /api/v1/households/{id}/members/{userId}` — owner-only; reject self-removal and owner target (`409 OWNER_CANNOT_BE_REMOVED`).
+- [x] `GET /api/v1/households/{id}/members` — any member of that household (403-masked otherwise, no enumeration).
+- [x] `DELETE /api/v1/households/{id}/members/{userId}` — owner-only; reject self-removal and owner target (`409 OWNER_CANNOT_BE_REMOVED`).
 
 R2.3 Invites
-- [ ] `POST .../invites` — owner-only, target role MEMBER|VIEWER, high-entropy code returned once in plaintext, stored hashed, 7-day expiry.
-- [ ] Bounded live invites per household (10) — 409-style rejection beyond.
-- [ ] `GET .../invites` — owner-only, live (unredeemed, unexpired) only, no code material.
-- [ ] `DELETE .../invites/{inviteId}` — owner-only revoke.
+- [x] `POST .../invites` — owner-only, target role MEMBER|VIEWER, high-entropy code returned once in plaintext, stored hashed, 7-day expiry.
+- [x] Bounded live invites per household (10) — 409-style rejection beyond.
+- [x] `GET .../invites` — owner-only, live (unredeemed, unexpired) only, no code material.
+- [x] `DELETE .../invites/{inviteId}` — owner-only revoke.
 
 R2.4 Redeem
-- [ ] `POST /api/v1/households/invites/redeem` — any authenticated user; single-use (used → `409`, expired → `410`, unknown → `404`).
-- [ ] Idempotent for an existing member (no-op success, never an error).
-- [ ] Transactional: redemption + membership creation atomic; race on last code use must not double-create membership (unique constraint backstop).
+- [x] `POST /api/v1/households/invites/redeem` — any authenticated user; single-use (used → `409`, expired → `410`, unknown → `404`).
+- [x] Idempotent for an existing member (no-op success, never an error).
+- [x] Transactional: redemption + membership creation atomic; race on last code use must not double-create membership (unique constraint backstop).
 
 R2.5 Households list/get with role
-- [ ] `GET /api/v1/households` returns every household the caller has *any* membership in, each with caller's role — replaces implicit "I own everything returned".
-- [ ] `GET /api/v1/households/{id}` for a non-member stays enumeration-safe (404, same as today).
+- [x] `GET /api/v1/households` returns every household the caller has *any* membership in, each with caller's role — replaces implicit "I own everything returned".
+- [x] `GET /api/v1/households/{id}` for a non-member stays enumeration-safe (404, same as today).
 
 R2.6 Internal access endpoint
-- [ ] `GET /api/v1/internal/household-access?householdId=&userId=` — verdict `{role, exists}`; narrow accessor, no membership details beyond the pair.
-- [ ] `permitAll` on the internal surface (A1 trust model, like the revocation feed), documented as revisited when A1 lands.
-- [ ] Unit + integration tests: role matrix in household-service (OWNER/MEMBER/VIEWER/non-member × every endpoint), invite lifecycle (create→redeem→reused/expired/revoked), owner-protection paths.
+- [x] `GET /api/v1/internal/household-access?householdId=&userId=` — verdict `{role, exists}`; narrow accessor, no membership details beyond the pair.
+- [x] `permitAll` on the internal surface (A1 trust model, like the revocation feed), documented as revisited when A1 lands.
+- [x] Unit + integration tests: role matrix in household-service (OWNER/MEMBER/VIEWER/non-member × every endpoint), invite lifecycle (create→redeem→reused/expired/revoked), owner-protection paths.
 
 ## Epic R3 — Meter service: role-aware authorization
 
@@ -78,8 +78,8 @@ R2.6 Internal access endpoint
 
 ## Epic R6 — Gateway & routing
 
-- [ ] Confirm `/api/v1/households/**` routing covers the new invite/member paths (it should, prefix-based — verify, don't assume).
-- [ ] `denyAll` for proxied `/api/v1/internal/household-access` (mirror A4's identity internal path), test included.
+- [x] Confirm `/api/v1/households/**` routing covers the new invite/member paths (it does — prefix-based, verified live).
+- [x] `denyAll` for proxied `/api/v1/internal/household-access` (mirror A4's identity internal path), test included. (Also fixed the gateway image build, broken since A4: Dockerfile now mounts the shared contracts context for openapi-generator.)
 
 ## Epic R7 — End-to-end verification & docs
 

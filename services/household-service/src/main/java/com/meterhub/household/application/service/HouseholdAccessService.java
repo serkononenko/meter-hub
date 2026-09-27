@@ -1,5 +1,6 @@
 package com.meterhub.household.application.service;
 
+import com.meterhub.household.domain.model.HouseholdMember;
 import com.meterhub.household.domain.model.MembershipRole;
 import com.meterhub.household.ports.inbound.GetHouseholdAccessUseCase;
 import com.meterhub.household.ports.outbound.HouseholdMemberRepository;
@@ -27,6 +28,6 @@ public class HouseholdAccessService implements GetHouseholdAccessUseCase {
     @Transactional(readOnly = true)
     public Optional<MembershipRole> getAccess(UUID householdId, UUID userId) {
         return householdMemberRepository.findByHouseholdIdAndUserId(householdId, userId)
-            .map(member -> member.role());
+            .map(HouseholdMember::role);
     }
 }
