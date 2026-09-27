@@ -15,6 +15,12 @@ RUN ./gradlew --no-daemon bootJar -x test && cp build/libs/*.jar /app.jar
 FROM eclipse-temurin:25-jre
 WORKDIR /app
 
+# curl for the Compose healthcheck probing /actuator/health/readiness
+# (the base JRE image ships neither curl nor wget)
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends curl \
+    && rm -rf /var/lib/apt/lists/*
+
 RUN useradd --system --create-home appuser
 COPY --from=build --chown=appuser:appuser /app.jar app.jar
 

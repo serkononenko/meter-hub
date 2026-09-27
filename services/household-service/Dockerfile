@@ -17,6 +17,12 @@ RUN OPENAPI_SPEC=/contracts/openapi/services/household-service/openapi.yaml ./gr
 FROM eclipse-temurin:25-jre
 WORKDIR /app
 
+# curl for the Compose healthcheck probing /actuator/health/liveness
+# (the base JRE image ships neither curl nor wget)
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends curl \
+    && rm -rf /var/lib/apt/lists/*
+
 RUN useradd --system --create-home appuser
 COPY --from=build --chown=appuser:appuser /app.jar app.jar
 

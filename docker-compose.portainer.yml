@@ -80,15 +80,24 @@ services:
       - identity.jwt.public-key
     networks:
       - meter-hub
+    # Liveness only (conventions §13): process up, no dependency checks —
+    # marking the gateway dead because a downstream is down would cascade
+    # restarts across the stack.
+    healthcheck:
+      test: [ "CMD", "curl", "-fsS", "http://localhost:8080/actuator/health/liveness" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
     depends_on:
       identity-service:
-        condition: service_started
+        condition: service_healthy
       household-service:
-        condition: service_started
+        condition: service_healthy
       meter-service:
-        condition: service_started
+        condition: service_healthy
       reading-service:
-        condition: service_started
+        condition: service_healthy
 
   identity-service:
     image: ghcr.io/serkononenko/meter-hub-identity-service:main
@@ -106,6 +115,12 @@ services:
       - "8081"
     networks:
       - meter-hub
+    healthcheck:
+      test: [ "CMD", "curl", "-fsS", "http://localhost:8081/actuator/health/liveness" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
     depends_on:
       postgres:
         condition: service_healthy
@@ -125,6 +140,12 @@ services:
       - "8082"
     networks:
       - meter-hub
+    healthcheck:
+      test: [ "CMD", "curl", "-fsS", "http://localhost:8082/actuator/health/liveness" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
     depends_on:
       postgres:
         condition: service_healthy
@@ -144,6 +165,12 @@ services:
       - "8083"
     networks:
       - meter-hub
+    healthcheck:
+      test: [ "CMD", "wget", "-q", "--spider", "http://localhost:8083/health/live" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
     depends_on:
       postgres:
         condition: service_healthy
@@ -165,11 +192,17 @@ services:
       - "8084"
     networks:
       - meter-hub
+    healthcheck:
+      test: [ "CMD", "wget", "-q", "--spider", "http://localhost:8084/health/live" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
     depends_on:
       postgres:
         condition: service_healthy
       meter-service:
-        condition: service_started
+        condition: service_healthy
 
   web:
     image: ghcr.io/serkononenko/meter-hub-web:main

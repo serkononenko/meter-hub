@@ -12,28 +12,76 @@ tags:
     description: Service health endpoints
 
 paths:
-  /api/v1/health:
+  #
+  # Health probe endpoints (conventions §13).
+  #
+  # Every service (gateway and all four backing services) serves the two
+  # liveness/readiness variants at the paths below; the aggregate variant
+  # (`/health` or `/actuator/health`) additionally exists per service.
+  # These are operational endpoints served by each service directly —
+  # not proxied through the gateway — so the paths here are declared
+  # without a server prefix and with `{port}` placeholders.
+  #
+  # Liveness answers "is the process up" and never checks dependencies;
+  # readiness includes the owning service's database. Orchestration
+  # (Compose healthchecks, future schedulers) probes liveness; load
+  # balancing / traffic decisions probe readiness. Services must never
+  # probe each other's health: a dead dependency must not cascade into
+  # restarts of healthy services.
+  #
+  /health/live:
     get:
       tags: [Health]
-      operationId: getHealth
-      summary: Check API availability
+      operationId: getLiveness
+      # Probes are deliberately unauthenticated — orchestration must be
+      # able to reach them without credentials.
+      security: []
+      summary: Liveness probe — process is up, no dependency checks
+      description: |
+        Served by every service on its own port (8080–8084). Spring
+        services expose this as `/actuator/health/liveness`, NestJS
+        services as `/health/live` — the response shape is identical.
+        Returns 503 with a problem body when the process is shutting down.
       responses:
         '200':
-          description: API is available
-          headers:
-            X-Correlation-ID:
-              $ref: './components/headers/correlation-id.yaml'
+          description: Process is up
           content:
             application/json:
               schema:
-                type: object
-                required: [status]
-                properties:
-                  status:
-                    type: string
-                    example: UP
-        '500':
-          $ref: '#/components/responses/InternalServerError'
+                $ref: '#/components/schemas/HealthStatus'
+        '503':
+          description: Process is shutting down
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthStatus'
+
+  /health/ready:
+    get:
+      tags: [Health]
+      operationId: getReadiness
+      # Probes are deliberately unauthenticated — orchestration must be
+      # able to reach them without credentials.
+      security: []
+      summary: Readiness probe — process up plus own dependencies (database)
+      description: |
+        Served by every service on its own port (8080–8084). Spring
+        services expose this as `/actuator/health/readiness`, NestJS
+        services as `/health/ready`. Fails (503) when the service's own
+        database is unreachable — never because a *peer* service is down.
+      responses:
+        '200':
+          description: Service is ready to serve traffic
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthStatus'
+        '503':
+          description: A required dependency of this service is unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthStatus'
 
 components:
   parameters:
@@ -48,6 +96,17 @@ components:
       example: 7d6f5f2c-0a49-4e10-8ef7-7c3d2b1f4a10
 
   schemas:
+    HealthStatus:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+          enum: [UP, DOWN, OUT_OF_SERVICE]
+          description: Aggregated probe outcome (Spring Boot health convention).
+      example:
+        status: UP
+
     UUID:
       type: string
       format: uuid

@@ -23,13 +23,28 @@ const EMAIL = `e2e-${RUN}@example.com`;
 const USERNAME = `e2e-${RUN}`;
 const PASSWORD = 'correct-horse-battery';
 
-/** JSON request through the gateway; returns {status, body, correlationId}. */
-async function call(method, path, {token, body} = {}) {
+/**
+ * JSON request through the gateway; returns {status, body, correlationId}.
+ *
+ * `client` acts as the browser identity for the gateway's rate limiter:
+ * auth endpoints are IP-keyed buckets (capacity 10, refill 5/min) and the
+ * full journey makes 12 auth calls — more than one bucket holds. The
+ * gateway trusts the Next.js proxy's X-Forwarded-For hop, so a distinct
+ * value per test gets that test its own bucket, mirroring how separate
+ * browsers are isolated in production. Still one 429 assert below covers
+ * the limiter itself.
+ */
+// Unique per run so back-to-back local runs (and CI cold stacks) always
+// start with full buckets — 203.0.113.0/24 is TEST-NET-3, never routed.
+const CLIENTS = [0, 1].map((i) => `203.0.113.${(RUN.charCodeAt(RUN.length - 1) + i * 7) % 250 + 1}`);
+
+async function call(method, path, {token, body, client = 0} = {}) {
     const response = await fetch(`${GATEWAY}${path}`, {
         method,
         headers: {
             'Content-Type': 'application/json',
             'X-Correlation-ID': crypto.randomUUID(),
+            'X-Forwarded-For': CLIENTS[client],
             ...(token ? {Authorization: `Bearer ${token}`} : {}),
         },
         body: body === undefined ? undefined : JSON.stringify(body),
@@ -221,13 +236,16 @@ test('another user cannot see the journey user’s data', async () => {
 
     // Two independent users; each owns one household.
     const createOwner = async (n) => {
+        const clientIndex = n === 'a' ? 0 : 1;
         const email = `e2e-${suffix(n)}@example.com`;
         const username = `e2e-${suffix(n)}`;
         await call('POST', identity('/api/v1/auth/register'), {
             body: {email, username, password: PASSWORD},
+            client: clientIndex,
         });
         const login = await call('POST', identity('/api/v1/auth/login'), {
             body: {email, password: PASSWORD},
+            client: clientIndex,
         });
         assert.equal(login.status, 200);
         const token = login.body.accessToken;
