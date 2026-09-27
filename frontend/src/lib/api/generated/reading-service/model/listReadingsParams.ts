@@ -8,7 +8,7 @@
 
 export type ListReadingsParams = {
 /**
- * Page size.
+ * Page size. Values above 200 are capped server-side and the applied value is echoed in the response.
  * @minimum 1
  * @maximum 200
  */

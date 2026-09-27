@@ -174,11 +174,15 @@ test('register -> login -> household -> meter -> reading -> history', async () =
         token: accessToken,
     });
     assert.equal(history.status, 200);
-    assert.ok(Array.isArray(history.body));
-    assert.ok(history.body.length >= 2, 'both readings are in history');
+    // Offset-based page envelope: items plus echoed paging metadata.
+    assert.ok(Array.isArray(history.body.items));
+    assert.equal(typeof history.body.total, 'number');
+    assert.equal(history.body.limit, 10);
+    assert.equal(history.body.offset, 0);
+    assert.ok(history.body.items.length >= 2, 'both readings are in history');
     // Newest first
-    assert.equal(history.body[0].value, 1050.5);
-    assert.equal(history.body[1].value, 1000);
+    assert.equal(history.body.items[0].value, 1050.5);
+    assert.equal(history.body.items[1].value, 1000);
 
     const latest = await call('GET', reading(`/api/v1/meters/${meterId}/readings/latest`), {
         token: accessToken,

@@ -1,11 +1,6 @@
 import {HttpException, HttpStatus} from "@nestjs/common";
 
 
-/**
- * The request is well-formed but the reading is business-invalid (PRD §7):
- * for cumulative meters the counter must not go backwards. 422 per
- * api-conventions §5; the code is a stable machine-readable contract.
- */
 export class ReadingDecreasingException extends HttpException {
     constructor(pendingValue: number, previousValue: number, previousRecordedAt: string) {
         super({
@@ -17,6 +12,36 @@ export class ReadingDecreasingException extends HttpException {
                 'Cumulative meter counters must not decrease.',
             errors: [
                 {field: 'value', message: 'must not be lower than the previous reading'},
+            ],
+        }, HttpStatus.UNPROCESSABLE_ENTITY);
+    }
+}
+
+export class RecordedAtInFutureException extends HttpException {
+    constructor(recordedAt: string) {
+        super({
+            code: 'RECORDED_AT_IN_FUTURE',
+            title: 'Reading timestamp is in the future',
+            detail:
+                `The recordedAt ${recordedAt} is in the future; ` +
+                'readings cannot be recorded ahead of time.',
+            errors: [
+                {field: 'recordedAt', message: 'must not be in the future'},
+            ],
+        }, HttpStatus.UNPROCESSABLE_ENTITY);
+    }
+}
+
+export class RecordedAtTooOldException extends HttpException {
+    constructor(recordedAt: string, maxAgeYears: number) {
+        super({
+            code: 'RECORDED_AT_TOO_OLD',
+            title: 'Reading timestamp is too far in the past',
+            detail:
+                `The recordedAt ${recordedAt} is more than ${maxAgeYears} years in the past; ` +
+                `the plausible window for utility readings is ${maxAgeYears} years.`,
+            errors: [
+                {field: 'recordedAt', message: `must not be older than ${maxAgeYears} years`},
             ],
         }, HttpStatus.UNPROCESSABLE_ENTITY);
     }

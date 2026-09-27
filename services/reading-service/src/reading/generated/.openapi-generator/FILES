@@ -15,6 +15,7 @@ models/create-reading-request.ts
 models/index.ts
 models/problem-errors-inner.ts
 models/problem.ts
+models/reading-page.ts
 models/reading-source.ts
 models/reading.ts
 tsconfig.json

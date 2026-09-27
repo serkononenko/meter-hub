@@ -25,7 +25,6 @@ Last reviewed: 2026-09-27
 
 | ID | Limitation | Impact | Resolution path | Phase | Status |
 |---|---|---|---|---|---|
-| C1 | No pagination metadata — history endpoints take `limit`/`offset` and return a bare array | No total count, no next/prev links; `limit` is uncapped, so a huge `limit` returns a huge response | `{items, total, limit, offset}` envelope, server-side `limit` cap, next/prev links or cursor; contract + generated clients updated together | 1.1 | Open |
 | C2 | Rate limiting is in-process — gateway token buckets (keyed by token subject / client IP, [service-boundaries.md](service-boundaries.md) §Rate limiting) live in a single JVM instance | Buckets do not survive restarts and are not shared if the gateway ever scales out | Shared rate-limit store (Redis) when the gateway scales to multiple instances | 7 | Accepted — fine while the gateway is one instance |
 | C3 | No idempotency keys — retried POSTs (readings especially, on flaky networks) can create duplicates | Clients can only treat `409`/`422` as duplicate signals, which is ambiguous | `Idempotency-Key` on `POST /readings`; duplicate submissions within a window return the original response | 1.1 | Open |
 
@@ -43,7 +42,6 @@ Last reviewed: 2026-09-27
 | ID | Limitation | Impact | Resolution path | Phase | Status |
 |---|---|---|---|---|---|
 | D1 | No soft delete or audit trail — deletes (where exposed) are hard; only `createdAt` exists | No `updatedAt`, no actor tracking; accidental deletes are unrecoverable | `updatedAt` + actor tracking on mutations; replace hard deletes with archived/expired states for household/meter lifecycle | 1.3 | Open |
-| D2 | Timezone discipline relies on the client — services store UTC and validate format, but nothing stops a `recordedAt` far in the past or future | Garbage-dated readings pollute history and future reports | Input sanity validation on `recordedAt` (reject readings beyond a plausible window) | 1.1 | Open |
 
 ---
 
@@ -53,9 +51,11 @@ Last reviewed: 2026-09-27
 |---|---|---|---|
 | O5 | CI runs tests only — no image publishing, no environments | 2026-09-26 | Images published to ghcr.io on green `main` (`linux/amd64`, tagged `main`/`latest`/SHA); Portainer pull-based deploy documented in [deploy-portainer.md](deploy-portainer.md) |
 | O6 | Reading source enum unresolved — clients could not assume what `source` values exist | 2026-09-26 | Contract pins `source` to `MANUAL` for the MVP (`contracts/openapi/services/reading-service/openapi.yaml`); `DEVICE` arrives with Phase 6 |
+| C1 | No pagination metadata — history endpoints took `limit`/`offset` and returned a bare array, no total count, no links | 2026-09-27 | Offset-based `ReadingPage` envelope `{items, total, limit, offset}` in the reading contract; server clamps and echoes paging values; frontend and e2e updated (`ReadingPage` in `contracts/openapi/services/reading-service/openapi.yaml`) |
+| D2 | Timezone discipline relied on the client — nothing stopped a `recordedAt` far in the past or future | 2026-09-27 | Reading Service rejects out-of-window timestamps with 422 `RECORDED_AT_IN_FUTURE` / `RECORDED_AT_TOO_OLD` (5-year window), enforced via `@DateNotInFuture` / `@DateNotOlderThan` command decorators |
 
 ---
 
 ## Done when
 
-The Phase 1 slice of this backlog is done when: C1 + C3 shipped and covered by e2e tests; A3 roles enforced end to end; O1 fires a real notification; O2 restore-tested at least once (mirrors roadmap Phase 1 exit criteria). Accepted items (A2, C2) revisit at their stated trigger in Phase 7.
+The Phase 1 slice of this backlog is done when: C3 shipped and covered by e2e tests (C1 already resolved); A3 roles enforced end to end; O1 fires a real notification; O2 restore-tested at least once (mirrors roadmap Phase 1 exit criteria). Accepted items (A2, C2) revisit at their stated trigger in Phase 7.

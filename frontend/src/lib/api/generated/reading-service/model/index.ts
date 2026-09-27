@@ -11,6 +11,8 @@ export * from './listReadingsParams';
 export * from './problem';
 export * from './problemErrorsItem';
 export * from './reading';
+export * from './readingPage';
 export * from './readingSource';
 export * from './timestamp';
+export * from './unauthorizedProblemResponse';
 export * from './uuid';

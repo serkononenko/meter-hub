@@ -23,7 +23,7 @@ rather than retrofitted twice.
 
 ## Phase 1 — Hardening & Platform Maturity
 
-Close the operational gaps tracked in `docs/backlog.md` (items A1, A3, A4, C1–C3, O1–O3, D1–D2) before adding
+Close the operational gaps tracked in `docs/backlog.md` (items A1, A3, A4, C3, O1–O3, D1; C1 and D2 already resolved) before adding
 features. Everything here is within the existing five-service topology —
 no new services.
 

@@ -92,6 +92,30 @@ paths:
                     code: READING_DECREASING
                     detail: The value 100 is lower than the previous reading 15432.1 recorded at 2026-08-27T08:30:00Z. Cumulative meter counters must not decrease.
                     correlationId: 7d6f5f2c-0a49-4e10-8ef7-7c3d2b1f4a10
+                recordedAtInFuture:
+                  summary: Reading recorded in the future
+                  value:
+                    type: https://api.meterhub.local/problems/recorded-at-in-future
+                    title: Reading timestamp is in the future
+                    status: 422
+                    code: RECORDED_AT_IN_FUTURE
+                    detail: The recordedAt 2027-01-01T00:00:00Z is in the future; readings cannot be recorded ahead of time.
+                    errors:
+                      - field: recordedAt
+                        message: must not be in the future
+                    correlationId: 7d6f5f2c-0a49-4e10-8ef7-7c3d2b1f4a10
+                recordedAtTooOld:
+                  summary: Reading timestamp implausibly far in the past
+                  value:
+                    type: https://api.meterhub.local/problems/recorded-at-too-old
+                    title: Reading timestamp is too far in the past
+                    status: 422
+                    code: RECORDED_AT_TOO_OLD
+                    detail: The recordedAt 1994-05-01T00:00:00Z is more than 5 years in the past; the plausible window for utility readings is 5 years.
+                    errors:
+                      - field: recordedAt
+                        message: must not be older than 5 years
+                    correlationId: 7d6f5f2c-0a49-4e10-8ef7-7c3d2b1f4a10
         '500':
           $ref: '../../openapi.yaml#/components/responses/InternalServerError'
 
@@ -123,7 +147,9 @@ paths:
             minimum: 1
             maximum: 200
             default: 50
-          description: Page size.
+          description: >-
+            Page size. Values above 200 are capped server-side and the
+            applied value is echoed in the response.
         - name: offset
           in: query
           required: false
@@ -135,23 +161,28 @@ paths:
         - $ref: '../../openapi.yaml#/components/parameters/CorrelationId'
       responses:
         '200':
-          description: The meter's readings, newest first.
+          description: >
+            Page of the meter's readings, newest first. The echoed `limit`
+            and `offset` reflect the server-applied values after clamping
+            out-of-range or non-numeric input to the defaults.
           headers:
             X-Correlation-ID:
               $ref: '../../components/headers/correlation-id.yaml'
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/Reading'
+                $ref: '#/components/schemas/ReadingPage'
               example:
-                - id: 2b7e9a10-1c44-4c7e-8f5a-9d3b6c2e1a40
-                  meterId: 0d7f8a26-6f6f-4a55-9a71-3bd11c0a1f01
-                  value: 15432.1
-                  recordedAt: '2026-08-27T08:30:00Z'
-                  source: MANUAL
-                  createdAt: '2026-08-27T08:31:00Z'
+                items:
+                  - id: 2b7e9a10-1c44-4c7e-8f5a-9d3b6c2e1a40
+                    meterId: 0d7f8a26-6f6f-4a55-9a71-3bd11c0a1f01
+                    value: 15432.1
+                    recordedAt: '2026-08-27T08:30:00Z'
+                    source: MANUAL
+                    createdAt: '2026-08-27T08:31:00Z'
+                total: 137
+                limit: 50
+                offset: 0
         '400':
           $ref: '../../openapi.yaml#/components/responses/BadRequest'
         '401':
@@ -334,3 +365,31 @@ components:
           format: date-time
           description: RFC 3339 timestamp in UTC. Must use the Z suffix.
           example: '2026-08-27T08:30:00Z'
+
+    ReadingPage:
+      type: object
+      additionalProperties: false
+      required: [items, total, limit, offset]
+      description: >-
+        Offset-based page of readings with a total count. `limit` and
+        `offset` echo the server-applied values after clamping, so clients
+        can rely on them to build the next request.
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Reading'
+          description: The page of readings, newest first. Empty when the offset is past the end.
+        total:
+          type: integer
+          minimum: 0
+          description: Total number of readings for the meter, across all pages.
+        limit:
+          type: integer
+          minimum: 1
+          maximum: 200
+          description: Server-applied page size after clamping.
+        offset:
+          type: integer
+          minimum: 0
+          description: Server-applied number of skipped readings.

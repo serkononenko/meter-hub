@@ -57,7 +57,17 @@ export class ReadingService extends ReadingsApi {
 
         const page = clampPage(limit, offset);
 
-        return this.repository.findByMeterId(meterId, page.limit, page.offset);
+        const [items, total] = await Promise.all([
+            this.repository.findByMeterId(meterId, page.limit, page.offset),
+            this.repository.countByMeterId(meterId),
+        ]);
+
+        return {
+            items,
+            total,
+            limit: page.limit,
+            offset: page.offset,
+        };
     }
 
     private async validate(command: object) {

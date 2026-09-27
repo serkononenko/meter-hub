@@ -28,7 +28,9 @@ import type {
   CreateReadingRequest,
   ListReadingsParams,
   Problem,
-  Reading
+  Reading,
+  ReadingPage,
+  UnauthorizedProblemResponse
 } from '../model';
 
 import { orvalInstance } from '../../../orval-mutator';
@@ -64,7 +66,7 @@ export type createReadingResponse400 = {
 }
 
 export type createReadingResponse401 = {
-  data: Problem
+  data: UnauthorizedProblemResponse
   status: 401
 }
 
@@ -135,7 +137,7 @@ return orvalInstance<createReadingResponse>(getCreateReadingUrl(),
 
 export const getCreateReadingMutationKey = () => ['createReading'] as const;
 
-export const getCreateReadingMutationOptions = <TError = Problem,
+export const getCreateReadingMutationOptions = <TError = Problem | UnauthorizedProblemResponse,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createReading>>, TError,CreateReadingMutationVariables, TContext>, request?: SecondParameter<typeof orvalInstance>}
 ): UseMutationOptions<Awaited<ReturnType<typeof createReading>>, TError,CreateReadingMutationVariables, TContext> => {
 
@@ -164,13 +166,13 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
     export type CreateReadingMutationResult = NonNullable<Awaited<ReturnType<typeof createReading>>>
     export type CreateReadingMutationBody = CreateReadingRequest
-    export type CreateReadingMutationError = Problem
+    export type CreateReadingMutationError = Problem | UnauthorizedProblemResponse
     export type CreateReadingMutationVariables = {data: CreateReadingRequest}
 
     /**
  * @summary Record a reading for a meter owned by the authenticated user
  */
-export const useCreateReading = <TError = Problem,
+export const useCreateReading = <TError = Problem | UnauthorizedProblemResponse,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createReading>>, TError,CreateReadingMutationVariables, TContext>, request?: SecondParameter<typeof orvalInstance>}
  , queryClient?: QueryClient): UseMutationResult<
         Awaited<ReturnType<typeof createReading>>,
@@ -181,7 +183,7 @@ export const useCreateReading = <TError = Problem,
       return useMutation(getCreateReadingMutationOptions(options), queryClient);
     }
     export type listReadingsResponse200 = {
-  data: Reading[]
+  data: ReadingPage
   status: 200
 }
 
@@ -191,7 +193,7 @@ export type listReadingsResponse400 = {
 }
 
 export type listReadingsResponse401 = {
-  data: Problem
+  data: UnauthorizedProblemResponse
   status: 401
 }
 
@@ -258,7 +260,7 @@ export const getListReadingsQueryKey = (meterId: string,
     }
 
 
-export const getListReadingsQueryOptions = <TData = Awaited<ReturnType<typeof listReadings>>, TError = Problem>(meterId: string,
+export const getListReadingsQueryOptions = <TData = Awaited<ReturnType<typeof listReadings>>, TError = Problem | UnauthorizedProblemResponse>(meterId: string,
     params?: ListReadingsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listReadings>>, TError, TData>>, request?: SecondParameter<typeof orvalInstance>}
 ) => {
 
@@ -278,10 +280,10 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 }
 
 export type ListReadingsQueryResult = NonNullable<Awaited<ReturnType<typeof listReadings>>>
-export type ListReadingsQueryError = Problem
+export type ListReadingsQueryError = Problem | UnauthorizedProblemResponse
 
 
-export function useListReadings<TData = Awaited<ReturnType<typeof listReadings>>, TError = Problem>(
+export function useListReadings<TData = Awaited<ReturnType<typeof listReadings>>, TError = Problem | UnauthorizedProblemResponse>(
  meterId: string,
     params: undefined |  ListReadingsParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof listReadings>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
@@ -292,7 +294,7 @@ export function useListReadings<TData = Awaited<ReturnType<typeof listReadings>>
       >, request?: SecondParameter<typeof orvalInstance>}
  , queryClient?: QueryClient
   ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useListReadings<TData = Awaited<ReturnType<typeof listReadings>>, TError = Problem>(
+export function useListReadings<TData = Awaited<ReturnType<typeof listReadings>>, TError = Problem | UnauthorizedProblemResponse>(
  meterId: string,
     params?: ListReadingsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listReadings>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
@@ -303,7 +305,7 @@ export function useListReadings<TData = Awaited<ReturnType<typeof listReadings>>
       >, request?: SecondParameter<typeof orvalInstance>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useListReadings<TData = Awaited<ReturnType<typeof listReadings>>, TError = Problem>(
+export function useListReadings<TData = Awaited<ReturnType<typeof listReadings>>, TError = Problem | UnauthorizedProblemResponse>(
  meterId: string,
     params?: ListReadingsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listReadings>>, TError, TData>>, request?: SecondParameter<typeof orvalInstance>}
  , queryClient?: QueryClient
@@ -312,7 +314,7 @@ export function useListReadings<TData = Awaited<ReturnType<typeof listReadings>>
  * @summary List the reading history of a meter owned by the authenticated user
  */
 
-export function useListReadings<TData = Awaited<ReturnType<typeof listReadings>>, TError = Problem>(
+export function useListReadings<TData = Awaited<ReturnType<typeof listReadings>>, TError = Problem | UnauthorizedProblemResponse>(
  meterId: string,
     params?: ListReadingsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listReadings>>, TError, TData>>, request?: SecondParameter<typeof orvalInstance>}
  , queryClient?: QueryClient
@@ -336,7 +338,7 @@ export type getLatestReadingResponse200 = {
 }
 
 export type getLatestReadingResponse401 = {
-  data: Problem
+  data: UnauthorizedProblemResponse
   status: 401
 }
 
@@ -393,7 +395,7 @@ export const getGetLatestReadingQueryKey = (meterId: string,) => {
     }
 
 
-export const getGetLatestReadingQueryOptions = <TData = Awaited<ReturnType<typeof getLatestReading>>, TError = Problem>(meterId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getLatestReading>>, TError, TData>>, request?: SecondParameter<typeof orvalInstance>}
+export const getGetLatestReadingQueryOptions = <TData = Awaited<ReturnType<typeof getLatestReading>>, TError = UnauthorizedProblemResponse | Problem>(meterId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getLatestReading>>, TError, TData>>, request?: SecondParameter<typeof orvalInstance>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
@@ -412,10 +414,10 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 }
 
 export type GetLatestReadingQueryResult = NonNullable<Awaited<ReturnType<typeof getLatestReading>>>
-export type GetLatestReadingQueryError = Problem
+export type GetLatestReadingQueryError = UnauthorizedProblemResponse | Problem
 
 
-export function useGetLatestReading<TData = Awaited<ReturnType<typeof getLatestReading>>, TError = Problem>(
+export function useGetLatestReading<TData = Awaited<ReturnType<typeof getLatestReading>>, TError = UnauthorizedProblemResponse | Problem>(
  meterId: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getLatestReading>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
           Awaited<ReturnType<typeof getLatestReading>>,
@@ -425,7 +427,7 @@ export function useGetLatestReading<TData = Awaited<ReturnType<typeof getLatestR
       >, request?: SecondParameter<typeof orvalInstance>}
  , queryClient?: QueryClient
   ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useGetLatestReading<TData = Awaited<ReturnType<typeof getLatestReading>>, TError = Problem>(
+export function useGetLatestReading<TData = Awaited<ReturnType<typeof getLatestReading>>, TError = UnauthorizedProblemResponse | Problem>(
  meterId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getLatestReading>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
           Awaited<ReturnType<typeof getLatestReading>>,
@@ -435,7 +437,7 @@ export function useGetLatestReading<TData = Awaited<ReturnType<typeof getLatestR
       >, request?: SecondParameter<typeof orvalInstance>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useGetLatestReading<TData = Awaited<ReturnType<typeof getLatestReading>>, TError = Problem>(
+export function useGetLatestReading<TData = Awaited<ReturnType<typeof getLatestReading>>, TError = UnauthorizedProblemResponse | Problem>(
  meterId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getLatestReading>>, TError, TData>>, request?: SecondParameter<typeof orvalInstance>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
@@ -443,7 +445,7 @@ export function useGetLatestReading<TData = Awaited<ReturnType<typeof getLatestR
  * @summary Return the most recent reading of a meter owned by the authenticated user
  */
 
-export function useGetLatestReading<TData = Awaited<ReturnType<typeof getLatestReading>>, TError = Problem>(
+export function useGetLatestReading<TData = Awaited<ReturnType<typeof getLatestReading>>, TError = UnauthorizedProblemResponse | Problem>(
  meterId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getLatestReading>>, TError, TData>>, request?: SecondParameter<typeof orvalInstance>}
  , queryClient?: QueryClient
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {

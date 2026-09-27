@@ -53,8 +53,11 @@ describe('Reading authorization (e2e)', () => {
             .get(`/api/v1/meters/${ALICE_METER}/readings`)
             .set('Authorization', `Bearer ${alice}`);
         expect(owner.status).toBe(200);
-        expect(owner.body.length).toBeGreaterThanOrEqual(1);
-        expect(owner.body[0].meterId).toBe(ALICE_METER);
+        expect(owner.body.items.length).toBeGreaterThanOrEqual(1);
+        expect(owner.body.items[0].meterId).toBe(ALICE_METER);
+        expect(owner.body.total).toBeGreaterThanOrEqual(1);
+        expect(owner.body.limit).toBe(50);
+        expect(owner.body.offset).toBe(0);
     });
 
     it('hides someone else\'s latest reading behind the same 404', async () => {

@@ -181,7 +181,7 @@ describe('Create reading (e2e)', () => {
         const history = await request(app.getHttpServer())
             .get(`/api/v1/meters/${meterId}/readings`)
             .set('Authorization', `Bearer ${token}`);
-        expect(history.body.map((r: { value: number }) => r.value)).toEqual([500]);
+        expect(history.body.items.map((r: { value: number }) => r.value)).toEqual([500]);
     });
 
     it('compares against the previous reading in recordedAt order, not creation order', async () => {
@@ -213,8 +213,101 @@ describe('Create reading (e2e)', () => {
         expect(below.body.code).toBe('READING_DECREASING');
     });
 
-    afterAll(async () => {
-        await app.close();
+    it('rejects a future recordedAt with RECORDED_AT_IN_FUTURE (backlog D2)', async () => {
+        const token = await mintToken({subject: ALICE});
+        const meterId = freshMeter();
+
+        const response = await request(app.getHttpServer())
+            .post('/api/v1/readings')
+            .set('Authorization', `Bearer ${token}`)
+            .send({meterId, value: 100, recordedAt: '2999-01-01T00:00:00Z'});
+
+        expect(response.status).toBe(422);
+        expect(response.headers['content-type']).toContain('application/problem+json');
+        expect(response.body).toMatchObject({
+            code: 'RECORDED_AT_IN_FUTURE',
+            status: 422,
+            title: 'Reading timestamp is in the future',
+        });
+        expect(response.body.errors).toEqual([
+            {field: 'recordedAt', message: 'must not be in the future'},
+        ]);
+
+        // rejected reading was not persisted.
+        const history = await request(app.getHttpServer())
+            .get(`/api/v1/meters/${meterId}/readings`)
+            .set('Authorization', `Bearer ${token}`);
+        expect(history.body.total).toBe(0);
+    });
+
+    it('rejects a recordedAt older than the 5-year window with RECORDED_AT_TOO_OLD (backlog D2)', async () => {
+        const token = await mintToken({subject: ALICE});
+        const meterId = freshMeter();
+
+        const response = await request(app.getHttpServer())
+            .post('/api/v1/readings')
+            .set('Authorization', `Bearer ${token}`)
+            .send({meterId, value: 100, recordedAt: '1994-05-01T00:00:00Z'});
+
+        expect(response.status).toBe(422);
+        expect(response.headers['content-type']).toContain('application/problem+json');
+        expect(response.body).toMatchObject({
+            code: 'RECORDED_AT_TOO_OLD',
+            status: 422,
+            title: 'Reading timestamp is too far in the past',
+        });
+        expect(response.body.errors).toEqual([
+            {field: 'recordedAt', message: 'must not be older than 5 years'},
+        ]);
+    });
+
+    it('returns a paged envelope with server-applied limit and offset', async () => {
+        const token = await mintToken({subject: ALICE});
+        const meterId = freshMeter();
+
+        for (let day = 1; day <= 3; day++) {
+            const created = await request(app.getHttpServer())
+                .post('/api/v1/readings')
+                .set('Authorization', `Bearer ${token}`)
+                .send({meterId, value: day, recordedAt: `2026-08-0${day}T08:00:00Z`});
+            expect(created.status).toBe(201);
+        }
+
+        // Default page (limit 50, offset 0).
+        const first = await request(app.getHttpServer())
+            .get(`/api/v1/meters/${meterId}/readings`)
+            .set('Authorization', `Bearer ${token}`);
+        expect(first.status).toBe(200);
+        expect(first.body.items).toHaveLength(3);
+        expect(first.body.total).toBe(3);
+        expect(first.body.limit).toBe(50);
+        expect(first.body.offset).toBe(0);
+        expect(first.body.items.map((r: { value: number }) => r.value)).toEqual([3, 2, 1]);
+
+        // Second page: only the remaining item, total unchanged.
+        const second = await request(app.getHttpServer())
+            .get(`/api/v1/meters/${meterId}/readings?limit=2&offset=2`)
+            .set('Authorization', `Bearer ${token}`);
+        expect(second.status).toBe(200);
+        expect(second.body.items.map((r: { value: number }) => r.value)).toEqual([1]);
+        expect(second.body.total).toBe(3);
+        expect(second.body.limit).toBe(2);
+        expect(second.body.offset).toBe(2);
+
+        // Out-of-range limit is clamped, echoed value reflects the cap.
+        const capped = await request(app.getHttpServer())
+            .get(`/api/v1/meters/${meterId}/readings?limit=5000`)
+            .set('Authorization', `Bearer ${token}`);
+        expect(capped.status).toBe(200);
+        expect(capped.body.limit).toBe(200);
+
+        // Offset past the end: empty items, total still accurate.
+        const pastEnd = await request(app.getHttpServer())
+            .get(`/api/v1/meters/${meterId}/readings?offset=10`)
+            .set('Authorization', `Bearer ${token}`);
+        expect(pastEnd.status).toBe(200);
+        expect(pastEnd.body.items).toEqual([]);
+        expect(pastEnd.body.total).toBe(3);
     });
 });
 

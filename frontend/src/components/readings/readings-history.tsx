@@ -57,13 +57,13 @@ export function ReadingsHistory({meter, open}: ReadingsHistoryProps): React.JSX.
               ? "This meter is no longer available."
               : "Could not load the reading history."}
           </Typography>
-        ) : response.data.length === 0 ? (
+        ) : response.data.items.length === 0 ? (
           <Typography color="text.secondary" variant="body2">
             No readings recorded yet.
           </Typography>
         ) : (
           <Stack component="ul" spacing={0.75} sx={{listStyle: "none", m: 0, p: 0}}>
-            {withConsumption(response.data).map(({reading, consumption}) => (
+            {withConsumption(response.data.items).map(({reading, consumption}) => (
               <Box
                 component="li"
                 key={reading.id}

@@ -49,6 +49,10 @@ export class ReadingRepository {
         return rows.map(toReading);
     }
 
+    async countByMeterId(meterId: string): Promise<number> {
+        return this.prisma.reading.count({where: {meterId}});
+    }
+
     async findLatestByMeterId(meterId: string): Promise<Reading | null> {
         const row = await this.prisma.reading.findFirst({
             where: {meterId},

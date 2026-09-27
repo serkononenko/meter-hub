@@ -21,6 +21,7 @@ function repositoryStub() {
         save: vi.fn().mockResolvedValue(SAVED),
         findById: vi.fn().mockResolvedValue(SAVED),
         findByMeterId: vi.fn().mockResolvedValue([SAVED]),
+        countByMeterId: vi.fn().mockResolvedValue(1),
         findLatestByMeterId: vi.fn().mockResolvedValue(SAVED),
         findPrevious: vi.fn().mockResolvedValue(null),
     };
@@ -132,10 +133,10 @@ describe('ReadingService', () => {
         const repository = repositoryStub();
         const service = serviceWith(repository);
 
-        const readings = await service.listReadings(METER_ID);
+        const page = await service.listReadings(METER_ID);
 
         expect(repository.findByMeterId).toHaveBeenCalledWith(METER_ID, 50, 0);
-        expect(readings).toEqual([SAVED]);
+        expect(page).toEqual({items: [SAVED], total: 1, limit: 50, offset: 0});
     });
 
     it('applies explicit paging bounds', async () => {

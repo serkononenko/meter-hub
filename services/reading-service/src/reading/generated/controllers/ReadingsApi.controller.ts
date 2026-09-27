@@ -2,7 +2,7 @@ import { Body, Controller, DefaultValuePipe, Get, Post, Param, ParseIntPipe, Par
 import { Observable } from 'rxjs';
 import { Cookies, Headers } from '../decorators/index.js';
 import { ReadingsApi } from '../api/index.js';
-import type { CreateReadingRequest, Reading,  } from '../models/index.js';
+import type { CreateReadingRequest, Reading, ReadingPage,  } from '../models/index.js';
 
 @Controller()
 export class ReadingsApiController {
@@ -19,7 +19,7 @@ export class ReadingsApiController {
   }
 
   @Get('/api/v1/meters/:meterId/readings')
-  listReadings(@Param('meterId') meterId: string, @Query('limit', new DefaultValuePipe(50)) limit: number | undefined, @Query('offset', new DefaultValuePipe(0)) offset: number | undefined, @Headers('X-Correlation-ID') xCorrelationID: string | undefined, @Req() request: Request): Array<Reading> | Promise<Array<Reading>> | Observable<Array<Reading>> {
+  listReadings(@Param('meterId') meterId: string, @Query('limit', new DefaultValuePipe(50)) limit: number | undefined, @Query('offset', new DefaultValuePipe(0)) offset: number | undefined, @Headers('X-Correlation-ID') xCorrelationID: string | undefined, @Req() request: Request): ReadingPage | Promise<ReadingPage> | Observable<ReadingPage> {
     return this.readingsApi.listReadings(meterId, limit, offset, xCorrelationID, request);
   }
 
