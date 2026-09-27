@@ -9,7 +9,7 @@ RUN npm ci
 
 COPY prisma prisma
 COPY prisma.config.ts ./
-# The generated client is committed under src/database/generated/prisma, but
+# The generated client is committed under src/generated/prisma, but
 # regenerating here keeps it in sync with the checked-in schema.
 RUN npx prisma generate
 

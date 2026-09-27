@@ -75,6 +75,11 @@ export type createReadingResponse404 = {
   status: 404
 }
 
+export type createReadingResponse409 = {
+  data: Problem
+  status: 409
+}
+
 export type createReadingResponse422 = {
   data: Problem
   status: 422
@@ -88,7 +93,7 @@ export type createReadingResponse500 = {
 export type createReadingResponseSuccess = (createReadingResponse201) & {
   headers: Headers;
 };
-export type createReadingResponseError = (createReadingResponse400 | createReadingResponse401 | createReadingResponse404 | createReadingResponse422 | createReadingResponse500) & {
+export type createReadingResponseError = (createReadingResponse400 | createReadingResponse401 | createReadingResponse404 | createReadingResponse409 | createReadingResponse422 | createReadingResponse500) & {
   headers: Headers;
 };
 
@@ -103,7 +108,7 @@ export const getCreateReadingUrl = () => {
 }
 
 /**
- * Creates a reading under the given meter. The meter must exist and be owned by the user that owns the presented access token; meters of other users are not addressable and return the same not-found problem as unknown ones. The source is always MANUAL in the MVP.
+ * Creates a reading under the given meter. The meter must exist and be owned by the user that owns the presented access token; meters of other users are not addressable and return the same not-found problem as unknown ones. The source is always MANUAL in the MVP. Retried submissions should carry an `Idempotency-Key` header: within the retention window, a repeated key returns the original response instead of creating a second reading. Sending a key again with a different payload is a client error and returns 409.
  * @summary Record a reading for a meter owned by the authenticated user
  */
 export const createReading = async (createReadingRequest: CreateReadingRequest, options?: Parameters<typeof orvalInstance>[1]): Promise<createReadingResponse> => {

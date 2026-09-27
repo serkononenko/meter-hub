@@ -6,7 +6,7 @@ import { CreateReadingRequest, Reading, ReadingPage,  } from '../models/index.js
 @Injectable()
 export abstract class ReadingsApi {
 
-  abstract createReading(createReadingRequest: CreateReadingRequest, xCorrelationID: string | undefined,  request: Request): Reading | Promise<Reading> | Observable<Reading>;
+  abstract createReading(createReadingRequest: CreateReadingRequest, idempotencyKey: string | undefined, xCorrelationID: string | undefined,  request: Request): Reading | Promise<Reading> | Observable<Reading>;
 
 
   abstract getLatestReading(meterId: string, xCorrelationID: string | undefined,  request: Request): Reading | Promise<Reading> | Observable<Reading>;

@@ -9,8 +9,8 @@ export class ReadingsApiController {
   constructor(private readonly readingsApi: ReadingsApi) {}
 
   @Post('/api/v1/readings')
-  createReading(@Body() createReadingRequest: CreateReadingRequest, @Headers('X-Correlation-ID') xCorrelationID: string | undefined, @Req() request: Request): Reading | Promise<Reading> | Observable<Reading> {
-    return this.readingsApi.createReading(createReadingRequest, xCorrelationID, request);
+  createReading(@Body() createReadingRequest: CreateReadingRequest, @Headers('Idempotency-Key') idempotencyKey: string | undefined, @Headers('X-Correlation-ID') xCorrelationID: string | undefined, @Req() request: Request): Reading | Promise<Reading> | Observable<Reading> {
+    return this.readingsApi.createReading(createReadingRequest, idempotencyKey, xCorrelationID, request);
   }
 
   @Get('/api/v1/meters/:meterId/readings/latest')

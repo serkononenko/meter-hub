@@ -1,3 +1,4 @@
+.openapi-generator-ignore
 apis/index.ts
 apis/meters-api.ts
 docs/CreateMeterRequest.md

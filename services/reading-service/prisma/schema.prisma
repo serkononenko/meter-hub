@@ -1,6 +1,6 @@
 generator client {
   provider = "prisma-client"
-  output   = "../src/database/generated/prisma"
+  output   = "../src/generated/prisma"
 }
 
 datasource db {
@@ -26,4 +26,20 @@ enum ReadingSource {
   MANUAL
 
   @@map("reading_source")
+}
+
+/// Idempotency record for retried POST /readings submissions (backlog C3).
+/// The key is client-generated and scoped per user; the response snapshot
+/// lets a retry within the retention window replay the original outcome.
+model IdempotencyKey {
+  key String @id @db.Uuid
+  userId String @map("user_id") @db.Uuid
+  requestHash String @map("request_hash")
+  responseStatus Int @map("response_status")
+  responseBody Json @map("response_body")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  expiresAt DateTime @map("expires_at") @db.Timestamptz(6)
+
+  @@index([expiresAt])
+  @@map("idempotency_keys")
 }

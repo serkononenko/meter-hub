@@ -48,3 +48,10 @@ export { Prisma }
  * cross-service DB access — PRD §6.4).
  */
 export type Reading = Prisma.ReadingModel
+/**
+ * Model IdempotencyKey
+ * Idempotency record for retried POST /readings submissions (backlog C3).
+ * The key is client-generated and scoped per user; the response snapshot
+ * lets a retry within the retention window replay the original outcome.
+ */
+export type IdempotencyKey = Prisma.IdempotencyKeyModel
