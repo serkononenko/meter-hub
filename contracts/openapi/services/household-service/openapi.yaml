@@ -1,22 +1,34 @@
 openapi: 3.0.3
 info:
   title: MeterHub Household Service API
-  description: Household Service HTTP API. Covers household creation and lookup for the authenticated user.
-  version: 1.0.0
+  description: >-
+    Household Service HTTP API. Covers household creation, lookup, membership
+    (roles, members), and invitation management for the authenticated user.
+    Membership and roles are owned here; other services consume the internal
+    access verdict instead of evaluating roles themselves.
+  version: 1.1.0
 
 tags:
   - name: Households
     description: Household management endpoints
+  - name: Members
+    description: Household membership listing and removal
+  - name: Invites
+    description: Invitation creation, listing, revocation, redemption
+  - name: Internal
+    description: Service-to-service endpoints. Not reachable through the API gateway.
 
 paths:
   /api/v1/households:
     post:
       tags: [Households]
       operationId: createHousehold
-      summary: Create a household owned by the authenticated user
+      summary: Create household owned by authenticated user
       description: >-
-        Creates a household with the authenticated user as its owner.
-        The caller's identity is taken from the presented access token.
+        Creates a household with the authenticated user as its owner. The
+        caller's identity is taken from the presented access token. The
+        creator's membership row (role OWNER) is created in the same
+        transaction.
       security:
         - bearerAuth: []
       parameters:
@@ -42,11 +54,12 @@ paths:
               example:
                 id: 3f9c1a2e-8d4b-4a1f-9e2c-5b7d6a8e1c30
                 name: Home
+                role: OWNER
                 createdAt: '2026-08-27T08:30:00Z'
         '400':
           $ref: '../../openapi.yaml#/components/responses/BadRequest'
         '401':
-          description: No access token was supplied, or it is invalid or expired.
+          description: No access token supplied, or it is invalid or expired.
           headers:
             X-Correlation-ID:
               $ref: '../../components/headers/correlation-id.yaml'
@@ -56,7 +69,7 @@ paths:
                 $ref: '../../openapi.yaml#/components/schemas/Problem'
               examples:
                 missingToken:
-                  summary: No access token was supplied
+                  summary: No access token supplied
                   value:
                     type: https://api.meterhub.local/problems/unauthorized
                     title: Authentication required
@@ -65,31 +78,31 @@ paths:
                     detail: A valid Bearer access token is required.
                     correlationId: 7d6f5f2c-0a49-4e10-8ef7-7c3d2b1f4a10
                 invalidToken:
-                  summary: The access token is invalid or expired
+                  summary: Access token invalid or expired
                   value:
                     type: https://api.meterhub.local/problems/invalid-token
                     title: Invalid access token
                     status: 401
                     code: INVALID_TOKEN
-                    detail: The access token is invalid or expired.
+                    detail: Access token is invalid or expired.
                     correlationId: 7d6f5f2c-0a49-4e10-8ef7-7c3d2b1f4a10
         '500':
           $ref: '../../openapi.yaml#/components/responses/InternalServerError'
-
     get:
       tags: [Households]
       operationId: listHouseholds
-      summary: List households owned by the authenticated user
+      summary: List households the authenticated user belongs to
       description: >-
-        Returns the households of the user that owns the presented access token,
-        most recently created first.
+        Returns every household the authenticated user has any membership in,
+        each with the caller's role in it. Households the caller does not
+        belong to are never visible, regardless of role.
       security:
         - bearerAuth: []
       parameters:
         - $ref: '../../openapi.yaml#/components/parameters/CorrelationId'
       responses:
         '200':
-          description: The authenticated user's households.
+          description: Households the caller belongs to, with the caller's role per household.
           headers:
             X-Correlation-ID:
               $ref: '../../components/headers/correlation-id.yaml'
@@ -102,35 +115,14 @@ paths:
               example:
                 - id: 3f9c1a2e-8d4b-4a1f-9e2c-5b7d6a8e1c30
                   name: Home
+                  role: OWNER
                   createdAt: '2026-08-27T08:30:00Z'
+                - id: 8a4e6b1c-2f7d-4c3a-9b8e-1d5f0a6c7e2b
+                  name: Parents' house
+                  role: VIEWER
+                  createdAt: '2026-09-01T18:00:00Z'
         '401':
-          description: No access token was supplied, or it is invalid or expired.
-          headers:
-            X-Correlation-ID:
-              $ref: '../../components/headers/correlation-id.yaml'
-          content:
-            application/problem+json:
-              schema:
-                $ref: '../../openapi.yaml#/components/schemas/Problem'
-              examples:
-                missingToken:
-                  summary: No access token was supplied
-                  value:
-                    type: https://api.meterhub.local/problems/unauthorized
-                    title: Authentication required
-                    status: 401
-                    code: UNAUTHORIZED
-                    detail: A valid Bearer access token is required.
-                    correlationId: 7d6f5f2c-0a49-4e10-8ef7-7c3d2b1f4a10
-                invalidToken:
-                  summary: The access token is invalid or expired
-                  value:
-                    type: https://api.meterhub.local/problems/invalid-token
-                    title: Invalid access token
-                    status: 401
-                    code: INVALID_TOKEN
-                    detail: The access token is invalid or expired.
-                    correlationId: 7d6f5f2c-0a49-4e10-8ef7-7c3d2b1f4a10
+          $ref: '#/components/responses/UnauthorizedProblem'
         '500':
           $ref: '../../openapi.yaml#/components/responses/InternalServerError'
 
@@ -140,8 +132,9 @@ paths:
       operationId: getHousehold
       summary: Return a single household
       description: >-
-        Returns the household with the given identifier when it is owned by the
-        authenticated user. Households of other users are not visible.
+        Returns the household identified by `householdId` if the authenticated
+        user is a member (any role). Households the caller does not belong to
+        are masked as 404 — existence is not revealed to non-members.
       security:
         - bearerAuth: []
       parameters:
@@ -151,11 +144,11 @@ paths:
           schema:
             type: string
             format: uuid
-          description: Identifier of the household to return.
+          description: Identifier of the household.
         - $ref: '../../openapi.yaml#/components/parameters/CorrelationId'
       responses:
         '200':
-          description: The household.
+          description: Household the caller belongs to, with the caller's role.
           headers:
             X-Correlation-ID:
               $ref: '../../components/headers/correlation-id.yaml'
@@ -166,35 +159,10 @@ paths:
               example:
                 id: 3f9c1a2e-8d4b-4a1f-9e2c-5b7d6a8e1c30
                 name: Home
+                role: OWNER
                 createdAt: '2026-08-27T08:30:00Z'
         '401':
-          description: No access token was supplied, or it is invalid or expired.
-          headers:
-            X-Correlation-ID:
-              $ref: '../../components/headers/correlation-id.yaml'
-          content:
-            application/problem+json:
-              schema:
-                $ref: '../../openapi.yaml#/components/schemas/Problem'
-              examples:
-                missingToken:
-                  summary: No access token was supplied
-                  value:
-                    type: https://api.meterhub.local/problems/unauthorized
-                    title: Authentication required
-                    status: 401
-                    code: UNAUTHORIZED
-                    detail: A valid Bearer access token is required.
-                    correlationId: 7d6f5f2c-0a49-4e10-8ef7-7c3d2b1f4a10
-                invalidToken:
-                  summary: The access token is invalid or expired
-                  value:
-                    type: https://api.meterhub.local/problems/invalid-token
-                    title: Invalid access token
-                    status: 401
-                    code: INVALID_TOKEN
-                    detail: The access token is invalid or expired.
-                    correlationId: 7d6f5f2c-0a49-4e10-8ef7-7c3d2b1f4a10
+          $ref: '#/components/responses/UnauthorizedProblem'
         '404':
           description: No household with this identifier is visible to the authenticated user.
           headers:
@@ -214,6 +182,458 @@ paths:
                     code: HOUSEHOLD_NOT_FOUND
                     detail: No household with this identifier is visible to the authenticated user.
                     correlationId: 7d6f5f2c-0a49-4e10-8ef7-7c3d2b1f4a10
+        '500':
+          $ref: '../../openapi.yaml#/components/responses/InternalServerError'
+
+  /api/v1/households/{householdId}/members:
+    get:
+      tags: [Members]
+      operationId: listHouseholdMembers
+      summary: List members of a household
+      description: >-
+        Returns all members of the household with their roles. Requires any
+        membership; callers without membership in the referenced household
+        get 403 regardless of whether the household exists (no enumeration).
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: householdId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Identifier of the household.
+        - $ref: '../../openapi.yaml#/components/parameters/CorrelationId'
+      responses:
+        '200':
+          description: Member list.
+          headers:
+            X-Correlation-ID:
+              $ref: '../../components/headers/correlation-id.yaml'
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Member'
+              example:
+                - id: 1b2f6c3d-4a5e-4f6b-8c9d-0e1f2a3b4c5d
+                  userId: 6f2a4c8e-1b3d-4e5f-9a0b-7c8d9e0f1a2b
+                  role: OWNER
+                  createdAt: '2026-08-27T08:30:00Z'
+                - id: 2c3d7e4f-5b6a-4c7d-8e9f-1a2b3c4d5e6f
+                  userId: 7a3b5d9f-2c4e-4f6a-8b1c-8d9e0f1a2b3c
+                  role: VIEWER
+                  createdAt: '2026-09-20T12:00:00Z'
+        '401':
+          $ref: '#/components/responses/UnauthorizedProblem'
+        '403':
+          $ref: '#/components/responses/HouseholdAccessDeniedProblem'
+        '500':
+          $ref: '../../openapi.yaml#/components/responses/InternalServerError'
+
+  /api/v1/households/{householdId}/members/{userId}:
+    delete:
+      tags: [Members]
+      operationId: removeHouseholdMember
+      summary: Remove a member from a household
+      description: >-
+        Owner-only. Removes the member's membership. Removing the owner
+        (including the owner removing themselves) is rejected — ownership
+        never changes or gets removed via this endpoint.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: householdId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Identifier of the household.
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Identifier of the user whose membership is removed.
+        - $ref: '../../openapi.yaml#/components/parameters/CorrelationId'
+      responses:
+        '204':
+          description: Membership removed.
+          headers:
+            X-Correlation-ID:
+              $ref: '../../components/headers/correlation-id.yaml'
+        '401':
+          $ref: '#/components/responses/UnauthorizedProblem'
+        '403':
+          $ref: '#/components/responses/HouseholdAccessDeniedProblem'
+        '404':
+          description: The referenced user has no membership in this household.
+          headers:
+            X-Correlation-ID:
+              $ref: '../../components/headers/correlation-id.yaml'
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../../openapi.yaml#/components/schemas/Problem'
+              examples:
+                memberNotFound:
+                  summary: User is not a member of this household
+                  value:
+                    type: https://api.meterhub.local/problems/member-not-found
+                    title: Member not found
+                    status: 404
+                    code: MEMBER_NOT_FOUND
+                    detail: The referenced user has no membership in this household.
+                    correlationId: 7d6f5f2c-0a49-4e10-8ef7-7c3d2b1f4a10
+        '409':
+          description: The referenced member is the household owner.
+          headers:
+            X-Correlation-ID:
+              $ref: '../../components/headers/correlation-id.yaml'
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../../openapi.yaml#/components/schemas/Problem'
+              examples:
+                ownerCannotBeRemoved:
+                  summary: Owner membership cannot be removed
+                  value:
+                    type: https://api.meterhub.local/problems/owner-cannot-be-removed
+                    title: Owner cannot be removed
+                    status: 409
+                    code: OWNER_CANNOT_BE_REMOVED
+                    detail: The household owner cannot be removed. Ownership transfer is not supported.
+                    correlationId: 7d6f5f2c-0a49-4e10-8ef7-7c3d2b1f4a10
+        '500':
+          $ref: '../../openapi.yaml#/components/responses/InternalServerError'
+
+  /api/v1/households/{householdId}/invites:
+    post:
+      tags: [Invites]
+      operationId: createHouseholdInvite
+      summary: Create an invitation for a household
+      description: >-
+        Owner-only. Creates a single-use invitation with an opaque code for
+        the target role. The code is returned in plaintext exactly once, in
+        this response — it is stored only as a hash. A bounded number of live
+        (unredeemed, unexpired) invites per household is enforced.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: householdId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Identifier of the household.
+        - $ref: '../../openapi.yaml#/components/parameters/CorrelationId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateInviteRequest'
+            example:
+              role: MEMBER
+      responses:
+        '201':
+          description: Invitation created. The code is shown only here.
+          headers:
+            X-Correlation-ID:
+              $ref: '../../components/headers/correlation-id.yaml'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InviteCreated'
+              example:
+                id: 4d5e6f7a-8b9c-4d0e-9f1a-2b3c4d5e6f7a
+                role: MEMBER
+                code: mh_i9dK2pQ7vX4mZ8wR1tY6uJ3nB5cA0eS
+                createdAt: '2026-09-27T10:00:00Z'
+                expiresAt: '2026-10-04T10:00:00Z'
+        '400':
+          $ref: '../../openapi.yaml#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/UnauthorizedProblem'
+        '403':
+          $ref: '#/components/responses/HouseholdAccessDeniedProblem'
+        '409':
+          description: Live-invite limit reached for this household.
+          headers:
+            X-Correlation-ID:
+              $ref: '../../components/headers/correlation-id.yaml'
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../../openapi.yaml#/components/schemas/Problem'
+              examples:
+                inviteLimitReached:
+                  summary: Too many live invites
+                  value:
+                    type: https://api.meterhub.local/problems/invite-limit-reached
+                    title: Invite limit reached
+                    status: 409
+                    code: INVITE_LIMIT_REACHED
+                    detail: The household already has the maximum number of live invites. Revoke one before creating another.
+                    correlationId: 7d6f5f2c-0a49-4e10-8ef7-7c3d2b1f4a10
+        '500':
+          $ref: '../../openapi.yaml#/components/responses/InternalServerError'
+    get:
+      tags: [Invites]
+      operationId: listHouseholdInvites
+      summary: List live invitations for a household
+      description: >-
+        Owner-only. Returns live (unredeemed, unexpired, not revoked)
+        invitations. Code material is never included.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: householdId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Identifier of the household.
+        - $ref: '../../openapi.yaml#/components/parameters/CorrelationId'
+      responses:
+        '200':
+          description: Live invitations.
+          headers:
+            X-Correlation-ID:
+              $ref: '../../components/headers/correlation-id.yaml'
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Invite'
+              example:
+                - id: 4d5e6f7a-8b9c-4d0e-9f1a-2b3c4d5e6f7a
+                  role: MEMBER
+                  createdAt: '2026-09-27T10:00:00Z'
+                  expiresAt: '2026-10-04T10:00:00Z'
+        '401':
+          $ref: '#/components/responses/UnauthorizedProblem'
+        '403':
+          $ref: '#/components/responses/HouseholdAccessDeniedProblem'
+        '500':
+          $ref: '../../openapi.yaml#/components/responses/InternalServerError'
+
+  /api/v1/households/{householdId}/invites/{inviteId}:
+    delete:
+      tags: [Invites]
+      operationId: revokeHouseholdInvite
+      summary: Revoke a live invitation
+      description: Owner-only. Revokes a live invitation; redeeming it afterwards fails.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: householdId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Identifier of the household.
+        - name: inviteId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Identifier of the invitation.
+        - $ref: '../../openapi.yaml#/components/parameters/CorrelationId'
+      responses:
+        '204':
+          description: Invitation revoked.
+          headers:
+            X-Correlation-ID:
+              $ref: '../../components/headers/correlation-id.yaml'
+        '401':
+          $ref: '#/components/responses/UnauthorizedProblem'
+        '403':
+          $ref: '#/components/responses/HouseholdAccessDeniedProblem'
+        '404':
+          description: No live invitation with this identifier in this household.
+          headers:
+            X-Correlation-ID:
+              $ref: '../../components/headers/correlation-id.yaml'
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../../openapi.yaml#/components/schemas/Problem'
+              examples:
+                inviteNotFound:
+                  summary: Invitation does not exist or is not live
+                  value:
+                    type: https://api.meterhub.local/problems/invite-not-found
+                    title: Invite not found
+                    status: 404
+                    code: INVITE_NOT_FOUND
+                    detail: No live invitation with this identifier exists in this household.
+                    correlationId: 7d6f5f2c-0a49-4e10-8ef7-7c3d2b1f4a10
+        '500':
+          $ref: '../../openapi.yaml#/components/responses/InternalServerError'
+
+  /api/v1/households/invites/redeem:
+    post:
+      tags: [Invites]
+      operationId: redeemHouseholdInvite
+      summary: Redeem an invitation code
+      description: >-
+        Any authenticated user can redeem a valid code. A membership with the
+        invite's role is created for the caller. Redeeming is idempotent for
+        an existing member (returns the household, no duplicate membership).
+        Single-use: a redeemed code fails afterwards. Codes are not extended.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '../../openapi.yaml#/components/parameters/CorrelationId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RedeemInviteRequest'
+            example:
+              code: mh_i9dK2pQ7vX4mZ8wR1tY6uJ3nB5cA0eS
+      responses:
+        '200':
+          description: Membership granted (or already present), with the household reference.
+          headers:
+            X-Correlation-ID:
+              $ref: '../../components/headers/correlation-id.yaml'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RedeemInviteResponse'
+              example:
+                householdId: 3f9c1a2e-8d4b-4a1f-9e2c-5b7d6a8e1c30
+                householdName: Home
+                role: MEMBER
+        '400':
+          $ref: '../../openapi.yaml#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/UnauthorizedProblem'
+        '404':
+          description: No invitation matches the supplied code.
+          headers:
+            X-Correlation-ID:
+              $ref: '../../components/headers/correlation-id.yaml'
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../../openapi.yaml#/components/schemas/Problem'
+              examples:
+                inviteNotFound:
+                  summary: Code does not match any invitation
+                  value:
+                    type: https://api.meterhub.local/problems/invite-not-found
+                    title: Invite not found
+                    status: 404
+                    code: INVITE_NOT_FOUND
+                    detail: No invitation matches the supplied code.
+                    correlationId: 7d6f5f2c-0a49-4e10-8ef7-7c3d2b1f4a10
+        '409':
+          description: The invitation has already been redeemed.
+          headers:
+            X-Correlation-ID:
+              $ref: '../../components/headers/correlation-id.yaml'
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../../openapi.yaml#/components/schemas/Problem'
+              examples:
+                inviteAlreadyUsed:
+                  summary: Invitation already redeemed
+                  value:
+                    type: https://api.meterhub.local/problems/invite-already-used
+                    title: Invite already used
+                    status: 409
+                    code: INVITE_ALREADY_USED
+                    detail: This invitation has already been redeemed.
+                    correlationId: 7d6f5f2c-0a49-4e10-8ef7-7c3d2b1f4a10
+        '410':
+          description: The invitation has expired.
+          headers:
+            X-Correlation-ID:
+              $ref: '../../components/headers/correlation-id.yaml'
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../../openapi.yaml#/components/schemas/Problem'
+              examples:
+                inviteExpired:
+                  summary: Invitation expired
+                  value:
+                    type: https://api.meterhub.local/problems/invite-expired
+                    title: Invite expired
+                    status: 410
+                    code: INVITE_EXPIRED
+                    detail: This invitation has expired. Ask the household owner for a new one.
+                    correlationId: 7d6f5f2c-0a49-4e10-8ef7-7c3d2b1f4a10
+        '500':
+          $ref: '../../openapi.yaml#/components/responses/InternalServerError'
+
+  # Internal endpoint — consumed by meter and reading services only. Not
+  # reachable through the gateway's public routes; on the internal network it
+  # is a trusted environment until A1 (service-to-service auth) lands.
+  /api/v1/internal/household-access:
+    get:
+      tags: [Internal]
+      operationId: getHouseholdAccess
+      summary: Access verdict for a user/household pair
+      description: >-
+        Returns a caller-independent access verdict for a user/household pair:
+        whether the user has a membership and, if so, its role. Consumers are
+        expected to cache briefly (membership changes are rare; a ~30 s TTL is
+        acceptable). Narrow accessor by design — membership details stay
+        inside the household service. Never proxied by the gateway.
+      security: []
+      parameters:
+        - name: householdId
+          in: query
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Identifier of the household.
+        - name: userId
+          in: query
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Identifier of the user.
+        - $ref: '../../openapi.yaml#/components/parameters/CorrelationId'
+      responses:
+        '200':
+          description: Access verdict (possibly "no membership").
+          headers:
+            X-Correlation-ID:
+              $ref: '../../components/headers/correlation-id.yaml'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HouseholdAccess'
+              examples:
+                member:
+                  summary: User has a membership
+                  value:
+                    exists: true
+                    role: MEMBER
+                notMember:
+                  summary: User has no membership (or household unknown to this check)
+                  value:
+                    exists: false
+        '400':
+          $ref: '../../openapi.yaml#/components/responses/BadRequest'
         '500':
           $ref: '../../openapi.yaml#/components/responses/InternalServerError'
 
@@ -237,10 +657,19 @@ components:
           maxLength: 200
           description: Display name of the household.
 
+    HouseholdRole:
+      type: string
+      enum: [OWNER, MEMBER, VIEWER]
+      description: |
+        Membership role inside a household.
+        * `OWNER` — everything MEMBER can do, plus manage members/invites and delete the household. Exactly one per household (the creator); immutable.
+        * `MEMBER` — view everything; create/modify meters; submit readings.
+        * `VIEWER` — read-only: view household, meters, and readings.
+
     Household:
       type: object
       additionalProperties: false
-      required: [id, name, createdAt]
+      required: [id, name, role, createdAt]
       properties:
         id:
           type: string
@@ -250,6 +679,8 @@ components:
         name:
           type: string
           description: Display name of the household.
+        role:
+          $ref: '#/components/schemas/HouseholdRole'
         createdAt:
           type: string
           format: date-time
@@ -260,3 +691,178 @@ components:
           format: date-time
           description: RFC 3339 timestamp in UTC. Must use the Z suffix.
           example: '2026-08-27T08:30:00Z'
+
+    Member:
+      type: object
+      additionalProperties: false
+      required: [id, userId, role, createdAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Identifier of the membership.
+        userId:
+          type: string
+          format: uuid
+          description: Identifier of the member user.
+        role:
+          $ref: '#/components/schemas/HouseholdRole'
+        createdAt:
+          type: string
+          format: date-time
+          description: RFC 3339 timestamp in UTC. Must use the Z suffix.
+          example: '2026-08-27T08:30:00Z'
+
+    CreateInviteRequest:
+      type: object
+      additionalProperties: false
+      required: [role]
+      properties:
+        role:
+          type: string
+          enum: [MEMBER, VIEWER]
+          description: Role granted by this invitation. OWNER is never invitiable — there is exactly one, the creator.
+        expiresInDays:
+          type: integer
+          minimum: 1
+          maximum: 30
+          default: 7
+          description: Lifetime of the invitation in days. Codes are never extended.
+
+    Invite:
+      type: object
+      additionalProperties: false
+      required: [id, role, createdAt, expiresAt]
+      description: A live (unredeemed, unexpired, not revoked) invitation. Code material is never included.
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Identifier of the invitation.
+        role:
+          $ref: '#/components/schemas/HouseholdRole'
+        createdAt:
+          type: string
+          format: date-time
+          description: RFC 3339 timestamp in UTC. Must use the Z suffix.
+          example: '2026-09-27T10:00:00Z'
+        expiresAt:
+          type: string
+          format: date-time
+          description: RFC 3339 timestamp in UTC. Must use the Z suffix.
+          example: '2026-10-04T10:00:00Z'
+
+    InviteCreated:
+      type: object
+      additionalProperties: false
+      required: [id, role, code, createdAt, expiresAt]
+      description: A newly created invitation. The code appears in plaintext exactly once — here.
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Identifier of the invitation.
+        role:
+          $ref: '#/components/schemas/HouseholdRole'
+        code:
+          type: string
+          description: Opaque high-entropy invitation code. Share manually; stored server-side only as a hash.
+        createdAt:
+          type: string
+          format: date-time
+          description: RFC 3339 timestamp in UTC. Must use the Z suffix.
+          example: '2026-09-27T10:00:00Z'
+        expiresAt:
+          type: string
+          format: date-time
+          description: RFC 3339 timestamp in UTC. Must use the Z suffix.
+          example: '2026-10-04T10:00:00Z'
+
+    RedeemInviteRequest:
+      type: object
+      additionalProperties: false
+      required: [code]
+      properties:
+        code:
+          type: string
+          minLength: 1
+          maxLength: 128
+          description: The invitation code to redeem.
+
+    RedeemInviteResponse:
+      type: object
+      additionalProperties: false
+      required: [householdId, householdName, role]
+      description: The household the caller now belongs to, with the granted (or already-held) role.
+      properties:
+        householdId:
+          type: string
+          format: uuid
+          description: Identifier of the household.
+        householdName:
+          type: string
+          description: Display name of the household.
+        role:
+          $ref: '#/components/schemas/HouseholdRole'
+
+    HouseholdAccess:
+      type: object
+      additionalProperties: false
+      required: [exists]
+      description: Caller-independent access verdict for a user/household pair.
+      properties:
+        exists:
+          type: boolean
+          description: Whether the user has any membership in the household.
+        role:
+          $ref: '#/components/schemas/HouseholdRole'
+
+  responses:
+    UnauthorizedProblem:
+      description: No access token supplied, or it is invalid or expired.
+      headers:
+        X-Correlation-ID:
+          $ref: '../../components/headers/correlation-id.yaml'
+      content:
+        application/problem+json:
+          schema:
+            $ref: '../../openapi.yaml#/components/schemas/Problem'
+          examples:
+            missingToken:
+              summary: No access token supplied
+              value:
+                type: https://api.meterhub.local/problems/unauthorized
+                title: Authentication required
+                status: 401
+                code: UNAUTHORIZED
+                detail: A valid Bearer access token is required.
+                correlationId: 7d6f5f2c-0a49-4e10-8ef7-7c3d2b1f4a10
+            invalidToken:
+              summary: Access token invalid or expired
+              value:
+                type: https://api.meterhub.local/problems/invalid-token
+                title: Invalid access token
+                status: 401
+                code: INVALID_TOKEN
+                detail: Access token is invalid or expired.
+                correlationId: 7d6f5f2c-0a49-4e10-8ef7-7c3d2b1f4a10
+
+    HouseholdAccessDeniedProblem:
+      description: The authenticated user has no membership in the referenced household (existence is not revealed).
+      headers:
+        X-Correlation-ID:
+          $ref: '../../components/headers/correlation-id.yaml'
+      content:
+        application/problem+json:
+          schema:
+            $ref: '../../openapi.yaml#/components/schemas/Problem'
+          examples:
+            householdAccessDenied:
+              summary: Caller is not a member of the household
+              value:
+                type: https://api.meterhub.local/problems/household-access-denied
+                title: Household access denied
+                status: 403
+                code: HOUSEHOLD_ACCESS_DENIED
+                detail: You do not have access to this household.
+                correlationId: 7d6f5f2c-0a49-4e10-8ef7-7c3d2b1f4a10

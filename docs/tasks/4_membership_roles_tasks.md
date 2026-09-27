@@ -12,11 +12,11 @@ Service reality this builds on (verified 2026-09-27):
 ## Epic R1 — Contract & data model (household-service)
 
 R1.1 OpenAPI contract update (`contracts/openapi/services/household-service/openapi.yaml`)
-- [ ] New public paths: `POST/GET /api/v1/households/{householdId}/invites`, `DELETE .../invites/{inviteId}`, `POST /api/v1/households/invites/redeem`, `GET .../members`, `DELETE .../members/{userId}`.
-- [ ] `Household` schema gains caller's `role` (OWNER/MEMBER/VIEWER) on list + get responses.
-- [ ] New internal path `GET /api/v1/internal/household-access?householdId=&userId=` returning `{role, exists}` — mirror A4's `Internal` tag, `security: []`, compact-body rationale comment, "not reachable through gateway" note.
-- [ ] Error semantics: `HOUSEHOLD_ACCESS_DENIED` (403), `FORBIDDEN_ROLE` (403), `INVITE_NOT_FOUND` (404), `INVITE_EXPIRED` (410), `INVITE_ALREADY_USED` (409), `OWNER_CANNOT_BE_REMOVED` (409) with shared-problem examples.
-- [ ] Redocly lint clean; regenerate Orval clients (frontend) and NestJS client for meter/reading consumption paths.
+- [x] New public paths: `POST/GET /api/v1/households/{householdId}/invites`, `DELETE .../invites/{inviteId}`, `POST /api/v1/households/invites/redeem`, `GET .../members`, `DELETE .../members/{userId}`.
+- [x] `Household` schema gains caller's `role` (OWNER/MEMBER/VIEWER) on list + get responses.
+- [x] New internal path `GET /api/v1/internal/household-access?householdId=&userId=` returning `{role, exists}` — mirror A4's `Internal` tag, `security: []`, compact-body rationale comment, "not reachable through gateway" note.
+- [x] Error semantics: `HOUSEHOLD_ACCESS_DENIED` (403), `FORBIDDEN_ROLE` (403), `INVITE_NOT_FOUND` (404), `INVITE_EXPIRED` (410), `INVITE_ALREADY_USED` (409), `OWNER_CANNOT_BE_REMOVED` (409) with shared-problem examples.
+- [x] Redocly lint clean; regenerate Orval clients (frontend) and NestJS client for meter/reading consumption paths.
 
 R1.2 Migration (`db/migration/households/`)
 - [ ] Extend `MembershipRole` with `VIEWER` (check constraint / enum migration).

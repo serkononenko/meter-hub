@@ -7,14 +7,17 @@
  */
 import type { HouseholdRole } from './householdRole';
 
-export interface Household {
-  /** UUID v4 in canonical lowercase form. */
+/**
+ * A newly created invitation. The code appears in plaintext exactly once — here.
+ */
+export interface InviteCreated {
+  /** Identifier of the invitation. */
   id: string;
-  /** Display name of the household. */
-  name: string;
   role: HouseholdRole;
+  /** Opaque high-entropy invitation code. Share manually; stored server-side only as a hash. */
+  code: string;
   /** RFC 3339 timestamp in UTC. Must use the Z suffix. */
   createdAt: string;
   /** RFC 3339 timestamp in UTC. Must use the Z suffix. */
-  updatedAt?: string;
+  expiresAt: string;
 }

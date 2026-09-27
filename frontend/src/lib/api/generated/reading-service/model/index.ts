@@ -7,6 +7,8 @@
  */
 
 export * from './createReadingRequest';
+export * from './healthStatus';
+export * from './healthStatusStatus';
 export * from './listReadingsParams';
 export * from './problem';
 export * from './problemErrorsItem';

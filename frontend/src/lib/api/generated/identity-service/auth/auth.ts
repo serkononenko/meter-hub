@@ -416,8 +416,8 @@ export const getLogoutUserUrl = () => {
 }
 
 /**
- * Revokes the supplied refresh token so it can no longer be used to refresh. Idempotent — revoking an unknown, expired, or already revoked token succeeds the same way.
- * @summary Revoke a refresh token
+ * Revokes the supplied refresh token so it can no longer be used to refresh. When the request carries a Bearer access token, that token is revoked too (by its `jti`) so an already-issued access token stops working within the gateway's revocation propagation delay instead of living out its full 15-minute TTL. Idempotent — revoking an unknown, expired, or already revoked token succeeds the same way.
+ * @summary Revoke a refresh token and, optionally, the presented access token
  */
 export const logoutUser = async (logoutRequest: LogoutRequest, options?: Parameters<typeof orvalInstance>[1]): Promise<logoutUserResponse> => {
 
@@ -483,7 +483,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type LogoutUserMutationVariables = {data: LogoutRequest}
 
     /**
- * @summary Revoke a refresh token
+ * @summary Revoke a refresh token and, optionally, the presented access token
  */
 export const useLogoutUser = <TError = Problem,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof logoutUser>>, TError,LogoutUserMutationVariables, TContext>, request?: SecondParameter<typeof orvalInstance>}

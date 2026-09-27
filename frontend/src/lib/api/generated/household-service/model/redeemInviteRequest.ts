@@ -6,7 +6,11 @@
  * OpenAPI spec version: 1.1.0
  */
 
-export type ProblemErrorsItem = {
-  field: string;
-  message: string;
-};
+export interface RedeemInviteRequest {
+  /**
+     * The invitation code to redeem.
+     * @minLength 1
+     * @maxLength 128
+     */
+  code: string;
+}

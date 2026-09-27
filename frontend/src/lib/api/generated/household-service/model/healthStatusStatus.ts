@@ -6,7 +6,14 @@
  * OpenAPI spec version: 1.1.0
  */
 
-export type ProblemErrorsItem = {
-  field: string;
-  message: string;
-};
+/**
+ * Aggregated probe outcome (Spring Boot health convention).
+ */
+export type HealthStatusStatus = typeof HealthStatusStatus[keyof typeof HealthStatusStatus];
+
+
+export const HealthStatusStatus = {
+  UP: 'UP',
+  DOWN: 'DOWN',
+  OUT_OF_SERVICE: 'OUT_OF_SERVICE',
+} as const;

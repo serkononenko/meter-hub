@@ -5,8 +5,15 @@
  * Household Service HTTP API. Covers household creation, lookup, membership (roles, members), and invitation management for the authenticated user. Membership and roles are owned here; other services consume the internal access verdict instead of evaluating roles themselves.
  * OpenAPI spec version: 1.1.0
  */
+import type { CreateInviteRequestRole } from './createInviteRequestRole';
 
-export type ProblemErrorsItem = {
-  field: string;
-  message: string;
-};
+export interface CreateInviteRequest {
+  /** Role granted by this invitation. OWNER is never invitiable — there is exactly one, the creator. */
+  role: CreateInviteRequestRole;
+  /**
+     * Lifetime of the invitation in days. Codes are never extended.
+     * @minimum 1
+     * @maximum 30
+     */
+  expiresInDays?: number;
+}

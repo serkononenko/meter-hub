@@ -6,6 +6,9 @@
  * OpenAPI spec version: 1.0.0
  */
 
+export * from './healthStatus';
+export * from './healthStatusStatus';
+export * from './listRevokedAccessTokensParams';
 export * from './loginRequest';
 export * from './loginResponse';
 export * from './loginResponseTokenType';
@@ -14,6 +17,7 @@ export * from './problem';
 export * from './problemErrorsItem';
 export * from './refreshRequest';
 export * from './registerRequest';
+export * from './revocationBatch';
 export * from './timestamp';
 export * from './user';
 export * from './userStatus';

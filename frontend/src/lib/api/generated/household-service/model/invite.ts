@@ -5,8 +5,17 @@
  * Household Service HTTP API. Covers household creation, lookup, membership (roles, members), and invitation management for the authenticated user. Membership and roles are owned here; other services consume the internal access verdict instead of evaluating roles themselves.
  * OpenAPI spec version: 1.1.0
  */
+import type { HouseholdRole } from './householdRole';
 
 /**
- * UUID v4 in canonical lowercase form.
+ * A live (unredeemed, unexpired, not revoked) invitation. Code material is never included.
  */
-export type Uuid = string;
+export interface Invite {
+  /** Identifier of the invitation. */
+  id: string;
+  role: HouseholdRole;
+  /** RFC 3339 timestamp in UTC. Must use the Z suffix. */
+  createdAt: string;
+  /** RFC 3339 timestamp in UTC. Must use the Z suffix. */
+  expiresAt: string;
+}

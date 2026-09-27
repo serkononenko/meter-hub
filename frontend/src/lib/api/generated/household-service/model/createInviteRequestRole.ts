@@ -6,7 +6,13 @@
  * OpenAPI spec version: 1.1.0
  */
 
-export type ProblemErrorsItem = {
-  field: string;
-  message: string;
-};
+/**
+ * Role granted by this invitation. OWNER is never invitiable — there is exactly one, the creator.
+ */
+export type CreateInviteRequestRole = typeof CreateInviteRequestRole[keyof typeof CreateInviteRequestRole];
+
+
+export const CreateInviteRequestRole = {
+  MEMBER: 'MEMBER',
+  VIEWER: 'VIEWER',
+} as const;

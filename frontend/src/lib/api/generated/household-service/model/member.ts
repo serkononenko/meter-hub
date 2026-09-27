@@ -5,8 +5,14 @@
  * Household Service HTTP API. Covers household creation, lookup, membership (roles, members), and invitation management for the authenticated user. Membership and roles are owned here; other services consume the internal access verdict instead of evaluating roles themselves.
  * OpenAPI spec version: 1.1.0
  */
+import type { HouseholdRole } from './householdRole';
 
-export type ProblemErrorsItem = {
-  field: string;
-  message: string;
-};
+export interface Member {
+  /** Identifier of the membership. */
+  id: string;
+  /** Identifier of the member user. */
+  userId: string;
+  role: HouseholdRole;
+  /** RFC 3339 timestamp in UTC. Must use the Z suffix. */
+  createdAt: string;
+}

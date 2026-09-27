@@ -6,7 +6,13 @@
  * OpenAPI spec version: 1.1.0
  */
 
-export type ProblemErrorsItem = {
-  field: string;
-  message: string;
+export type GetHouseholdAccessParams = {
+/**
+ * Identifier of the household.
+ */
+householdId: string;
+/**
+ * Identifier of the user.
+ */
+userId: string;
 };

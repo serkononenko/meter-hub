@@ -7,6 +7,8 @@
  */
 
 export * from './createMeterRequest';
+export * from './healthStatus';
+export * from './healthStatusStatus';
 export * from './listMetersParams';
 export * from './meter';
 export * from './meterStatus';

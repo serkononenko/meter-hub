@@ -5,8 +5,9 @@
  * Household Service HTTP API. Covers household creation, lookup, membership (roles, members), and invitation management for the authenticated user. Membership and roles are owned here; other services consume the internal access verdict instead of evaluating roles themselves.
  * OpenAPI spec version: 1.1.0
  */
+import type { HealthStatusStatus } from './healthStatusStatus';
 
-export type ProblemErrorsItem = {
-  field: string;
-  message: string;
-};
+export interface HealthStatus {
+  /** Aggregated probe outcome (Spring Boot health convention). */
+  status: HealthStatusStatus;
+}
