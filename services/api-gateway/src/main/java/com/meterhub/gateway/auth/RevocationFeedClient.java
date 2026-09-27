@@ -1,66 +1,45 @@
 package com.meterhub.gateway.auth;
 
-import org.springframework.http.MediaType;
+import com.meterhub.gateway.client.identity.ApiClient;
+import com.meterhub.gateway.client.identity.api.InternalApi;
 import org.springframework.stereotype.Component;
-import org.springframework.web.client.RestClient;
 
 import java.time.Instant;
 import java.time.OffsetDateTime;
-import java.time.format.DateTimeParseException;
+import java.time.ZoneOffset;
 import java.util.List;
+import java.util.UUID;
 
 /**
  * Fetches one page of access-token revocations from the identity service's
  * internal feed. The gateway is the only consumer; the call runs on the
- * poll schedule, never on the request path.
+ * poll schedule, never on the request path. Thin adapter over the
+ * generated OpenAPI client — the contract YAML is the source of truth for
+ * path, parameters and payload shape.
  */
 @Component
 public class RevocationFeedClient {
 
-    private static final String FEED_PATH = "/api/v1/internal/revoked-access-tokens";
+    private final InternalApi internalApi;
 
-    private final RestClient restClient;
+    public RevocationFeedClient(RevocationCacheProperties properties) {
+        ApiClient apiClient = new ApiClient();
+        apiClient.setBasePath(properties.feedBaseUrl());
 
-    public RevocationFeedClient(RestClient.Builder restClientBuilder, RevocationCacheProperties properties) {
-        // Direct to identity, not through this gateway's own routing: the
-        // internal path is denied on the proxied surface, and the poll is a
-        // service-to-service call, not a client request.
-        this.restClient = restClientBuilder.baseUrl(properties.feedBaseUrl()).build();
+        this.internalApi = new InternalApi(apiClient);
     }
 
     public RevocationBatch fetch(Instant cursor) {
-        FeedResponse response = restClient.get()
-            .uri(uriBuilder -> {
-                uriBuilder.path(FEED_PATH);
-                if (cursor != null) {
-                    uriBuilder.queryParam("since", cursor.toString());
-                }
-                return uriBuilder.build();
-            })
-            .accept(MediaType.APPLICATION_JSON)
-            .retrieve()
-            .body(FeedResponse.class);
-
-        if (response == null) {
+        com.meterhub.gateway.client.identity.model.RevocationBatch batch = internalApi.listRevokedAccessTokens(
+            cursor == null ? null : OffsetDateTime.ofInstant(cursor, ZoneOffset.UTC),
+            null
+        );
+        if (batch == null) {
             return new RevocationBatch(List.of(), null);
         }
         return new RevocationBatch(
-            response.jtis() == null ? List.of() : response.jtis(),
-            parseCursor(response.next())
+            batch.getJtis().stream().map(UUID::toString).toList(),
+            batch.getNext() == null ? null : batch.getNext().toInstant()
         );
-    }
-
-    private static Instant parseCursor(String next) {
-        if (next == null) {
-            return null;
-        }
-        try {
-            return OffsetDateTime.parse(next).toInstant();
-        } catch (DateTimeParseException e) {
-            throw new IllegalStateException("Revocation feed returned an unparseable cursor", e);
-        }
-    }
-
-    record FeedResponse(List<String> jtis, String next) {
     }
 }
