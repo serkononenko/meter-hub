@@ -27,8 +27,9 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /**
- * Unit tests for the household application service (task 9.2). Covers
- * creation, listing, and owner-scoped lookup without Spring or a database.
+ * Unit tests for the household application service (task 9.2, A3 update).
+ * Covers creation, membership-scoped listing/lookup (any role, with the
+ * caller's role attached) without Spring or a database.
  */
 @ExtendWith(MockitoExtension.class)
 class HouseholdServiceTest {
@@ -93,26 +94,32 @@ class HouseholdServiceTest {
     }
 
     @Test
-    void listReturnsOnlyHouseholdsOwnedByTheUser() {
+    void listReturnsOnlyHouseholdsTheUserBelongsToWithRole() {
         Household owned = household(OWNER_ID);
-        when(householdRepository.findAllByOwnerUserId(OWNER_ID)).thenReturn(List.of(owned));
-        when(householdRepository.findAllByOwnerUserId(OTHER_USER_ID)).thenReturn(List.of());
+        HouseholdRepository.HouseholdWithRole ownedWithRole =
+            new HouseholdRepository.HouseholdWithRole(owned, MembershipRole.OWNER);
+        when(householdRepository.findAllByMemberUserId(OWNER_ID)).thenReturn(List.of(ownedWithRole));
+        when(householdRepository.findAllByMemberUserId(OTHER_USER_ID)).thenReturn(List.of());
 
-        assertThat(householdService.list(OWNER_ID)).containsExactly(owned);
+        assertThat(householdService.list(OWNER_ID)).containsExactly(ownedWithRole);
         assertThat(householdService.list(OTHER_USER_ID)).isEmpty();
     }
 
     @Test
-    void getReturnsTheHouseholdWhenOwnedByTheUser() {
+    void getReturnsTheHouseholdWithCallersRoleForAMember() {
         Household owned = household(OWNER_ID);
-        when(householdRepository.findByIdAndOwnerUserId(HOUSEHOLD_ID, OWNER_ID)).thenReturn(Optional.of(owned));
+        HouseholdRepository.HouseholdWithRole ownedWithRole =
+            new HouseholdRepository.HouseholdWithRole(owned, MembershipRole.OWNER);
+        when(householdRepository.findByIdAndMemberUserId(HOUSEHOLD_ID, OWNER_ID))
+            .thenReturn(Optional.of(ownedWithRole));
 
-        assertThat(householdService.get(OWNER_ID, HOUSEHOLD_ID)).isEqualTo(owned);
+        assertThat(householdService.get(OWNER_ID, HOUSEHOLD_ID)).isEqualTo(ownedWithRole);
     }
 
     @Test
     void getThrowsNotFoundWhenTheHouseholdBelongsToAnotherUser() {
-        when(householdRepository.findByIdAndOwnerUserId(HOUSEHOLD_ID, OTHER_USER_ID)).thenReturn(Optional.empty());
+        when(householdRepository.findByIdAndMemberUserId(HOUSEHOLD_ID, OTHER_USER_ID))
+            .thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> householdService.get(OTHER_USER_ID, HOUSEHOLD_ID))
             .isInstanceOf(HouseholdNotFoundException.class);
@@ -120,7 +127,8 @@ class HouseholdServiceTest {
 
     @Test
     void getThrowsNotFoundWhenTheHouseholdDoesNotExist() {
-        when(householdRepository.findByIdAndOwnerUserId(HOUSEHOLD_ID, OWNER_ID)).thenReturn(Optional.empty());
+        when(householdRepository.findByIdAndMemberUserId(HOUSEHOLD_ID, OWNER_ID))
+            .thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> householdService.get(OWNER_ID, HOUSEHOLD_ID))
             .isInstanceOf(HouseholdNotFoundException.class);

@@ -10,7 +10,11 @@ RUN ./gradlew --no-daemon dependencies --quiet || true
 
 COPY src src
 
-RUN ./gradlew --no-daemon bootJar -x test && cp build/libs/*.jar /app.jar
+# Shared contracts for openapi-generator (identity client), same pattern as
+# the identity/household Dockerfiles.
+COPY --from=contracts . /contracts
+
+RUN OPENAPI_SPEC=/contracts/openapi/services/identity-service/openapi.yaml ./gradlew --no-daemon bootJar -x test && cp build/libs/*.jar /app.jar
 
 FROM eclipse-temurin:25-jre
 WORKDIR /app

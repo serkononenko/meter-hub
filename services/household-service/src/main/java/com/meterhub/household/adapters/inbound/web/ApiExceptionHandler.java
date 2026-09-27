@@ -2,7 +2,15 @@ package com.meterhub.household.adapters.inbound.web;
 
 import com.meterhub.household.adapters.inbound.web.dto.ProblemDto;
 import com.meterhub.household.adapters.inbound.web.dto.ProblemErrorsInnerDto;
+import com.meterhub.household.domain.exception.ForbiddenRoleException;
+import com.meterhub.household.domain.exception.HouseholdAccessDeniedException;
 import com.meterhub.household.domain.exception.HouseholdNotFoundException;
+import com.meterhub.household.domain.exception.InviteAlreadyUsedException;
+import com.meterhub.household.domain.exception.InviteExpiredException;
+import com.meterhub.household.domain.exception.InviteLimitReachedException;
+import com.meterhub.household.domain.exception.InviteNotFoundException;
+import com.meterhub.household.domain.exception.MemberNotFoundException;
+import com.meterhub.household.domain.exception.OwnerCannotBeRemovedException;
 import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -38,6 +46,110 @@ public class ApiExceptionHandler {
             "HOUSEHOLD_NOT_FOUND",
             "Household not found",
             "No household with this identifier is visible to the authenticated user.",
+            request,
+            List.of()
+        );
+    }
+
+    @ExceptionHandler(HouseholdAccessDeniedException.class)
+    public ResponseEntity<ProblemDto> handleAccessDenied(HouseholdAccessDeniedException e, HttpServletRequest request) {
+        log.info("Household access denied");
+        return problem(
+            HttpStatus.FORBIDDEN,
+            "HOUSEHOLD_ACCESS_DENIED",
+            "Household access denied",
+            "You do not have access to this household.",
+            request,
+            List.of()
+        );
+    }
+
+    @ExceptionHandler(ForbiddenRoleException.class)
+    public ResponseEntity<ProblemDto> handleForbiddenRole(ForbiddenRoleException e, HttpServletRequest request) {
+        log.info("Operation rejected: caller role insufficient");
+        return problem(
+            HttpStatus.FORBIDDEN,
+            "FORBIDDEN_ROLE",
+            "Insufficient role",
+            "Your role in this household does not permit this operation.",
+            request,
+            List.of()
+        );
+    }
+
+    @ExceptionHandler(MemberNotFoundException.class)
+    public ResponseEntity<ProblemDto> handleMemberNotFound(MemberNotFoundException e, HttpServletRequest request) {
+        log.info("Member lookup rejected: no such membership");
+        return problem(
+            HttpStatus.NOT_FOUND,
+            "MEMBER_NOT_FOUND",
+            "Member not found",
+            "The referenced user has no membership in this household.",
+            request,
+            List.of()
+        );
+    }
+
+    @ExceptionHandler(OwnerCannotBeRemovedException.class)
+    public ResponseEntity<ProblemDto> handleOwnerCannotBeRemoved(OwnerCannotBeRemovedException e, HttpServletRequest request) {
+        log.info("Member removal rejected: target is the owner");
+        return problem(
+            HttpStatus.CONFLICT,
+            "OWNER_CANNOT_BE_REMOVED",
+            "Owner cannot be removed",
+            "The household owner cannot be removed. Ownership transfer is not supported.",
+            request,
+            List.of()
+        );
+    }
+
+    @ExceptionHandler(InviteLimitReachedException.class)
+    public ResponseEntity<ProblemDto> handleInviteLimitReached(InviteLimitReachedException e, HttpServletRequest request) {
+        log.info("Invite creation rejected: live-invite limit reached");
+        return problem(
+            HttpStatus.CONFLICT,
+            "INVITE_LIMIT_REACHED",
+            "Invite limit reached",
+            "The household already has the maximum number of live invites. Revoke one before creating another.",
+            request,
+            List.of()
+        );
+    }
+
+    @ExceptionHandler(InviteNotFoundException.class)
+    public ResponseEntity<ProblemDto> handleInviteNotFound(InviteNotFoundException e, HttpServletRequest request) {
+        log.info("Invite lookup rejected: no matching live invite");
+        return problem(
+            HttpStatus.NOT_FOUND,
+            "INVITE_NOT_FOUND",
+            "Invite not found",
+            "No invitation matches the supplied code.",
+            request,
+            List.of()
+        );
+    }
+
+    @ExceptionHandler(InviteAlreadyUsedException.class)
+    public ResponseEntity<ProblemDto> handleInviteAlreadyUsed(InviteAlreadyUsedException e, HttpServletRequest request) {
+        log.info("Invite redemption rejected: already used");
+        return problem(
+            HttpStatus.CONFLICT,
+            "INVITE_ALREADY_USED",
+            "Invite already used",
+            "This invitation has already been redeemed.",
+            request,
+            List.of()
+        );
+    }
+
+    @ExceptionHandler(InviteExpiredException.class)
+    public ResponseEntity<ProblemDto> handleInviteExpired(InviteExpiredException e, HttpServletRequest request) {
+        log.info("Invite redemption rejected: expired");
+        return problem(
+            HttpStatus.GONE,
+            "INVITE_EXPIRED",
+            "Invite expired",
+            "This invitation has expired. Ask the household owner for a new one.",
             request,
             List.of()
         );

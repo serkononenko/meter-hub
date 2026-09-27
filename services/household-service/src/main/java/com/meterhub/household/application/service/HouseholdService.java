@@ -17,6 +17,13 @@ import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
 
+/**
+ * Every authorization decision here resolves through the requester's
+ * membership role — no user is trusted merely for being authenticated.
+ * Unknown household and non-member are deliberately indistinguishable:
+ * both surface as {@link HouseholdNotFoundException} so existence is never
+ * revealed to non-members.
+ */
 @Service
 public class HouseholdService implements CreateHouseholdUseCase, ListHouseholdsUseCase, GetHouseholdUseCase {
     private final HouseholdRepository householdRepository;
@@ -57,14 +64,14 @@ public class HouseholdService implements CreateHouseholdUseCase, ListHouseholdsU
 
     @Override
     @Transactional(readOnly = true)
-    public List<Household> list(UUID ownerUserId) {
-        return householdRepository.findAllByOwnerUserId(ownerUserId);
+    public List<HouseholdRepository.HouseholdWithRole> list(UUID userId) {
+        return householdRepository.findAllByMemberUserId(userId);
     }
 
     @Override
     @Transactional(readOnly = true)
-    public Household get(UUID ownerUserId, UUID householdId) {
-        return householdRepository.findByIdAndOwnerUserId(householdId, ownerUserId)
+    public HouseholdRepository.HouseholdWithRole get(UUID userId, UUID householdId) {
+        return householdRepository.findByIdAndMemberUserId(householdId, userId)
             .orElseThrow(HouseholdNotFoundException::new);
     }
 }

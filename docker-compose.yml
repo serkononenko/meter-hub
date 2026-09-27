@@ -27,6 +27,8 @@ services:
   api-gateway:
     build:
       context: ./services/api-gateway
+      additional_contexts:
+        - contracts=./contracts
     environment:
       <<: *identity-jwt-env
       IDENTITY_SERVICE_URL: http://identity-service:8081

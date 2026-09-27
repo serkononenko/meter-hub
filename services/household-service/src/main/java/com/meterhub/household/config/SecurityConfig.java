@@ -38,6 +38,11 @@ public class SecurityConfig {
                 .requestMatchers("/actuator/health", "/actuator/health/**").permitAll()
                 // Prometheus scrapes metrics without a token (task 10.4)
                 .requestMatchers("/actuator/prometheus").permitAll()
+                // Internal service-to-service surface (household-access
+                // verdict for meter/reading services). No JWT until A1 lands —
+                // same trust model as identity's revocation feed; the gateway
+                // denyAlls the proxied path.
+                .requestMatchers("/api/v1/internal/**").permitAll()
                 .anyRequest().authenticated()
             )
             .oauth2ResourceServer(oauth2 -> oauth2

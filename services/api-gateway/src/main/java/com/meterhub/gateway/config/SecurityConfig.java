@@ -68,6 +68,9 @@ public class SecurityConfig {
                 // through the gateway's public surface (belt-and-braces with
                 // the route table: this path must not be proxied)
                 .requestMatchers("/api/identity-service/api/v1/internal/**").denyAll()
+                // Household's internal access verdict (A3) — same rule as the
+                // revocation feed: service-to-service only, never proxied
+                .requestMatchers("/api/household-service/api/v1/internal/**").denyAll()
                 .anyRequest().authenticated()
             )
             .oauth2ResourceServer(oauth2 -> oauth2
