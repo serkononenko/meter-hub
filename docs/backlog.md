@@ -23,9 +23,7 @@ Last reviewed: 2026-09-27
 
 ## C — API clients
 
-| ID | Limitation | Impact | Resolution path | Phase | Status |
-|---|---|---|---|---|---|
-| C2 | Rate limiting is in-process — gateway token buckets (keyed by token subject / client IP, [service-boundaries.md](service-boundaries.md) §Rate limiting) live in a single JVM instance | Buckets do not survive restarts and are not shared if the gateway ever scales out | Shared rate-limit store (Redis) when the gateway scales to multiple instances | 7 | Accepted — fine while the gateway is one instance |
+All API-client items (C1–C3) are resolved — see the Resolved section.
 
 ## O — Operations
 
@@ -52,10 +50,11 @@ Last reviewed: 2026-09-27
 | O6 | Reading source enum unresolved — clients could not assume what `source` values exist | 2026-09-26 | Contract pins `source` to `MANUAL` for the MVP (`contracts/openapi/services/reading-service/openapi.yaml`); `DEVICE` arrives with Phase 6 |
 | C1 | No pagination metadata — history endpoints took `limit`/`offset` and returned a bare array, no total count, no links | 2026-09-27 | Offset-based `ReadingPage` envelope `{items, total, limit, offset}` in the reading contract; server clamps and echoes paging values; frontend and e2e updated (`ReadingPage` in `contracts/openapi/services/reading-service/openapi.yaml`) |
 | D2 | Timezone discipline relied on the client — nothing stopped a `recordedAt` far in the past or future | 2026-09-27 | Reading Service rejects out-of-window timestamps with 422 `RECORDED_AT_IN_FUTURE` / `RECORDED_AT_TOO_OLD` (5-year window), enforced via `@DateNotInFuture` / `@DateNotOlderThan` command decorators |
-| C3 | No idempotency keys — retried POSTs (readings especially, on flaky networks) could create duplicates; `409`/`422` were ambiguous duplicate signals | 2026-09-27 | `Idempotency-Key` on `POST /readings` (optional header, per-user scoped): repeats within the 24h window replay the original response; reuse with a different body is 409 `IDEMPOTENCY_KEY_REUSE`; records stored in the reading DB with expiry cleanup hook. Web app sends one key per dialog session |
+| C3 | No idempotency keys — retried POSTs (readings especially, on flaky networks) could create duplicates; `409`/`422` were ambiguous duplicate signals | 2026-09-27 | `Idempotency-Key` on `POST /readings` (optional header, per-user scoped): repeats within the 24h window replay the original response; reuse with a different body is 409 `IDEMPOTENCY_KEY_REUSE`; records stored in the reading DB with hourly cleanup cron. Web app sends one key per dialog session |
+| C2 | Rate limiting was unimplemented, then implemented in-process — gateway token buckets (keyed by token subject / client IP, [service-boundaries.md](service-boundaries.md) §Rate limiting) live in a single JVM instance: not shared across instances, reset on restart | Shipped and working for the single-instance gateway; buckets never evict idle keys (negligible at household scale) | Rate limiting itself is done — per-client token buckets via Bucket4j with separate tighter auth-endpoint buckets, `429` + `Retry-After` + problem body, covered by `GatewayRateLimitIntegrationTest`. The residual follow-up — a shared store (Redis) so buckets survive restarts and are shared when the gateway scales out — stays in scope for Phase 7 |
 
 ---
 
 ## Done when
 
-The Phase 1 slice of this backlog is done when: A3 roles enforced end to end (C1, C3 already resolved); O1 fires a real notification; O2 restore-tested at least once (mirrors roadmap Phase 1 exit criteria). Accepted items (A2, C2) revisit at their stated trigger in Phase 7.
+The Phase 1 slice of this backlog is done when: A3 roles enforced end to end (all C items already resolved); O1 fires a real notification; O2 restore-tested at least once (mirrors roadmap Phase 1 exit criteria). The remaining Accepted item (A2) revisits at its stated trigger in Phase 7, along with C2's scale-out follow-up.

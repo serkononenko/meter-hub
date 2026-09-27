@@ -72,8 +72,9 @@ no new services.
 
 ### 1.4 Deferred until proven needed
 
-- Shared rate-limit store (Redis) — only when the gateway scales past one
-  instance.
+- Shared rate-limit store (Redis) — in-process token buckets (backlog C2,
+  resolved) are correct for the single-instance gateway; only when the
+  gateway scales past one instance.
 - Per-service PostgreSQL containers — schema design already keeps the
   migration mechanical (conventions §11).
 
