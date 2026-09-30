@@ -3,6 +3,7 @@
 echo "🔄 Clearing old folder..."
 rm -rf "./src/generated/reading"
 rm -rf "./src/generated/meter"
+rm -rf "./src/generated/household"
 
 echo "🚀 Launching typescript-nestjs-server server generation..."
 npx @openapitools/openapi-generator-cli generate \
@@ -30,5 +31,13 @@ npx @openapitools/openapi-generator-cli generate \
   -g typescript-fetch \
   -o "./src/generated/meter" \
   -c "./openapi-config/meter-client.json"
+
+echo "🚀 Launching typescript-fetch client generation for household-service..."
+mkdir -p "./src/generated/household"
+npx @openapitools/openapi-generator-cli generate \
+  -i "../../contracts/openapi/services/household-service/openapi.yaml" \
+  -g typescript-fetch \
+  -o "./src/generated/household" \
+  -c "./openapi-config/household-client.json"
 
 echo "✅ Successfully generated"

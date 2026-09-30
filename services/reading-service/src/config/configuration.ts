@@ -7,6 +7,9 @@ export default () => ({
     meter: {
         url: process.env.METER_SERVICE_URL ?? 'http://localhost:8083'
     },
+    household: {
+        url: process.env.HOUSEHOLD_SERVICE_URL ?? 'http://localhost:8082'
+    },
     identity: {
         jwt: {
             issuer: process.env.IDENTITY_JWT_ISSUER ?? 'identity-service',

@@ -4,7 +4,7 @@ All URIs are relative to *http://localhost*
 
 | Method | HTTP request | Description |
 |------------- | ------------- | -------------|
-| [**createMeter**](MetersApi.md#createmeteroperation) | **POST** /api/v1/meters | Register a meter in a household owned by the authenticated user |
+| [**createMeter**](MetersApi.md#createmeteroperation) | **POST** /api/v1/meters | Register a meter in a household the authenticated user can write to |
 | [**getMeter**](MetersApi.md#getmeter) | **GET** /api/v1/meters/{meterId} | Return a single meter |
 | [**listMeters**](MetersApi.md#listmeters) | **GET** /api/v1/meters | List meters of a household owned by the authenticated user |
 | [**updateMeter**](MetersApi.md#updatemeteroperation) | **PATCH** /api/v1/meters/{meterId} | Update mutable fields of a meter |
@@ -15,9 +15,9 @@ All URIs are relative to *http://localhost*
 
 > Meter createMeter(createMeterRequest, xCorrelationID)
 
-Register a meter in a household owned by the authenticated user
+Register a meter in a household the authenticated user can write to
 
-Creates a meter under the given household. The household must exist and be owned by the user that owns the presented access token; households of other users are not addressable and return the same not-found problem as unknown ones.
+Creates a meter under the given household. The household must exist and the caller must hold at least a MEMBER role there (membership roles are owned by household-service); VIEWERs are rejected with 403 FORBIDDEN_ROLE and non-members are not addressable, returning the same not-found problem as unknown households.
 
 ### Example
 
@@ -84,6 +84,7 @@ example().catch(console.error);
 | **400** | Invalid request or validation error. |  -  |
 | **401** | No access token was supplied, or it is invalid or expired. |  * X-Correlation-ID -  <br>  |
 | **404** | No household with this identifier is visible to the authenticated user. |  * X-Correlation-ID -  <br>  |
+| **403** | Caller is a member of the household but holds a read-only role (VIEWER). |  * X-Correlation-ID -  <br>  |
 | **409** | A meter with the same serial number is already registered in this household. |  * X-Correlation-ID -  <br>  |
 | **500** | Unexpected server-side error. |  -  |
 
@@ -321,6 +322,7 @@ example().catch(console.error);
 | **400** | Invalid request or validation error. |  -  |
 | **401** | No access token was supplied, or it is invalid or expired. |  * X-Correlation-ID -  <br>  |
 | **404** | No meter with this identifier is visible to the authenticated user. |  * X-Correlation-ID -  <br>  |
+| **403** | Caller is a member of the meter\&#39;s household but holds a read-only role (VIEWER). |  * X-Correlation-ID -  <br>  |
 | **409** | A meter with the same serial number is already registered in this household. |  * X-Correlation-ID -  <br>  |
 | **500** | Unexpected server-side error. |  -  |
 

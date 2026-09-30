@@ -1,8 +1,8 @@
 /* tslint:disable */
 /* eslint-disable */
 /**
- * MeterHub Meter Service API
- * Meter Service HTTP API. Covers meter registration and lifecycle for households the authenticated user is a member of. Membership roles are owned by household-service (A3) — any member may read, MEMBER and above may create/modify meters, VIEWER is read-only.
+ * MeterHub Household Service API
+ * Household Service HTTP API. Covers household creation, lookup, membership (roles, members), and invitation management for the authenticated user. Membership and roles are owned here; other services consume the internal access verdict instead of evaluating roles themselves.
  *
  * The version of the OpenAPI document: 1.1.0
  * 

@@ -2,7 +2,7 @@
 
 export interface CreateReadingRequest { 
   /**
-   * The meter the reading belongs to. Must be owned by the authenticated user.
+   * The meter the reading belongs to. Must be accessible to the authenticated user (any membership role in its household).
    */
   meterId: string;
   /**

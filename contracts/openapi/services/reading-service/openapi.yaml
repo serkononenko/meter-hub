@@ -1,8 +1,8 @@
 openapi: 3.0.3
 info:
   title: MeterHub Reading Service API
-  description: MeterHub Reading Service HTTP API. Covers meter reading registration and lookup for meters owned by the authenticated user.
-  version: 1.0.0
+  description: MeterHub Reading Service HTTP API. Covers meter reading registration and lookup for meters the authenticated user has access to.
+  version: 1.1.0
 
 tags:
   - name: Readings
@@ -13,12 +13,14 @@ paths:
     post:
       tags: [Readings]
       operationId: createReading
-      summary: Record a reading for a meter owned by the authenticated user
+      summary: Record a reading for a meter the authenticated user can access
       description: >-
-        Creates a reading under the given meter. The meter must exist and be
-        owned by the user that owns the presented access token; meters of
-        other users are not addressable and return the same not-found problem
-        as unknown ones. The source is always MANUAL in the MVP.
+        Creates a reading under the given meter. The meter must exist and the
+        caller must hold at least a MEMBER role in the meter's household
+        (membership roles are owned by household-service); VIEWERs are
+        rejected with 403 FORBIDDEN_ROLE, and non-members are not addressable,
+        returning the same not-found problem as unknown meters. The source is
+        always MANUAL in the MVP.
         Retried submissions should carry an `Idempotency-Key` header: within
         the retention window, a repeated key returns the original response
         instead of creating a second reading. Sending a key again with a
@@ -71,6 +73,22 @@ paths:
           $ref: '../../openapi.yaml#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/UnauthorizedProblem'
+        '403':
+          description: The caller holds only a VIEWER role in the meter's household.
+          headers:
+            X-Correlation-ID:
+              $ref: '../../components/headers/correlation-id.yaml'
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../../openapi.yaml#/components/schemas/Problem'
+              example:
+                type: https://api.meterhub.local/problems/forbidden-role
+                title: Forbidden for role
+                status: 403
+                code: FORBIDDEN_ROLE
+                detail: The VIEWER role does not allow submitting readings.
+                correlationId: 7d6f5f2c-0a49-4e10-8ef7-7c3d2b1f4a10
         '404':
           description: No meter with this identifier is visible to the authenticated user.
           headers:
@@ -159,12 +177,13 @@ paths:
     get:
       tags: [Readings]
       operationId: listReadings
-      summary: List the reading history of a meter owned by the authenticated user
+      summary: List the reading history of a meter the authenticated user can access
       description: >-
         Returns the readings recorded under the given meter, newest first.
-        The meter must exist and be owned by the user that owns the presented
-        access token; meters of other users are not addressable and return
-        the same not-found problem as unknown ones.
+        The meter must exist and the caller must have any membership role in
+        the meter's household; meters of households the caller is not a member
+        of are not addressable and return the same not-found problem as
+        unknown ones.
       security:
         - bearerAuth: []
       parameters:
@@ -249,11 +268,11 @@ paths:
     get:
       tags: [Readings]
       operationId: getLatestReading
-      summary: Return the most recent reading of a meter owned by the authenticated user
+      summary: Return the most recent reading of a meter the authenticated user can access
       description: >-
         Returns the reading with the greatest recordedAt under the given
-        meter. The meter must exist and be owned by the user that owns the
-        presented access token.
+        meter. The meter must exist and the caller must have any membership
+        role in the meter's household.
       security:
         - bearerAuth: []
       parameters:
@@ -362,7 +381,7 @@ components:
         meterId:
           type: string
           format: uuid
-          description: The meter the reading belongs to. Must be owned by the authenticated user.
+          description: The meter the reading belongs to. Must be accessible to the authenticated user (any membership role in its household).
         value:
           type: number
           minimum: 0
