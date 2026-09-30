@@ -2,12 +2,12 @@ import {describe, expect, it, vi} from 'vitest';
 import {Prisma} from '../generated/prisma/client.js';
 import {MeterService} from './meter.service.js';
 import {MeterRepository} from './meter.repository.js';
-import {HouseholdAccessService, NotFoundMaskedError} from '../household/household-access.service.js';
-import {ForbiddenRoleException} from '../exceptions/forbidden-role.exception.js';
-import {MeterNotFoundException} from '../exceptions/not-found.exception.js';
+import {HouseholdAccessService} from '../household/household-access.service.js';
+import {ForbiddenRoleException} from '../exceptions/forbidden.exception.js';
+import {HouseholdNotFoundException, MeterNotFoundException} from '../exceptions/not-found.exception.js';
 import {MeterSerialNumberConflictException} from '../exceptions/conflict.exception.js';
 import {HouseholdServiceUnavailableException} from '../exceptions/service-unavailable.exception.js';
-import {RequestValidationException} from '../exceptions/request-validation.exception.js';
+import {RequestValidationException} from '../exceptions/bad-request.exception.js';
 import {MeterType, MeterUnit, MeterStatus} from "../generated/meter/models/index.js";
 
 import type {Meter} from "../generated/meter/models/index.js";
@@ -51,8 +51,8 @@ function householdDownStub(): HouseholdAccessService {
 function accessStub(verdict: {member: boolean; role?: string}): HouseholdAccessService {
     if (!verdict.member) {
         return {
-            assertCanRead: vi.fn().mockRejectedValue(new NotFoundMaskedError(HOUSEHOLD)),
-            assertCanWrite: vi.fn().mockRejectedValue(new NotFoundMaskedError(HOUSEHOLD)),
+            assertCanRead: vi.fn().mockRejectedValue(new HouseholdNotFoundException(HOUSEHOLD)),
+            assertCanWrite: vi.fn().mockRejectedValue(new HouseholdNotFoundException(HOUSEHOLD)),
         } as unknown as HouseholdAccessService;
     }
 

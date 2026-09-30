@@ -4,13 +4,13 @@ import {validate} from 'class-validator';
 import {Prisma} from '../generated/prisma/client.js';
 import {MeterNotFoundException, HouseholdNotFoundException} from "../exceptions/not-found.exception.js";
 import {MeterSerialNumberConflictException} from "../exceptions/conflict.exception.js";
-import {RequestValidationException} from "../exceptions/request-validation.exception.js";
+import {RequestValidationException} from "../exceptions/bad-request.exception.js";
 import {MetersApi} from "../generated/meter/api/index.js";
 import {MeterRepository} from './meter.repository.js';
-import {HouseholdAccessService, NotFoundMaskedError} from '../household/household-access.service.js';
-import {REQUEST_USER} from '../auth/auth.constants.js';
+import {HouseholdAccessService} from '../household/household-access.service.js';
 import {CreateMeterCommand} from "./commands/create-meter.command.js";
 import {UpdateMeterCommand} from "./commands/update-meter.command.js";
+import {getAuthenticatedUser} from "../utils/get-authenticated-user.js";
 
 import type {CreateMeterRequest} from "../generated/meter/models/index.js";
 import type {UpdateMeterRequest} from "../generated/meter/models/index.js";
@@ -29,15 +29,7 @@ export class MeterService extends MetersApi {
         const command = plainToInstance(CreateMeterCommand, payload);
 
         await this.validate(command);
-
-        try {
-            await this.canWrite(command.householdId, request);
-        } catch (error) {
-            if (error instanceof NotFoundMaskedError) {
-                throw new HouseholdNotFoundException(command.householdId);
-            }
-            throw error;
-        }
+        await this.canWrite(command.householdId, request);
 
         return this.guardSerialConflict(() => this.repository.save({
             id: crypto.randomUUID(),
@@ -64,7 +56,7 @@ export class MeterService extends MetersApi {
         try {
             await this.canRead(meter.householdId, request);
         } catch (error) {
-            if (error instanceof NotFoundMaskedError) {
+            if (error instanceof HouseholdNotFoundException) {
                 throw new MeterNotFoundException(meterId);
             }
             throw error;
@@ -78,14 +70,7 @@ export class MeterService extends MetersApi {
     async listMeters(householdId: string, _correlationId?: string, request?: Request) {
         this.requireNotEmpty(householdId);
 
-        try {
-            await this.canRead(householdId, request);
-        } catch (error) {
-            if (error instanceof NotFoundMaskedError) {
-                throw new HouseholdNotFoundException(householdId);
-            }
-            throw error;
-        }
+        await this.canRead(householdId, request);
 
         return this.repository.findByHouseholdId(householdId);
     }
@@ -102,10 +87,7 @@ export class MeterService extends MetersApi {
         try {
             await this.canWrite(prevMeter.householdId, request);
         } catch (error) {
-            // getMeter already masked the meter itself; a VIEWER here gets
-            // FORBIDDEN_ROLE, and only an unexpected membership race would
-            // surface NotFoundMaskedError again.
-            if (error instanceof NotFoundMaskedError) {
+            if (error instanceof HouseholdNotFoundException) {
                 throw new MeterNotFoundException(meterId);
             }
             throw error;
@@ -134,21 +116,12 @@ export class MeterService extends MetersApi {
         }
     }
 
-    /**
-     * Reads need any membership role (A3); VIEWERs read, non-members keep
-     * the enumeration-safe 404 mask from the old existence check.
-     */
     private canRead(householdId: string, request?: Request): Promise<void> {
-        return this.householdAccess.assertCanRead(householdId, userIdOf(request));
+        return this.householdAccess.assertCanRead(householdId, getAuthenticatedUser(request).userId);
     }
 
-    /**
-     * Creating/modifying meters requires MEMBER or OWNER; VIEWER gets
-     * 403 FORBIDDEN_ROLE. NotFoundMaskedError propagates so each call site
-     * masks with its own vocabulary (HOUSEHOLD_NOT_FOUND vs METER_NOT_FOUND).
-     */
     private canWrite(householdId: string, request?: Request): Promise<void> {
-        return this.householdAccess.assertCanWrite(householdId, userIdOf(request));
+        return this.householdAccess.assertCanWrite(householdId, getAuthenticatedUser(request).userId);
     }
 
     private async validate(command: Object) {
@@ -166,11 +139,4 @@ export class MeterService extends MetersApi {
 
         return obj;
     }
-}
-
-/** The auth guard stores the verified subject on the request (A0 pattern). */
-function userIdOf(request?: Request): string {
-    const authenticated = request as unknown as { [REQUEST_USER]?: {userId: string} } | undefined;
-
-    return authenticated?.[REQUEST_USER]?.userId ?? '';
 }

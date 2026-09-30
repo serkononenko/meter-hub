@@ -1,6 +1,6 @@
 import {ArgumentsHost, Catch, ExceptionFilter, HttpStatus} from '@nestjs/common';
 import {Request, Response} from 'express';
-import {RequestValidationException} from "../exceptions/request-validation.exception.js";
+import {RequestValidationException} from "../exceptions/bad-request.exception.js";
 import {CORRELATION_ID_HEADER} from "../constants.js";
 
 
