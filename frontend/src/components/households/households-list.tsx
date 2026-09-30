@@ -5,6 +5,7 @@ import RouterLink from "next/link";
 import Button from "@mui/material/Button";
 import Card from "@mui/material/Card";
 import CardActions from "@mui/material/CardActions";
+import Chip from "@mui/material/Chip";
 import CardContent from "@mui/material/CardContent";
 import Skeleton from "@mui/material/Skeleton";
 import Stack from "@mui/material/Stack";
@@ -14,8 +15,10 @@ import AddIcon from "@mui/icons-material/Add";
 import {householdPath} from "@/paths";
 import {isErrorResponse, problemMessage} from "@/lib/api/problems";
 import {useListHouseholds} from "@/lib/api/generated/household-service";
+import {householdRoleLabels} from "@/lib/households/labels";
 
 import {HouseholdCreateDialog} from "./household-create-dialog";
+import {HouseholdJoinDialog} from "./household-join-dialog";
 
 /**
  * Household list: one card per household of the signed-in user, with an
@@ -24,6 +27,7 @@ import {HouseholdCreateDialog} from "./household-create-dialog";
 export function HouseholdsList(): React.JSX.Element {
   const householdsQuery = useListHouseholds();
   const [createOpen, setCreateOpen] = React.useState(false);
+  const [joinOpen, setJoinOpen] = React.useState(false);
 
   const response = householdsQuery.data;
 
@@ -59,7 +63,10 @@ export function HouseholdsList(): React.JSX.Element {
 
   return (
     <React.Fragment>
-      <Stack direction="row" sx={{justifyContent: "flex-end"}}>
+      <Stack direction="row" spacing={1.5} sx={{justifyContent: "flex-end"}}>
+        <Button onClick={() => setJoinOpen(true)} variant="outlined">
+          Join household
+        </Button>
         <Button onClick={() => setCreateOpen(true)} startIcon={<AddIcon />} variant="contained">
           Create household
         </Button>
@@ -83,14 +90,22 @@ export function HouseholdsList(): React.JSX.Element {
           {households.map((household) => (
             <Card key={household.id}>
               <CardContent>
-                <Typography variant="h6">
-                  <RouterLink
-                    href={householdPath(household.id)}
-                    style={{color: "inherit", textDecoration: "none"}}
-                  >
-                    {household.name}
-                  </RouterLink>
-                </Typography>
+                <Stack direction="row" spacing={1.5} sx={{alignItems: "center", justifyContent: "space-between"}}>
+                  <Typography variant="h6">
+                    <RouterLink
+                      href={householdPath(household.id)}
+                      style={{color: "inherit", textDecoration: "none"}}
+                    >
+                      {household.name}
+                    </RouterLink>
+                  </Typography>
+                  <Chip
+                    color={household.role === "OWNER" ? "primary" : "default"}
+                    label={householdRoleLabels[household.role]}
+                    size="small"
+                    variant={household.role === "VIEWER" ? "outlined" : "filled"}
+                  />
+                </Stack>
                 <Typography color="text.secondary" variant="body2">
                   Created{" "}
                   {new Date(household.createdAt).toLocaleDateString(undefined, {
@@ -110,6 +125,7 @@ export function HouseholdsList(): React.JSX.Element {
         </Stack>
       )}
       <HouseholdCreateDialog onClose={() => setCreateOpen(false)} open={createOpen} />
+      <HouseholdJoinDialog onClose={() => setJoinOpen(false)} open={joinOpen} />
     </React.Fragment>
   );
 }

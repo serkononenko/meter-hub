@@ -29,6 +29,8 @@ import {MeterCreateDialog} from "./meter-create-dialog";
 import {MeterEditDialog} from "./meter-edit-dialog";
 
 export interface MetersListProps {
+  /** False for VIEWERs: write affordances are hidden (the API rejects as backstop). */
+  canWrite?: boolean;
   householdId: string;
 }
 
@@ -37,7 +39,7 @@ export interface MetersListProps {
  * number, and the latest reading. Includes the add-meter dialog and the
  * edit/archive action.
  */
-export function MetersList({householdId}: MetersListProps): React.JSX.Element {
+export function MetersList({canWrite = true, householdId}: MetersListProps): React.JSX.Element {
   const metersQuery = useListMeters({householdId});
   const [createOpen, setCreateOpen] = React.useState(false);
   const [editMeter, setEditMeter] = React.useState<Meter | null>(null);
@@ -76,11 +78,13 @@ export function MetersList({householdId}: MetersListProps): React.JSX.Element {
 
   return (
     <Stack spacing={2}>
-      <Stack direction="row" sx={{justifyContent: "flex-end"}}>
-        <Button onClick={() => setCreateOpen(true)} startIcon={<AddIcon />} variant="contained">
-          Add meter
-        </Button>
-      </Stack>
+      {canWrite ? (
+        <Stack direction="row" sx={{justifyContent: "flex-end"}}>
+          <Button onClick={() => setCreateOpen(true)} startIcon={<AddIcon />} variant="contained">
+            Add meter
+          </Button>
+        </Stack>
+      ) : null}
       {meters.length === 0 ? (
         <Card>
           <CardContent>
@@ -99,7 +103,7 @@ export function MetersList({householdId}: MetersListProps): React.JSX.Element {
       ) : (
         <Stack spacing={2} sx={{display: "grid", gap: 2, gridTemplateColumns: {md: "repeat(2, 1fr)"}}}>
           {meters.map((meter) => (
-            <MeterCard key={meter.id} meter={meter} onEdit={() => setEditMeter(meter)} />
+            <MeterCard canWrite={canWrite} key={meter.id} meter={meter} onEdit={() => setEditMeter(meter)} />
           ))}
         </Stack>
       )}
@@ -111,7 +115,7 @@ export function MetersList({householdId}: MetersListProps): React.JSX.Element {
   );
 }
 
-function MeterCard({meter, onEdit}: {meter: Meter; onEdit: () => void}): React.JSX.Element {
+function MeterCard({canWrite, meter, onEdit}: {canWrite: boolean; meter: Meter; onEdit: () => void}): React.JSX.Element {
   const [recordOpen, setRecordOpen] = React.useState(false);
   const [historyOpen, setHistoryOpen] = React.useState(false);
 
@@ -136,14 +140,16 @@ function MeterCard({meter, onEdit}: {meter: Meter; onEdit: () => void}): React.J
         </Stack>
       </CardContent>
       <CardActions>
-        <Button
-          disabled={meter.status === "ARCHIVED"}
-          onClick={() => setRecordOpen(true)}
-          size="small"
-          startIcon={<AddIcon />}
-        >
-          Record reading
-        </Button>
+        {canWrite ? (
+          <Button
+            disabled={meter.status === "ARCHIVED"}
+            onClick={() => setRecordOpen(true)}
+            size="small"
+            startIcon={<AddIcon />}
+          >
+            Record reading
+          </Button>
+        ) : null}
         <Button
           onClick={() => setHistoryOpen((prev) => !prev)}
           size="small"
@@ -151,9 +157,11 @@ function MeterCard({meter, onEdit}: {meter: Meter; onEdit: () => void}): React.J
         >
           {historyOpen ? "Hide history" : "History"}
         </Button>
-        <Button onClick={onEdit} size="small" startIcon={<EditIcon />}>
-          Edit or archive
-        </Button>
+        {canWrite ? (
+          <Button onClick={onEdit} size="small" startIcon={<EditIcon />}>
+            Edit or archive
+          </Button>
+        ) : null}
       </CardActions>
       <ReadingCreateDialog meter={meter} onClose={() => setRecordOpen(false)} open={recordOpen} />
     </Card>

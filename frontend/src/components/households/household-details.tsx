@@ -5,13 +5,16 @@ import {useParams} from "next/navigation";
 import Button from "@mui/material/Button";
 import Card from "@mui/material/Card";
 import CardContent from "@mui/material/CardContent";
+import Chip from "@mui/material/Chip";
 import Skeleton from "@mui/material/Skeleton";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 
 import {isErrorResponse, problemMessage} from "@/lib/api/problems";
 import {useGetHousehold} from "@/lib/api/generated/household-service";
+import {householdRoleLabels} from "@/lib/households/labels";
 import {MetersList} from "@/components/meters/meters-list";
+import {MembersPanel} from "./members-panel";
 
 function formatDate(value: string): string {
   return new Date(value).toLocaleString(undefined, {
@@ -55,13 +58,22 @@ export function HouseholdDetails(): React.JSX.Element {
   }
 
   const household = response.data;
+  const isOwner = household.role === "OWNER";
 
   return (
     <Stack spacing={4}>
       <Card>
         <CardContent>
           <Stack spacing={2}>
-            <Typography variant="h5">{household.name}</Typography>
+            <Stack direction="row" spacing={2} sx={{alignItems: "center", justifyContent: "space-between"}}>
+              <Typography variant="h5">{household.name}</Typography>
+              <Chip
+                color={household.role === "OWNER" ? "primary" : "default"}
+                label={`You are ${householdRoleLabels[household.role].toLowerCase()}`}
+                size="small"
+                variant={household.role === "VIEWER" ? "outlined" : "filled"}
+              />
+            </Stack>
             <Stack spacing={1}>
               <DetailRow mono value={household.id} label="Household ID" />
               <DetailRow label="Created" value={formatDate(household.createdAt)} />
@@ -72,7 +84,8 @@ export function HouseholdDetails(): React.JSX.Element {
           </Stack>
         </CardContent>
       </Card>
-      <MetersList householdId={household.id} />
+      <MetersList canWrite={household.role !== "VIEWER"} householdId={household.id} />
+      {isOwner ? <MembersPanel householdId={household.id} /> : null}
     </Stack>
   );
 }

@@ -39,6 +39,12 @@ All API-client items (C1–C3) are resolved — see the Resolved section.
 |---|---|---|---|---|---|
 | D1 | No soft delete or audit trail — deletes (where exposed) are hard; only `createdAt` exists | No `updatedAt`, no actor tracking; accidental deletes are unrecoverable | `updatedAt` + actor tracking on mutations; replace hard deletes with archived/expired states for household/meter lifecycle | 1.3 | Open |
 
+## F — Frontend
+
+| ID | Limitation | Impact | Resolution path | Phase | Status |
+|---|---|---|---|---|---|
+| F1 | Sign-up / sign-in forms desync from programmatic input — controlled-input state never sees fill events, so validation blocks submission ("Email is required" with a filled field) and re-typing doubles the value | Cannot script or e2e-drive registration through the UI; manual users are unaffected (real typing works) | Audit the auth form controlled inputs (value/onChange wiring or a resetting key); add a Playwright e2e that signs up through the UI as regression guard | — | Open |
+
 ---
 
 ## Resolved

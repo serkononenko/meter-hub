@@ -71,12 +71,12 @@ R2.6 Internal access endpoint
 
 ## Epic R5 — Frontend (Next.js)
 
-- [ ] Regenerate household client from R1 contract; surface `role` on household models.
-- [ ] Households where the caller is VIEWER hide write affordances (add-meter, submit-reading) — API still rejects as backstop.
-- [ ] "Members" surface on household details: member list, invite creation with copy code, invite list + revoke — visible to OWNER only.
-- [ ] Redeem flow: inline "Join household" dialog on the households list with a paste-code field (spec §11 decision); success adds household to the list.
-- [ ] Error states for new problem codes (`FORBIDDEN_ROLE`, invite errors, `OWNER_CANNOT_BE_REMOVED`).
-- [ ] `tsc --noEmit`, eslint, `next build` clean; verify member/owner/VIEWER journeys via Playwright against Compose.
+- [x] Regenerate household client from R1 contract; surface `role` on household models.
+- [x] Households where the caller is VIEWER hide write affordances (add-meter, submit-reading) — API still rejects as backstop.
+- [x] "Members" surface on household details: member list, invite creation with copy code, invite list + revoke — visible to OWNER only.
+- [x] Redeem flow: inline "Join household" dialog on the households list with a paste-code field (spec §11 decision); success adds household to the list.
+- [x] Error states for new problem codes (`FORBIDDEN_ROLE`, invite errors, `OWNER_CANNOT_BE_REMOVED`).
+- [x] `tsc --noEmit`, eslint, `next build` clean; verify member/owner/VIEWER journeys via Playwright against Compose. (Live run 2026-09-30: owner created household + meter + MEMBER/VIEWER invites; member redeemed → saw household with write buttons, submitted 1,042 kWh; viewer redeemed → read-only card (only History), no Members panel; bogus code → 404 sentence; reused code → 409 sentence.)
 
 ## Epic R6 — Gateway & routing
 
