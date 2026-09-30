@@ -1,7 +1,6 @@
 import {MiddlewareConsumer, Module, NestModule} from '@nestjs/common';
 import {APP_FILTER} from '@nestjs/core';
 import {ConfigModule} from "@nestjs/config";
-import {createObserveModule} from '@nestjs/observe';
 import {AuthModule} from './auth/auth.module.js';
 import {DatabaseModule} from './database/database.module.js';
 import {CorrelationIdMiddleware} from './middlewares/correlation.middleware.js';
@@ -16,17 +15,8 @@ import {RequestLoggingMiddleware} from './logging/request-logging.middleware.js'
 import {MetricsModule} from './metrics/metrics.module.js';
 
 
-export const {ObserveModule, ObserveInstrument} = createObserveModule();
-
 @Module({
     imports: [
-        // Distributed tracing, auto-correlated logs, request/job metrics, error
-        // telemetry, alarms, and more — out of the box. Sign up at https://observe.nestjs.com
-        // ObserveModule.forRoot({
-        //     appKey: 'YOUR_APP_KEY',
-        //     appSecret: 'YOUR_APP_SECRET',
-        //     serviceId: 'meter-service',
-        // }),
         ConfigModule.forRoot({
             isGlobal: true,
             load: [configuration],
@@ -55,8 +45,6 @@ export const {ObserveModule, ObserveInstrument} = createObserveModule();
 })
 export class AppModule implements NestModule {
     configure(consumer: MiddlewareConsumer) {
-        // Correlation ID first so the request log line (and every other log
-        // line emitted while handling) carries the resolved request ID
         consumer.apply(CorrelationIdMiddleware).forRoutes('*');
         consumer.apply(RequestLoggingMiddleware).forRoutes('*');
     }

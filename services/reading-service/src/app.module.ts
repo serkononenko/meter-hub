@@ -2,7 +2,6 @@ import {MiddlewareConsumer, Module, NestModule} from '@nestjs/common';
 import {APP_FILTER} from '@nestjs/core';
 import {ScheduleModule} from '@nestjs/schedule';
 import {ConfigModule} from "@nestjs/config";
-import {createObserveModule} from '@nestjs/observe';
 import {AuthModule} from './auth/auth.module.js';
 import {DatabaseModule} from './database/database.module.js';
 import {CorrelationIdMiddleware} from './middlewares/correlation.middleware.js';
@@ -16,8 +15,6 @@ import {LoggingModule} from './logging/logging.module.js';
 import {MetricsModule} from './metrics/metrics.module.js';
 import {RequestLoggingMiddleware} from './logging/request-logging.middleware.js';
 
-
-export const {ObserveModule, ObserveInstrument} = createObserveModule();
 
 @Module({
     imports: [
