@@ -1,8 +1,8 @@
 import {Injectable} from '@nestjs/common';
 import {PrismaService} from '../database/prisma.service.js';
 
-import type {Meter as MeterRow, Prisma} from '../database/generated/prisma/client.js';
-import type {Meter} from "./generated/models/index.js";
+import type {Meter as MeterRow, Prisma} from '../generated/prisma/client.js';
+import type {Meter} from "../generated/meter/models/index.js";
 
 
 interface MeterUpdate {

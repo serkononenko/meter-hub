@@ -1,5 +1,5 @@
 import {HttpStatus, Injectable} from "@nestjs/common";
-import {FetchError, HouseholdsApi, ResponseError} from './generated/index.js';
+import {FetchError, HouseholdsApi, ResponseError} from '../generated/household/index.js';
 import {HouseholdServiceUnavailableException} from '../exceptions/service-unavailable.exception.js';
 import {HouseholdNotFoundException} from '../exceptions/not-found.exception.js';
 

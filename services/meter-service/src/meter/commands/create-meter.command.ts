@@ -1,6 +1,6 @@
 import {IsEnum, IsNotEmpty, IsString, IsUUID, MaxLength} from "class-validator";
 
-import {CreateMeterRequest, MeterType, MeterUnit} from "../generated/models/index.js";
+import {CreateMeterRequest, MeterType, MeterUnit} from "../../generated/meter/models/index.js";
 
 
 export class CreateMeterCommand implements CreateMeterRequest {

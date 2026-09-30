@@ -1,5 +1,5 @@
 import {describe, expect, it, vi} from 'vitest';
-import {MeterStatus, MeterType, MeterUnit} from '../database/generated/prisma/enums.js';
+import {MeterStatus, MeterType, MeterUnit} from '../generated/prisma/enums.js';
 import {PrismaService} from '../database/prisma.service.js';
 import {MeterRepository} from './meter.repository.js';
 

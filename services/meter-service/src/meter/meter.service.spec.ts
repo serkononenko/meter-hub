@@ -1,5 +1,5 @@
 import {describe, expect, it, vi} from 'vitest';
-import {Prisma} from '../database/generated/prisma/client.js';
+import {Prisma} from '../generated/prisma/client.js';
 import {MeterService} from './meter.service.js';
 import {MeterRepository} from './meter.repository.js';
 import {HouseholdAccessService, NotFoundMaskedError} from '../household/household-access.service.js';
@@ -8,9 +8,9 @@ import {MeterNotFoundException} from '../exceptions/not-found.exception.js';
 import {MeterSerialNumberConflictException} from '../exceptions/conflict.exception.js';
 import {HouseholdServiceUnavailableException} from '../exceptions/service-unavailable.exception.js';
 import {RequestValidationException} from '../exceptions/request-validation.exception.js';
-import {MeterType, MeterUnit, MeterStatus} from "./generated/models/index.js";
+import {MeterType, MeterUnit, MeterStatus} from "../generated/meter/models/index.js";
 
-import type {Meter} from "./generated/models/index.js";
+import type {Meter} from "../generated/meter/models/index.js";
 
 
 const HOUSEHOLD = '3f6a5b7c-93d2-4c8e-9a44-9f60f1f4c2aa';

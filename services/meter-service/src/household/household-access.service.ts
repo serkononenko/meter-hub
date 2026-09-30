@@ -1,5 +1,5 @@
 import {Injectable, Scope} from "@nestjs/common";
-import {FetchError, InternalApi} from './generated/index.js';
+import {FetchError, InternalApi} from '../generated/household/index.js';
 import {HouseholdServiceUnavailableException} from '../exceptions/service-unavailable.exception.js';
 import {ForbiddenRoleException} from '../exceptions/forbidden-role.exception.js';
 import {VerdictCache, type CachedVerdict} from './verdict-cache.js';

@@ -1,19 +1,19 @@
 import {Injectable} from '@nestjs/common';
 import {plainToInstance} from 'class-transformer';
 import {validate} from 'class-validator';
-import {Prisma} from '../database/generated/prisma/client.js';
+import {Prisma} from '../generated/prisma/client.js';
 import {MeterNotFoundException, HouseholdNotFoundException} from "../exceptions/not-found.exception.js";
 import {MeterSerialNumberConflictException} from "../exceptions/conflict.exception.js";
 import {RequestValidationException} from "../exceptions/request-validation.exception.js";
-import {MetersApi} from "./generated/api/index.js";
+import {MetersApi} from "../generated/meter/api/index.js";
 import {MeterRepository} from './meter.repository.js';
 import {HouseholdAccessService, NotFoundMaskedError} from '../household/household-access.service.js';
 import {REQUEST_USER} from '../auth/auth.constants.js';
 import {CreateMeterCommand} from "./commands/create-meter.command.js";
 import {UpdateMeterCommand} from "./commands/update-meter.command.js";
 
-import type {CreateMeterRequest} from "./generated/models/index.js";
-import type {UpdateMeterRequest} from "./generated/models/index.js";
+import type {CreateMeterRequest} from "../generated/meter/models/index.js";
+import type {UpdateMeterRequest} from "../generated/meter/models/index.js";
 
 
 @Injectable()
