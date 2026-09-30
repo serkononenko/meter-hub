@@ -1,19 +1,21 @@
 import {Injectable} from '@nestjs/common';
 import {plainToInstance} from 'class-transformer';
 import {validate} from 'class-validator';
-import {ReadingNotFoundException} from "../exceptions/not-found.exception.js";
+import {HouseholdNotFoundException, MeterNotFoundException, ReadingNotFoundException} from "../exceptions/not-found.exception.js";
 import {IdempotencyKeyReuseException, ReadingDecreasingException} from "../exceptions/reading-argument.exception.js";
 import {RequestValidationException} from "../exceptions/request-validation.exception.js";
 import {ReadingsApi} from "../generated/reading/api/index.js";
 import {ReadingRepository} from './reading.repository.js';
 import {IdempotencyKeyRepository} from './idempotency-key.repository.js';
-import {MeterAccessService} from '../meter/meter-access.service.js';
+import {MeterService} from '../meter/meter.service.js';
+import {HouseholdAccessService} from '../household/household-access.service.js';
 import {CreateReadingCommand} from "./commands/create-reading.command.js";
 import {clampPage} from "../utils/clamp-page.js";
 import {getObjectHash} from "../utils/get-object-hash.js";
 import {getAuthenticatedUser} from "../utils/get-authenticated-user.js";
 
 import type {CreateReadingRequest, Reading} from "../generated/reading/models/index.js";
+import type {AuthenticatedUser} from "../typedef.js";
 
 
 const IDEMPOTENCY_RETENTION_MS = 24 * 60 * 60 * 1000;
@@ -23,21 +25,25 @@ export class ReadingService extends ReadingsApi {
     constructor(
         private readonly repository: ReadingRepository,
         private readonly idempotencyKeys: IdempotencyKeyRepository,
-        private readonly meterAccess: MeterAccessService,
+        private readonly meterService: MeterService,
+        private readonly householdAccess: HouseholdAccessService,
     ) {
         super();
     }
 
     async createReading(payload: CreateReadingRequest, idempotencyKey?: string, _xCorrelationId?: string, request?: Request) {
+        const user = getAuthenticatedUser(request);
+
         return idempotencyKey
-            ? this.createReadingIdempotent(payload, idempotencyKey, getAuthenticatedUser(request).userId)
-            : this._createReading(payload);
+            ? this.createReadingIdempotent(payload, idempotencyKey, user.userId, user)
+            : this._createReading(payload, user);
     }
 
     private async createReadingIdempotent(
         payload: CreateReadingRequest,
         idempotencyKey: string,
         userId: string,
+        user: AuthenticatedUser,
     ): Promise<Reading> {
         const requestHash = getObjectHash(payload);
 
@@ -50,7 +56,7 @@ export class ReadingService extends ReadingsApi {
             return existing.responseBody as Reading;
         }
 
-        const reading = await this._createReading(payload);
+        const reading = await this._createReading(payload, user);
 
         await this.idempotencyKeys.save({
             key: idempotencyKey,
@@ -63,11 +69,21 @@ export class ReadingService extends ReadingsApi {
         return reading;
     }
 
-    private async _createReading(payload: CreateReadingRequest) {
+    private async _createReading(payload: CreateReadingRequest, user: AuthenticatedUser) {
         const command = plainToInstance(CreateReadingCommand, payload);
 
         await this.validate(command);
-        await this.meterAccess.assertAccessible(command.meterId);
+
+        const meter = await this.meterService.getMeter(command.meterId);
+
+        try {
+            await this.householdAccess.assertCanWrite(meter.householdId, user.userId);
+        } catch (error) {
+            if (error instanceof HouseholdNotFoundException) {
+                throw new MeterNotFoundException(command.meterId);
+            }
+            throw error;
+        }
 
         await this.assertNotDecreasing(command.meterId, command.value, new Date(command.recordedAt));
 
@@ -81,8 +97,8 @@ export class ReadingService extends ReadingsApi {
         });
     }
 
-    async getLatestReading(meterId: string) {
-        await this.meterAccess.assertAccessible(meterId);
+    async getLatestReading(meterId: string, _correlationId?: string, _request?: Request) {
+        await this.meterService.getMeter(meterId);
 
         const reading = await this.repository.findLatestByMeterId(meterId);
 
@@ -93,8 +109,8 @@ export class ReadingService extends ReadingsApi {
         return reading;
     }
 
-    async listReadings(meterId: string, limit?: number | string, offset?: number | string) {
-        await this.meterAccess.assertAccessible(meterId);
+    async listReadings(meterId: string, limit?: number | string, offset?: number | string, _correlationId?: string, _request?: Request) {
+        await this.meterService.getMeter(meterId);
 
         const page = clampPage(limit, offset);
 

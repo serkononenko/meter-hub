@@ -3,15 +3,17 @@ import {FetchError, MetersApi, ResponseError} from '../generated/meter/index.js'
 import {MeterServiceUnavailableException} from '../exceptions/service-unavailable.exception.js';
 import {MeterNotFoundException} from '../exceptions/not-found.exception.js';
 
+import type {Meter} from '../generated/meter/index.js';
+
 
 @Injectable()
-export class MeterAccessService {
+export class MeterService {
     constructor(private readonly meterApi: MetersApi) {
     }
 
-    async assertAccessible(meterId: string): Promise<void> {
+    async getMeter(meterId: string): Promise<Meter> {
         try {
-            await this.meterApi.getMeter({meterId});
+            return await this.meterApi.getMeter({meterId});
         } catch (error) {
             if (error instanceof FetchError) {
                 throw new MeterServiceUnavailableException(error.cause)

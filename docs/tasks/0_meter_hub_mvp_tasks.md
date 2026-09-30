@@ -226,7 +226,7 @@ index on `(household_id, serial_number)` in meter-db.
 - [x] Do not access Meter Service database directly.
 
 Decision: every reading operation calls Meter Service's `GET /api/v1/meters/{meterId}`
-(`MeterAccessService`) before touching reading data. No cached projection — the
+(`MeterService`) before touching reading data. No cached projection — the
 MVP volume makes per-request checks cheap, and a projection would introduce
 staleness on revocation (archiving/sharing a meter must cut off reads
 immediately). The caller's access token is forwarded, so Meter Service applies

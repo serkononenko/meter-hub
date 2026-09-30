@@ -199,4 +199,4 @@ directly.
   membership"; revisit if household use shows friction.
 - **Reading-service access-check placement:** per-request service call at the
   top of each command/query handler, mirroring the existing
-  `MeterAccessService` pattern — no guard/decorator indirection.
+  `MeterService` pattern — no guard/decorator indirection.

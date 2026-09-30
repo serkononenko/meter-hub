@@ -6,7 +6,7 @@ Workflow mirrors the metrics (M1–M3) and log-aggregation (L1–L3) breakdowns:
 Service reality this builds on (verified 2026-09-27):
 
 - household-service currently has a single-row-per-household `household_members` table (`UNIQUE household_id`, role `OWNER` only) and only `POST/GET /households` APIs.
-- meter-service checks household *existence* only (`HouseholdService.getHousehold` → 404 masking); reading-service checks meter *access* the same way (`MeterAccessService`). Neither knows about roles.
+- meter-service checks household *existence* only (`HouseholdService.getHousehold` → 404 masking); reading-service checks meter *access* the same way (`MeterService`). Neither knows about roles.
 - A4 landed the pattern this PRD reuses: internal endpoint on `permitAll` internal surface, gateway `denyAll` on proxied `/api/v1/internal/**`, compact poll/cached response.
 
 ## Epic R1 — Contract & data model (household-service)
@@ -64,9 +64,10 @@ R2.6 Internal access endpoint
 
 ## Epic R4 — Reading service: role-aware authorization
 
-- [ ] Same internal-verdict check on the reading path, resolving meter → household via meter-service (existing chain), per-request check with the same short-TTL cache discipline as R3 — a dedicated access-verdict service called at the top of each handler, mirroring `MeterAccessService`.
-- [ ] Reads need any role; submissions need MEMBER+ (`403 FORBIDDEN_ROLE` for VIEWER); non-member and foreign-meter denials unchanged (404 masking).
-- [ ] Update e2e spec to cover VIEWER read / write-reject and non-member isolation.
+- [x] Same internal-verdict check on the reading path, resolving meter → household via meter-service (existing chain), per-request check with the same short-TTL cache discipline as R3 — a dedicated access-verdict service called at the top of each handler, mirroring `MeterService`. (Reading-service now generates the household internal client; `HouseholdAccessService` + `VerdictCache` + `InternalHouseholdApiProvider` mirror R3; `MeterAccessService.assertAccessible` returns the meter so the submission handler resolves its `householdId`; compose gains `HOUSEHOLD_SERVICE_URL` for reading-service.)
+- [x] Reads need any role; submissions need MEMBER+ (`403 FORBIDDEN_ROLE` for VIEWER); non-member and foreign-meter denials unchanged (404 masking). (Reads rely on meter-service's role-aware visibility mask alone — a 200 from `getMeter` already proves any-role membership, so no verdict call is spent on reads. Submissions → `assertCanWrite`; `HouseholdNotFoundException` re-masked to `METER_NOT_FOUND` so no household existence leaks; household unreachable → 503 `HOUSEHOLD_SERVICE_UNAVAILABLE` fail-closed. Unit 51/51.)
+- [x] Update e2e spec to cover VIEWER read / write-reject and non-member isolation. (`test/reading-roles.e2e-spec.ts` — viewer read 200 + submit 403 FORBIDDEN_ROLE, member submits 201, removed member re-denied after cache clear, non-member foreign/unknown share the same 404, household-down 503 on submission; global-setup stub now answers the internal verdict protocol with `grantRole`/`revokeMembership` fixtures. 29/29 e2e.)
+- Contract note: reading-service openapi bumped 1.1.0 with FORBIDDEN_ROLE 403 on `POST /readings` and role-aware descriptions on the read paths.
 
 ## Epic R5 — Frontend (Next.js)
 
