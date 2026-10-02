@@ -11,11 +11,12 @@ stack.env
 
 # Runtime data of the bind-mounted state directories (prod uses bind
 # mounts under the repo checkout — see docker-compose.portainer.yml).
-# Postgres/Grafana/Prometheus/Loki write here continuously.
+# Postgres/Grafana/Prometheus/Loki/Kafka write here continuously.
 /infrastructure/postgres/data/
 /infrastructure/prometheus/data/
 /infrastructure/grafana/data/
 /infrastructure/loki/data/
+/infrastructure/kafka/data/
 
 # Playwright MCP session artifacts (snapshots, console logs, screenshots)
 .playwright-mcp/

@@ -159,6 +159,9 @@ Two nuances by build method:
 - **Promtail needs the Docker socket** (`/var/run/docker.sock:ro`) —
   that's a host bind mount, unaffected by Portainer's relative-path
   behavior.
+- **Kafka data dir** (`infrastructure/kafka/data`) — the broker runs as
+  uid 1000; if the bind-mounted dir isn't writable by that uid
+  (`sudo chown -R 1000:1000`), Kafka fails at startup.
 - **Don't also deploy the base `docker-compose.yml` as another stack**
   on the same host: two compose projects would fight over the
   `meter-hub-network` name and the published ports.

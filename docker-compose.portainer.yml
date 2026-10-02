@@ -57,6 +57,39 @@ services:
       retries: 5
       start_period: 10s
 
+  # Same dev-grade broker as docker-compose.yml (spec 5): KRaft single
+  # node, no ZooKeeper. Data in a bind mount per this file's policy.
+  # Internal-only — nothing on the host talks to Kafka in the Portainer
+  # deployment; CLI inspection happens with docker exec.
+  kafka:
+    image: apache/kafka:4.0.0
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:29093
+      KAFKA_LISTENERS: INTERNAL://kafka:9092,CONTROLLER://kafka:29093
+      KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INTERNAL:PLAINTEXT,CONTROLLER:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      CLUSTER_ID: meter-hub-dev-cluster-0000000000001
+    volumes:
+      - ${REPO_DIR:-/opt/meter-hub}/infrastructure/kafka/data:/var/lib/kafka/data
+    expose:
+      - "9092"
+    networks:
+      - meter-hub
+    healthcheck:
+      test: [ "CMD-SHELL", "/opt/kafka/bin/kafka-broker-api-versions.sh --bootstrap-server kafka:9092 >/dev/null 2>&1" ]
+      interval: 10s
+      timeout: 10s
+      retries: 10
+      start_period: 30s
+
   api-gateway:
     image: ghcr.io/serkononenko/meter-hub-api-gateway:main
     environment:
