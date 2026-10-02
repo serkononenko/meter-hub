@@ -32,5 +32,5 @@
 > them from inside the network (Grafana datasources, `docker exec`),
 > not from the host. See `docs/deploy-portainer.md`.
 
-| Kafka             | —                 |          9092 |             - | TCP      | Planned                                  |
+| Kafka (host CLI)  | kafka             |          9092 |         29092 | TCP      | Broker; services use `kafka:9092` inside the network, host CLI 29092 |
 | Redis             | —                 |          6379 |             - | TCP      | Planned                                  |

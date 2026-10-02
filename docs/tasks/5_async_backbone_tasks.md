@@ -22,22 +22,31 @@ Service reality this builds on (verified 2026-10-02):
 ## Epic K1 — Kafka in Compose & event contract
 
 K1.1 Broker
-- [ ] Add `kafka` service to `docker-compose.yml`: official `apache/kafka` image,
+- [x] Add `kafka` service to `docker-compose.yml`: official `apache/kafka` image,
       KRaft single-node, listeners for `kafka:9092` (Compose network) plus the
       host-published 9092 for CLI inspection, named volume, healthcheck gating
-      `service_healthy`.
-- [ ] Live check: broker comes up with `docker compose up -d`, topic can be created
-      and consumed from the host CLI and from inside the network.
-- [ ] `docs/ports.md` row moves from "Planned" to active; README architecture notes.
+      `service_healthy`. (Landed as INTERNAL kafka:9092 + HOST localhost:29092 —
+      the broker's own 9092 stays network-internal, host publishes 29092 so the
+      two listeners don't fight over one port.)
+- [x] Live check: broker comes up with `docker compose up -d`, topic can be created
+      and consumed from the host CLI and from inside the network. (Live 2026-10-02:
+      container healthy, topic created, produced+consumed via `kafka:9092` inside
+      the network and via `localhost:29092` from a host-side container.)
+- [x] `docs/ports.md` row moves from "Planned" to active; README architecture notes.
 
 K1.2 Event contract
-- [ ] `contracts/events/meter/reading-created.v1.json` — JSON Schema of the envelope
+- [x] `contracts/events/meter/reading-created.v1.json` — JSON Schema of the envelope
       (spec §7): `eventId`, `eventType`, `eventVersion`, `occurredAt`, `producer`,
-      `data {readingId, meterId, value, unit, recordedAt, source}`.
-- [ ] Codegen: TypeScript types generated from the schema for producer and consumer
+      `data {readingId, meterId, value, unit, recordedAt, source}`. (Landed as
+      `reading-created.v1.schema.json`; `unit`/`source` enums mirror the
+      meter-service contract's `MeterUnit` and the reading contract's `source` pin.)
+- [x] Codegen: TypeScript types generated from the schema for producer and consumer
       (mirror the OpenAPI → generated-client flow; document the command).
-- [ ] Redocly-style lint is N/A here, but the schema validates with a chosen JSON
-      Schema validator and a fixture payload passes.
+      (`contracts/events/generate.sh <service-root>` — json2ts into
+      `src/generated/events/`; reading-service wired, consumer service follows in K3.)
+- [x] Redocly-style lint is N/A here, but the schema validates with a chosen JSON
+      Schema validator and a fixture payload passes. (ajv 2020-12 + formats:
+      fixture valid; wrong `unit`, unknown field, missing `recordedAt` all rejected.)
 
 ## Epic K2 — Outbox in Reading Service
 

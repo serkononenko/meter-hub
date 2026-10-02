@@ -1,0 +1,73 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "meter-hub:events:meter:reading-created:v1",
+  "title": "meter.reading.created",
+  "description": "Published by reading-service (via outbox) when a reading is recorded. Consumed e.g. by reminders/notifications in later phases. Envelope rules (spec 5 §7): eventId is stable forever and unique per event (== outbox row id); breaking payload changes bump eventVersion and land on a new topic version; unit is denormalized from the meter so consumers never call back synchronously.",
+  "type": "object",
+  "required": [
+    "eventId",
+    "eventType",
+    "eventVersion",
+    "occurredAt",
+    "producer",
+    "data"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "eventId": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Stable event identifier, == outbox row id; the dedup key on the consumer side."
+    },
+    "eventType": {
+      "type": "string",
+      "const": "meter.reading.created"
+    },
+    "eventVersion": {
+      "type": "integer",
+      "const": 1
+    },
+    "occurredAt": {
+      "type": "string",
+      "format": "date-time",
+      "description": "RFC3339 — the reading's createdAt."
+    },
+    "producer": {
+      "type": "string",
+      "const": "reading-service"
+    },
+    "data": {
+      "type": "object",
+      "required": ["readingId", "meterId", "value", "unit", "recordedAt", "source"],
+      "additionalProperties": false,
+      "properties": {
+        "readingId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "meterId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "value": {
+          "type": "number",
+          "description": "Recorded value in the meter's unit."
+        },
+        "unit": {
+          "type": "string",
+          "enum": ["KWH", "M3", "L"],
+          "description": "Denormalized from the meter at publish time."
+        },
+        "recordedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "source": {
+          "type": "string",
+          "enum": ["MANUAL"],
+          "description": "DEVICE arrives with Phase 6, mirroring the reading contract."
+        }
+      }
+    }
+  }
+}

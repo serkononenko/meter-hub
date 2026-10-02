@@ -42,6 +42,10 @@ The project is intentionally built as a small polyglot microservice platform to 
 
 Later iterations may introduce Kafka, Notification Service, Provider Service, Device Service, Redis, and observability infrastructure.
 
+> Kafka is now part of the stack (Phase 2, [spec 5](docs/spec/5_async_backbone_spec.md)): a single dev-grade
+> KRaft broker in Compose. Services produce/consume over `kafka:9092` inside the network; the host publishes
+> `29092` for CLI inspection (`kafka-console-consumer.sh --bootstrap-server localhost:29092 ...`).
+
 ## Repository Structure
 
 ```text
