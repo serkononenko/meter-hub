@@ -153,14 +153,27 @@ public class MembershipService
             .orElseThrow(InviteNotFoundException::new);
 
         OffsetDateTime now = OffsetDateTime.now();
-        // Idempotent for an existing member: the invite was theirs, return
-        // the household unchanged instead of erroring (spec section 5).
+        // Idempotent for the invitee who already used it: return the
+        // household instead of erroring (spec section 5). If their
+        // membership was removed since (owner removed them, they re-join
+        // with their old code), re-create it so the returned role is
+        // backed by an actual membership row.
         if (!invite.isLive(now)) {
             boolean wasRedeemedByCaller = redeemerId.equals(invite.redeemedBy());
             if (wasRedeemedByCaller) {
                 Household household = householdRepository.findById(invite.householdId())
                     .orElseThrow(InviteNotFoundException::new);
-                return new RedeemedInvite(household.id(), household.name(), invite.role().toMembershipRole());
+                MembershipRole granted = invite.role().toMembershipRole();
+                if (householdMemberRepository.findByHouseholdIdAndUserId(invite.householdId(), redeemerId).isEmpty()) {
+                    householdMemberRepository.save(HouseholdMember.builder()
+                        .id(UUID.randomUUID())
+                        .householdId(invite.householdId())
+                        .userId(redeemerId)
+                        .role(granted)
+                        .createdAt(now)
+                        .build());
+                }
+                return new RedeemedInvite(household.id(), household.name(), granted);
             }
             if (invite.redeemedAt() != null) {
                 throw new InviteAlreadyUsedException();

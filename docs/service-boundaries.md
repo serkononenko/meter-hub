@@ -251,10 +251,15 @@ HouseholdMember
 ### Household Roles
 
 ```text
-OWNER
-MEMBER
-VIEWER
+OWNER  — manages members and invites (one per household, immutable)
+MEMBER — reads and writes meters/readings
+VIEWER — read-only everywhere
 ```
+
+Authorization for meter and reading writes resolves the caller's role
+through this service: meter- and reading-service call the internal
+verdict endpoint below per request (short-TTL cache, ~30 s stale-allow
+window after a removal — accepted trade-off).
 
 ### API
 
@@ -265,8 +270,18 @@ GET    /households/{id}
 PUT    /households/{id}
 DELETE /households/{id}
 
-POST   /households/{id}/members
-DELETE /households/{id}/members/{userId}
+GET    /households/{id}/members                       any member
+DELETE /households/{id}/members/{userId}              owner-only (409 OWNER_CANNOT_BE_REMOVED)
+
+POST   /households/{id}/invites                       owner-only, role MEMBER|VIEWER
+GET    /households/{id}/invites                       owner-only, live invites, no code material
+DELETE /households/{id}/invites/{inviteId}            owner-only revoke
+
+POST   /households/invites/redeem                     any authenticated user; single-use
+                                                      (404 unknown, 409 used, 410 expired)
+
+GET    /internal/household-access?householdId=&userId=   internal verdict {role, exists};
+                                                          never proxied (gateway denyAll)
 ```
 
 ### Boundary

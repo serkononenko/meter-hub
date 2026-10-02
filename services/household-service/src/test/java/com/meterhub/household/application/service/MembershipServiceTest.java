@@ -209,6 +209,15 @@ class MembershipServiceTest {
             .toBuilder().redeemedAt(OffsetDateTime.now()).redeemedBy(OUTSIDER_ID).build();
         when(householdInviteRepository.findByCodeHash(org.mockito.ArgumentMatchers.anyString()))
             .thenReturn(Optional.of(invite));
+        // Invitee still holds membership from the original redemption.
+        when(householdMemberRepository.findByHouseholdIdAndUserId(HOUSEHOLD_ID, OUTSIDER_ID))
+            .thenReturn(Optional.of(HouseholdMember.builder()
+                .id(UUID.randomUUID())
+                .householdId(HOUSEHOLD_ID)
+                .userId(OUTSIDER_ID)
+                .role(MembershipRole.MEMBER)
+                .createdAt(OffsetDateTime.now())
+                .build()));
         when(householdRepository.findById(HOUSEHOLD_ID))
             .thenReturn(Optional.of(household("Home")));
 
@@ -216,6 +225,27 @@ class MembershipServiceTest {
 
         assertThat(redeemed.role()).isEqualTo(MembershipRole.MEMBER);
         verify(householdMemberRepository, never()).save(any());
+    }
+
+    @Test
+    void redeemByARemovedInviteeRecreatesTheMembership() {
+        HouseholdInvite invite = liveInvite(HouseholdInvite.InviteRole.MEMBER)
+            .toBuilder().redeemedAt(OffsetDateTime.now().minusDays(1)).redeemedBy(OUTSIDER_ID).build();
+        when(householdInviteRepository.findByCodeHash(org.mockito.ArgumentMatchers.anyString()))
+            .thenReturn(Optional.of(invite));
+        // Owner removed the invitee since their original redemption.
+        when(householdMemberRepository.findByHouseholdIdAndUserId(HOUSEHOLD_ID, OUTSIDER_ID))
+            .thenReturn(Optional.empty());
+        when(householdRepository.findById(HOUSEHOLD_ID))
+            .thenReturn(Optional.of(household("Home")));
+
+        var redeemed = membershipService.redeem(OUTSIDER_ID, "mh_abcdef");
+
+        assertThat(redeemed.role()).isEqualTo(MembershipRole.MEMBER);
+        ArgumentCaptor<HouseholdMember> captor = ArgumentCaptor.forClass(HouseholdMember.class);
+        verify(householdMemberRepository).save(captor.capture());
+        assertThat(captor.getValue().userId()).isEqualTo(OUTSIDER_ID);
+        assertThat(captor.getValue().role()).isEqualTo(MembershipRole.MEMBER);
     }
 
     @Test

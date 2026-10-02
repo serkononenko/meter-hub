@@ -8,7 +8,7 @@ Honest list of what the MVP does not do yet. Each item is a deliberate scope cut
 | **Accepted** | Deliberate cut with a defined revisit trigger; no phase assigned yet |
 | **Resolved** | No longer true; kept for the record |
 
-Last reviewed: 2026-09-27
+Last reviewed: 2026-10-02
 
 ---
 
@@ -18,7 +18,6 @@ Last reviewed: 2026-09-27
 |---|---|---|---|---|---|
 | A1 | No service-to-service authentication — services trust any request on the internal Docker network; only the client JWT is verified | A compromised service could call any other service directly | Service tokens / mTLS on the internal network, per [conventions.md](conventions.md) §15 | 1.2 | Open |
 | A2 | Single PostgreSQL container — all four databases share one instance and one volume, no fault isolation | One instance failure takes down every service at once | Schema design (one database + one user per service) keeps migration to per-service instances mechanical ([conventions.md](conventions.md) §11) | 7 | Accepted — do it only when a deployment actually needs isolation |
-| A3 | Household membership model minimal — roles exist in the boundary design, but MVP only has owner-style membership via creation | No invite/accept flow, no member management API; one user per household in practice | Invite → accept flow, member management API, role-aware ownership checks in Meter/Reading services | 1.2 | Open |
 
 ## C — API clients
 
@@ -58,6 +57,7 @@ All frontend items (F1) resolved — see Resolved section.
 | A4 | Access tokens could not be revoked — a stolen 15-minute access token stayed valid until it expired | 2026-09-27 | Identity issues a `jti` claim and logout (optionally carrying the Bearer access token) records it in a new `revoked_access_tokens` table; the gateway polls identity's internal feed (`GET /api/v1/internal/revoked-access-tokens`, cursor-paginated) every 5s into an in-memory cache that the JWT validator chain consults — revocation takes effect within the poll interval instead of the token living out its TTL. Poll failures fail open (every token dies at `exp` anyway); rows are cleaned up daily once expired; the internal endpoint is never proxied (`denyAll` on the gateway path) and carries no auth yet — that trust gap is A1's scope. In-JVM cache mirrors the C2 rate-limiter tradeoff; shared store deferred to Phase 7 |
 | O7 | Compose only healthchecked Postgres — `docker compose ps` showed all app services as plain `Up` even when a process was wedged, and `depends_on: service_started` let the gateway boot against services that weren't listening yet | 2026-09-27 | Liveness healthchecks on all five service containers (probe paths documented in the shared contract `contracts/openapi/openapi.yaml`); gateway/identity/household images gained curl; gateway and reading-service now `depends_on: service_healthy`. Liveness only, per conventions §13: no readiness or peer-service probes, so a dead dependency can't cascade restarts. Surfaced and fixed a latent journey-test/rate-limiter interaction (12 auth calls vs the 10-capacity IP bucket — tests now present distinct `X-Forwarded-For` clients) |
 | F1 | Sign-up form never submitted: the `submit` callback's `useCallback` deps omitted `values`, so validation always saw the initial empty strings — "Email is required" on a full form, submission impossible | UI-only registration (and any scripted/e2e drive of it) was blocked | 2026-10-02 | Fixed the deps and replaced both auth forms' hand-rolled validation with zod schemas (`src/lib/auth/schemas.ts`): email format, username pattern/length, password length, confirm-match refine; forms are `noValidate` so zod's messages render as MUI form helpers instead of native tooltips. Verified live (dev server): inline errors on bad email + password mismatch, valid submit fires `POST …/auth/register` (backend stack was down; request path confirmed via network log) |
+| A3 | Household membership model was minimal — roles existed in the boundary design, but MVP only had owner-style membership via creation | No invite/accept flow, no member management API; one user per household in practice | 2026-10-02 | Spec 4 landed end to end: `household_members` gained OWNER/MEMBER/VIEWER roles; owner-only member management and single-use invite flow (hashed codes, 7-day expiry) on household-service; meter-service and reading-service resolve the caller's role per request via the internal `household-access` verdict endpoint (gateway `denyAll` on the proxied path, ~30 s verdict cache — stale-allow window after a removal is the accepted trade-off); frontend surfaces roles, owner members panel, join-by-code. Verified live 2026-10-02: `e2e/roles.e2e.test.mjs` through the gateway (owner/member/viewer/stranger matrix, `node --test e2e/` 3/3 with the original journey) plus per-service suites (spec 4 tasks R1–R7) |
 
 ---
 

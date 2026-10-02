@@ -271,14 +271,18 @@ it builds the six images (five services + web) and publishes them to
 targets pull instead of building on-device — see
 [docs/deploy-portainer.md](docs/deploy-portainer.md).
 
-### 6. Run the end-to-end journey test
+### 6. Run the end-to-end journey tests
 
-Drives the full MVP flow through the gateway against the running Compose
-environment — registration → login → household → meter → reading → history,
-plus refresh-token rotation, logout, and cross-user isolation:
+`journey.e2e.test.mjs` drives the full MVP flow through the gateway against
+the running Compose environment — registration → login → household → meter
+→ reading → history, plus refresh-token rotation, logout, and cross-user
+isolation. `roles.e2e.test.mjs` adds the multi-user household-roles journey
+(spec 4): owner invites a MEMBER (who reads and writes) and a VIEWER (who
+gets `403 FORBIDDEN_ROLE` on writes), invite error paths, and member
+removal taking effect after the ~30 s verdict-cache TTL:
 
 ```bash
-node --test e2e/journey.e2e.test.mjs
+node --test e2e/
 ```
 
 Requires the Compose stack (or equivalent local services) to be up; override

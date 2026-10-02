@@ -213,7 +213,55 @@ curl -sS -X POST "$GATEWAY/api/identity-service/api/v1/auth/logout" \
   -d '{"refreshToken":"<new refreshToken>"}'   # 204 No Content
 ```
 
-## 8. User isolation
+## 8. Household roles and invites
+
+Households have three roles. The creator is `OWNER`; everyone else joins
+through an invitation the owner created:
+
+| Role | Read household/meters/readings | Add meters, record readings | Manage members & invites |
+|---|---|---|---|
+| OWNER | ✓ | ✓ | ✓ |
+| MEMBER | ✓ | ✓ | — |
+| VIEWER | ✓ | — (`403 FORBIDDEN_ROLE`) | — |
+
+```bash
+# Owner: create an invitation (one-time code, shown only in this response)
+curl -sS -X POST "$GATEWAY/api/household-service/api/v1/households/{householdId}/invites" \
+  -H "Authorization: Bearer $OWNER_TOKEN" -H 'Content-Type: application/json' \
+  -d '{"role":"MEMBER"}'
+```
+
+`201 Created` — the `code` is returned in plaintext exactly once (stored
+hashed, expires in 7 days):
+
+```json
+{ "id": "4d5e6f7a-...", "role": "MEMBER", "code": "mh_i9dK2pQ7...", "expiresAt": "2026-10-04T10:00:00Z" }
+```
+
+```bash
+# Invitee: redeem the code — joins with the invite's role
+curl -sS -X POST "$GATEWAY/api/household-service/api/v1/households/invites/redeem" \
+  -H "Authorization: Bearer $INVITEE_TOKEN" -H 'Content-Type: application/json' \
+  -d '{"code":"mh_i9dK2pQ7..."}'
+```
+
+`200 OK` → `{ "householdId": "...", "householdName": "Home", "role": "MEMBER" }`.
+
+Household responses now carry *your* role in the household:
+`GET /api/household-service/api/v1/households` returns every household you
+have any membership in, each with `"role"`.
+
+Error paths on redeem: unknown code → `404 INVITE_NOT_FOUND`, already
+used → `409 INVITE_ALREADY_USED`, expired → `410 INVITE_EXPIRED`, revoked
+→ `404`. Owner-only management returns `403 HOUSEHOLD_ACCESS_DENIED` for
+members/viewers; removing the owner (even self-removal) is
+`409 OWNER_CANNOT_BE_REMOVED`.
+
+After the owner removes a member, the member's writes can linger up to
+~30 seconds (services cache role verdicts), then every household, meter
+and reading of that household is `404`-masked for them again.
+
+## 9. User isolation
 
 Data is isolated per user end to end: a second user's token gets `404` (not
 `403`) for the first user's household, meter and readings — the resources
@@ -221,7 +269,7 @@ simply do not exist from their point of view. The e2e journey test
 (`node --test e2e/journey.e2e.test.mjs`) asserts all of the above
 continuously.
 
-## 9. Typical errors
+## 10. Typical errors
 
 | Status | `code` | When |
 |---|---|---|
@@ -230,12 +278,17 @@ continuously.
 | 401 | `INVALID_TOKEN` | expired/garbage/wrongly signed access token |
 | 401 | `INVALID_CREDENTIALS` | login with wrong password or unknown email |
 | 401 | `INVALID_REFRESH_TOKEN` | unknown, consumed or revoked refresh token |
-| 403 | — | authenticated but not allowed (no resource-specific code in the MVP) |
-| 404 | `METER_NOT_FOUND` / `HOUSEHOLD_NOT_FOUND` / `READING_NOT_FOUND` | unknown or other user's resource |
+| 403 | `HOUSEHOLD_ACCESS_DENIED` | authenticated, but not the owner of the household (member management, invites) |
+| 403 | `FORBIDDEN_ROLE` | VIEWER attempting a meter or reading write |
+| 404 | `METER_NOT_FOUND` / `HOUSEHOLD_NOT_FOUND` / `READING_NOT_FOUND` | unknown, other user's resource, or a household you have no membership in |
+| 404 | `INVITE_NOT_FOUND` | unknown or revoked invitation code |
 | 409 | `EMAIL_ALREADY_EXISTS` / `USERNAME_ALREADY_EXISTS` | duplicate registration |
 | 409 | `METER_SERIAL_NUMBER_CONFLICT` | duplicate serial in the same household |
+| 409 | `INVITE_ALREADY_USED` | invitation code redeemed a second time |
+| 409 | `OWNER_CANNOT_BE_REMOVED` | removing the household owner (including self-removal) |
+| 410 | `INVITE_EXPIRED` | invitation code past its 7-day expiry |
 | 422 | `READING_DECREASING` | reading lower than the newest one |
-| 503 | `HOUSEHOLD_SERVICE_UNAVAILABLE` | meter ownership check could not reach the household service (fail closed) |
+| 503 | `HOUSEHOLD_SERVICE_UNAVAILABLE` | meter/reading ownership check could not reach the household service (fail closed) |
 
 Every error body carries `correlationId`; include it (or send your own
 `X-Correlation-ID` header) when grepping `docker compose logs` for a failure.
