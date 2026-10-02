@@ -18,6 +18,9 @@ import VisibilityOff from "@mui/icons-material/VisibilityOff";
 
 import {paths} from "@/paths";
 import {useAuth} from "@/contexts/auth-context";
+import {fieldErrorsOf, signInSchema} from "@/lib/auth/schemas";
+
+type Errors = Partial<Record<"email" | "password", string>> & {root?: string};
 
 const defaultValues = {email: "", password: ""};
 
@@ -26,7 +29,7 @@ export function SignInForm(): React.JSX.Element {
   const router = useRouter();
 
   const [values, setValues] = React.useState(defaultValues);
-  const [errors, setErrors] = React.useState<{email?: string; password?: string; root?: string}>({});
+  const [errors, setErrors] = React.useState<Errors>({});
   const [showPassword, setShowPassword] = React.useState(false);
   const [isPending, setIsPending] = React.useState(false);
 
@@ -35,21 +38,15 @@ export function SignInForm(): React.JSX.Element {
       event.preventDefault();
       setErrors({});
 
-      const nextErrors: typeof errors = {};
-      if (!values.email) {
-        nextErrors.email = "Email is required";
-      }
-      if (!values.password) {
-        nextErrors.password = "Password is required";
-      }
-      if (Object.keys(nextErrors).length > 0) {
-        setErrors(nextErrors);
+      const parsed = signInSchema.safeParse(values);
+      if (!parsed.success) {
+        setErrors(fieldErrorsOf(parsed.error));
         return;
       }
 
       setIsPending(true);
 
-      const result = await signIn(values.email, values.password);
+      const result = await signIn(parsed.data.email, parsed.data.password);
 
       if (!result.ok) {
         setErrors({root: result.error});
@@ -76,7 +73,9 @@ export function SignInForm(): React.JSX.Element {
           </Link>
         </Typography>
       </Stack>
-      <form onSubmit={submit}>
+      {/* noValidate: zod owns the messages, so errors render as form helpers
+          instead of browser-native tooltips. */}
+      <form onSubmit={submit} noValidate>
         <Stack spacing={2}>
           <FormControl error={Boolean(errors.email)}>
             <InputLabel>Email address</InputLabel>

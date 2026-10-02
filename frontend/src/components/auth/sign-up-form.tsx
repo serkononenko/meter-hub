@@ -18,25 +18,17 @@ import VisibilityOff from "@mui/icons-material/VisibilityOff";
 
 import {paths} from "@/paths";
 import {signUp} from "@/lib/auth/auth-client";
+import {fieldErrorsOf, signUpSchema} from "@/lib/auth/schemas";
 
-interface Values {
-  email: string;
-  username: string;
-  password: string;
-  confirmPassword: string;
-}
+type Errors = Partial<Record<"email" | "username" | "password" | "confirmPassword", string>> & {root?: string};
 
-const defaultValues: Values = {email: "", username: "", password: "", confirmPassword: ""};
-
-// Mirrors the identity-service contract: letters, digits, dots, underscores,
-// hyphens; 3–100 chars.
-const USERNAME_PATTERN = /^[A-Za-z0-9._-]+$/;
+const defaultValues = {email: "", username: "", password: "", confirmPassword: ""};
 
 export function SignUpForm(): React.JSX.Element {
   const router = useRouter();
 
-  const [values, setValues] = React.useState<Values>(defaultValues);
-  const [errors, setErrors] = React.useState<Partial<Record<keyof Values, string>> & {root?: string}>({});
+  const [values, setValues] = React.useState(defaultValues);
+  const [errors, setErrors] = React.useState<Errors>({});
   const [showPassword, setShowPassword] = React.useState(false);
   const [isPending, setIsPending] = React.useState(false);
 
@@ -45,35 +37,15 @@ export function SignUpForm(): React.JSX.Element {
       event.preventDefault();
       setErrors({});
 
-      const nextErrors: typeof errors = {};
-      if (!values.email) {
-        nextErrors.email = "Email is required";
-      }
-      if (!values.username) {
-        nextErrors.username = "Username is required";
-      } else if (!USERNAME_PATTERN.test(values.username)) {
-        nextErrors.username = "Letters, digits, dots, underscores, and hyphens only";
-      } else if (values.username.length < 3) {
-        nextErrors.username = "At least 3 characters";
-      }
-      if (values.password.length < 8) {
-        nextErrors.password = "At least 8 characters";
-      }
-      if (values.confirmPassword !== values.password) {
-        nextErrors.confirmPassword = "Passwords do not match";
-      }
-      if (Object.keys(nextErrors).length > 0) {
-        setErrors(nextErrors);
+      const parsed = signUpSchema.safeParse(values);
+      if (!parsed.success) {
+        setErrors(fieldErrorsOf(parsed.error));
         return;
       }
 
       setIsPending(true);
 
-      const result = await signUp({
-        email: values.email,
-        username: values.username,
-        password: values.password,
-      });
+      const result = await signUp(parsed.data);
 
       if (!result.ok) {
         setErrors({root: result.error, ...result.fieldErrors});
@@ -86,7 +58,7 @@ export function SignUpForm(): React.JSX.Element {
       // would leak into browser history, access logs, and Referer headers.
       router.replace(paths.auth.signIn);
     },
-    [router],
+    [values, router],
   );
 
   return (
@@ -100,7 +72,9 @@ export function SignUpForm(): React.JSX.Element {
           </Link>
         </Typography>
       </Stack>
-      <form onSubmit={submit}>
+      {/* noValidate: zod owns the messages, so errors render as form helpers
+          instead of browser-native tooltips. */}
+      <form onSubmit={submit} noValidate>
         <Stack spacing={2}>
           <FormControl error={Boolean(errors.email)}>
             <InputLabel>Email address</InputLabel>
