@@ -163,7 +163,9 @@ jobs:
           check meter     "http://meter-service:8083/health/ready"
           check reading   "http://reading-service:8084/health/ready"
       - name: Run the journey test
-        run: node --test e2e/journey.e2e.test.mjs
+        # e2e/ picks up every journey file (journey + roles), matching
+        # the local command in README §6.
+        run: node --test e2e/
       - name: Container logs on failure
         if: failure()
         run: docker compose ps; docker compose logs --tail 100

@@ -11,9 +11,11 @@ import {RequestValidationException} from '../exceptions/bad-request.exception.js
 import {MeterType, MeterUnit, MeterStatus} from "../generated/meter/models/index.js";
 
 import type {Meter} from "../generated/meter/models/index.js";
+import type {AuthenticatedRequest} from "../auth/authenticated-request.interface.js";
 
 
 const HOUSEHOLD = '3f6a5b7c-93d2-4c8e-9a44-9f60f1f4c2aa';
+const USER_ID = '8b1c0d9e-2f4a-4b6a-8c1d-9e0f1a2b3c4d';
 const METER: Meter = {
     id: '0d7f8a26-6f6f-4a55-9a71-3bd11c0a1f01',
     householdId: HOUSEHOLD,
@@ -38,6 +40,14 @@ function repositoryStub(): MeterRepository {
 /** Stub access port: the test subject is a MEMBER of every household. */
 function householdStub(): HouseholdAccessService {
     return accessStub({member: true, role: 'MEMBER'});
+}
+
+/**
+ * Request as the auth guard leaves it after a valid bearer token: the
+ * service resolves the caller from this on every role check.
+ */
+function authedRequest(): AuthenticatedRequest {
+    return {authenticatedUser: {userId: USER_ID}} as unknown as AuthenticatedRequest;
 }
 
 /** Stub access port that always fails (household service unreachable). */
@@ -71,6 +81,10 @@ function serviceWith(repository: MeterRepository, household: HouseholdAccessServ
     return new MeterService(repository, household);
 }
 
+// The generated MetersApi types `request` as the global fetch Request;
+// at runtime the express request is what flows through.
+const REQUEST = authedRequest() as unknown as Request;
+
 describe('MeterService', () => {
     it('persists meters through the repository when the household is accessible', async () => {
         const repository = repositoryStub();
@@ -83,9 +97,9 @@ describe('MeterService', () => {
             name: METER.name as string,
             serialNumber: METER.serialNumber,
             unit: METER.unit,
-        });
+        }, undefined, REQUEST);
 
-        expect(household.assertCanWrite).toHaveBeenCalledWith(HOUSEHOLD, '')
+        expect(household.assertCanWrite).toHaveBeenCalledWith(HOUSEHOLD, USER_ID)
         expect(repository.save).toHaveBeenCalledWith(
             expect.objectContaining({householdId: HOUSEHOLD, serialNumber: METER.serialNumber}),
         );
@@ -102,7 +116,7 @@ describe('MeterService', () => {
             name: METER.name as string,
             serialNumber: METER.serialNumber,
             unit: METER.unit,
-        })).rejects.toBeInstanceOf(HouseholdServiceUnavailableException);
+        }, undefined, REQUEST)).rejects.toBeInstanceOf(HouseholdServiceUnavailableException);
         expect(repository.save).not.toHaveBeenCalled();
     });
 
@@ -111,9 +125,9 @@ describe('MeterService', () => {
         const household = householdStub();
         const service = serviceWith(repository, household);
 
-        const meters = await service.listMeters(HOUSEHOLD);
+        const meters = await service.listMeters(HOUSEHOLD, undefined, REQUEST);
 
-        expect(household.assertCanRead).toHaveBeenCalledWith(HOUSEHOLD, '')
+        expect(household.assertCanRead).toHaveBeenCalledWith(HOUSEHOLD, USER_ID)
         expect(repository.findByHouseholdId).toHaveBeenCalledWith(HOUSEHOLD);
         expect(meters).toHaveLength(1);
     });
@@ -122,7 +136,7 @@ describe('MeterService', () => {
         const repository = repositoryStub();
         const service = serviceWith(repository, householdDownStub());
 
-        await expect(service.listMeters(HOUSEHOLD)).rejects.toBeInstanceOf(HouseholdServiceUnavailableException);
+        await expect(service.listMeters(HOUSEHOLD, undefined, REQUEST)).rejects.toBeInstanceOf(HouseholdServiceUnavailableException);
         expect(repository.findByHouseholdId).not.toHaveBeenCalled();
     });
 
@@ -130,7 +144,7 @@ describe('MeterService', () => {
         const repository = repositoryStub();
         const service = serviceWith(repository);
 
-        const meter = await service.getMeter(METER.id);
+        const meter = await service.getMeter(METER.id, undefined, REQUEST);
 
         expect(meter.id).toBe(METER.id);
     });
@@ -140,14 +154,14 @@ describe('MeterService', () => {
         repository.findById = vi.fn().mockResolvedValue(null);
         const service = serviceWith(repository);
 
-        await expect(service.getMeter(METER.id)).rejects.toBeInstanceOf(MeterNotFoundException);
+        await expect(service.getMeter(METER.id, undefined, REQUEST)).rejects.toBeInstanceOf(MeterNotFoundException);
     });
 
     it('applies only provided changes on update', async () => {
         const repository = repositoryStub();
         const service = serviceWith(repository);
 
-        await service.updateMeter(METER.id, {status: 'ARCHIVED'});
+        await service.updateMeter(METER.id, {status: 'ARCHIVED'}, undefined, REQUEST);
 
         expect(repository.update).toHaveBeenCalledWith(METER.id, {status: 'ARCHIVED'});
     });
@@ -157,7 +171,7 @@ describe('MeterService', () => {
         repository.update = vi.fn().mockResolvedValue(null);
         const service = serviceWith(repository);
 
-        await expect(service.updateMeter(METER.id, {status: 'ARCHIVED'})).rejects.toBeInstanceOf(MeterNotFoundException);
+        await expect(service.updateMeter(METER.id, {status: 'ARCHIVED'}, undefined, REQUEST)).rejects.toBeInstanceOf(MeterNotFoundException);
     });
 
     it('fails closed when the household service is unreachable', async () => {
@@ -170,7 +184,7 @@ describe('MeterService', () => {
             name: METER.name as string,
             serialNumber: METER.serialNumber,
             unit: METER.unit,
-        })).rejects.toBeInstanceOf(HouseholdServiceUnavailableException);
+        }, undefined, REQUEST)).rejects.toBeInstanceOf(HouseholdServiceUnavailableException);
         expect(repository.save).not.toHaveBeenCalled();
     });
 
@@ -185,7 +199,7 @@ describe('MeterService', () => {
             name: METER.name as string,
             serialNumber: METER.serialNumber,
             unit: METER.unit,
-        })).rejects.toBeInstanceOf(MeterSerialNumberConflictException);
+        }, undefined, REQUEST)).rejects.toBeInstanceOf(MeterSerialNumberConflictException);
     });
 
     it('maps the serial number unique violation to a conflict problem on update', async () => {
@@ -193,7 +207,7 @@ describe('MeterService', () => {
         repository.update = vi.fn().mockRejectedValue(uniqueViolation());
         const service = serviceWith(repository);
 
-        await expect(service.updateMeter(METER.id, {serialNumber: 'EL-123456'}))
+        await expect(service.updateMeter(METER.id, {serialNumber: 'EL-123456'}, undefined, REQUEST))
             .rejects.toBeInstanceOf(MeterSerialNumberConflictException);
     });
 
@@ -208,7 +222,7 @@ describe('MeterService', () => {
             name: METER.name as string,
             serialNumber: METER.serialNumber,
             unit: METER.unit,
-        })).rejects.toThrow('connection refused');
+        }, undefined, REQUEST)).rejects.toThrow('connection refused');
     });
 
     it('rejects an empty update body', async () => {
