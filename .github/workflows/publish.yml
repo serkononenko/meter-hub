@@ -26,6 +26,10 @@ jobs:
         include:
           - name: api-gateway
             context: services/api-gateway
+            # Gateway's Dockerfile COPYs the shared contracts too (since
+            # efb278f) — without this buildx treats `contracts` as a Docker
+            # Hub image name and fails with pull access denied.
+            build-contexts: contracts=./contracts
           - name: identity-service
             context: services/identity-service
             build-contexts: contracts=./contracts

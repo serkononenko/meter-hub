@@ -163,9 +163,9 @@ jobs:
           check meter     "http://meter-service:8083/health/ready"
           check reading   "http://reading-service:8084/health/ready"
       - name: Run the journey test
-        # e2e/ picks up every journey file (journey + roles), matching
-        # the local command in README §6.
-        run: node --test e2e/
+        # Glob (not a bare e2e/ dir arg): Node 22 resolves a directory as a
+        # module and dies with MODULE_NOT_FOUND. Picks up journey + roles.
+        run: node --test "e2e/*.test.mjs"
       - name: Container logs on failure
         if: failure()
         run: docker compose ps; docker compose logs --tail 100
