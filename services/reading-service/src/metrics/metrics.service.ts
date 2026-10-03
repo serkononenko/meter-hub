@@ -22,15 +22,20 @@ import {
 export class MetricsService implements OnModuleDestroy {
     private static readonly MAX_LABELLED_PATHS = 100;
 
-    private readonly registry = new Registry();
+    private readonly _registry = new Registry();
 
-    readonly contentType = this.registry.contentType;
+    /** Per-instance registry; the metrics-side outbox listener registers its series here. */
+    get registry(): Registry {
+        return this._registry;
+    }
+
+    readonly contentType = this._registry.contentType;
 
     private readonly httpRequestsTotal = new Counter({
         name: 'http_requests_total',
         help: 'Total number of HTTP requests.',
         labelNames: ['method', 'path', 'status'] as const,
-        registers: [this.registry],
+        registers: [this._registry],
     });
 
     private readonly httpRequestDuration = new Histogram({
@@ -38,13 +43,13 @@ export class MetricsService implements OnModuleDestroy {
         help: 'HTTP request latency in seconds.',
         labelNames: ['method', 'path', 'status'] as const,
         buckets: [0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10],
-        registers: [this.registry],
+        registers: [this._registry],
     });
 
     private readonly labelledPaths = new Set<string>();
 
     constructor() {
-        collectDefaultMetrics({register: this.registry});
+        collectDefaultMetrics({register: this._registry});
     }
 
     /** Records one completed HTTP request. Called by MetricsInterceptor. */
@@ -56,11 +61,11 @@ export class MetricsService implements OnModuleDestroy {
     }
 
     async scrape(): Promise<string> {
-        return this.registry.metrics();
+        return this._registry.metrics();
     }
 
     async onModuleDestroy(): Promise<void> {
-        this.registry.clear();
+        this._registry.clear();
     }
 
     /**

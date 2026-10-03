@@ -3,6 +3,7 @@ import {APP_FILTER} from '@nestjs/core';
 import {ScheduleModule} from '@nestjs/schedule';
 import {ConfigModule} from "@nestjs/config";
 import {ClsModule, ClsMiddleware} from 'nestjs-cls';
+import {EventEmitterModule} from '@nestjs/event-emitter';
 import {AuthModule} from './auth/auth.module.js';
 import {DatabaseModule} from './database/database.module.js';
 import {CorrelationIdMiddleware} from './middlewares/correlation.middleware.js';
@@ -27,6 +28,7 @@ import {RequestLoggingMiddleware} from './logging/request-logging.middleware.js'
             global: true,
             middleware: {mount: false},
         }),
+        EventEmitterModule.forRoot(),
         ScheduleModule.forRoot(),
         LoggingModule,
         MetricsModule,

@@ -7,7 +7,6 @@ import {ReadingService} from './reading.service.js';
 import {ApiImplementations, ApiModule} from "../generated/reading/index.js";
 import {IdempotencyCleanupTask} from "../scheduler/idempotency-cleanup.task.js";
 import {EventsModule} from "../events/events.module.js";
-import {MetricsModule} from "../metrics/metrics.module.js";
 import {MeterModule} from "../meter/meter.module.js";
 import {HouseholdModule} from '../household/household.module.js';
 
@@ -29,7 +28,6 @@ const apiImplementations: ApiImplementations = {
             ]
         }),
         EventsModule,
-        MetricsModule,
     ],
     providers: [IdempotencyCleanupTask, OutboxRelay],
 })
