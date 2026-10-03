@@ -15,7 +15,6 @@ import configuration from './config/configuration.js';
 import {LoggingModule} from './logging/logging.module.js';
 import {MetricsModule} from './metrics/metrics.module.js';
 import {RequestLoggingMiddleware} from './logging/request-logging.middleware.js';
-import {EventsModule} from './events/events.module.js';
 
 
 @Module({
@@ -34,7 +33,6 @@ import {EventsModule} from './events/events.module.js';
         DatabaseModule,
         AuthModule,
         HealthModule,
-        EventsModule,
         ReadingModule,
     ],
     providers: [

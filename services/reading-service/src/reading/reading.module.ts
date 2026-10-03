@@ -1,14 +1,15 @@
 import {Module} from '@nestjs/common';
 import {ReadingRepository} from './reading.repository.js';
 import {IdempotencyKeyRepository} from "./idempotency-key.repository.js";
+import {OutboxRepository} from './outbox.repository.js';
+import {OutboxRelay} from './outbox.relay.js';
 import {ReadingService} from './reading.service.js';
 import {ApiImplementations, ApiModule} from "../generated/reading/index.js";
-import {MeterApiProvider} from "../meter/meter-api.provider.js";
-import {MeterService} from "../meter/meter.service.js";
-import {InternalHouseholdApiProvider} from "../household/internal-household-api.provider.js";
-import {HouseholdAccessService} from "../household/household-access.service.js";
-import {VerdictCache} from "../household/verdict-cache.js";
 import {IdempotencyCleanupTask} from "../scheduler/idempotency-cleanup.task.js";
+import {EventsModule} from "../events/events.module.js";
+import {MetricsModule} from "../metrics/metrics.module.js";
+import {MeterModule} from "../meter/meter.module.js";
+import {HouseholdModule} from '../household/household.module.js';
 
 
 const apiImplementations: ApiImplementations = {
@@ -22,15 +23,15 @@ const apiImplementations: ApiImplementations = {
             providers: [
                 ReadingRepository,
                 IdempotencyKeyRepository,
-                MeterApiProvider,
-                MeterService,
-                InternalHouseholdApiProvider,
-                VerdictCache,
-                HouseholdAccessService,
+                OutboxRepository,
+                ...Reflect.getMetadata('providers', MeterModule),
+                ...Reflect.getMetadata('providers', HouseholdModule),
             ]
-        })
+        }),
+        EventsModule,
+        MetricsModule,
     ],
-    providers: [IdempotencyCleanupTask],
+    providers: [IdempotencyCleanupTask, OutboxRelay],
 })
 export class ReadingModule {
 }
