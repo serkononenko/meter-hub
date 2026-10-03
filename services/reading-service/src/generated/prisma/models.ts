@@ -10,4 +10,5 @@
  */
 export type * from './models/Reading.js'
 export type * from './models/IdempotencyKey.js'
+export type * from './models/ReadingOutbox.js'
 export type * from './commonInputTypes.js'

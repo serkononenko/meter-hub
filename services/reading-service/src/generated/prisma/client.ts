@@ -55,3 +55,11 @@ export type Reading = Prisma.ReadingModel
  * lets a retry within the retention window replay the original outcome.
  */
 export type IdempotencyKey = Prisma.IdempotencyKeyModel
+/**
+ * Model ReadingOutbox
+ * Transactional outbox for events produced by Reading Service (spec 5).
+ * Written in the same transaction as the reading row; OutboxRelay
+ * publishes and stamps published_at. id == the stable eventId consumers
+ * dedup on. traceparent holds the creating request's W3C trace context.
+ */
+export type ReadingOutbox = Prisma.ReadingOutboxModel

@@ -398,7 +398,8 @@ type FieldRefInputType<Model, FieldType> = Model extends never ? never : FieldRe
 
 export const ModelName = {
   Reading: 'Reading',
-  IdempotencyKey: 'IdempotencyKey'
+  IdempotencyKey: 'IdempotencyKey',
+  ReadingOutbox: 'ReadingOutbox'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -414,7 +415,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "reading" | "idempotencyKey"
+    modelProps: "reading" | "idempotencyKey" | "readingOutbox"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -566,6 +567,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    ReadingOutbox: {
+      payload: Prisma.$ReadingOutboxPayload<ExtArgs>
+      fields: Prisma.ReadingOutboxFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.ReadingOutboxFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ReadingOutboxPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.ReadingOutboxFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ReadingOutboxPayload>
+        }
+        findFirst: {
+          args: Prisma.ReadingOutboxFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ReadingOutboxPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.ReadingOutboxFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ReadingOutboxPayload>
+        }
+        findMany: {
+          args: Prisma.ReadingOutboxFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ReadingOutboxPayload>[]
+        }
+        create: {
+          args: Prisma.ReadingOutboxCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ReadingOutboxPayload>
+        }
+        createMany: {
+          args: Prisma.ReadingOutboxCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.ReadingOutboxCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ReadingOutboxPayload>[]
+        }
+        delete: {
+          args: Prisma.ReadingOutboxDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ReadingOutboxPayload>
+        }
+        update: {
+          args: Prisma.ReadingOutboxUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ReadingOutboxPayload>
+        }
+        deleteMany: {
+          args: Prisma.ReadingOutboxDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.ReadingOutboxUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.ReadingOutboxUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ReadingOutboxPayload>[]
+        }
+        upsert: {
+          args: Prisma.ReadingOutboxUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ReadingOutboxPayload>
+        }
+        aggregate: {
+          args: Prisma.ReadingOutboxAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateReadingOutbox>
+        }
+        groupBy: {
+          args: Prisma.ReadingOutboxGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.ReadingOutboxGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.ReadingOutboxCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.ReadingOutboxCountAggregateOutputType> | number
+        }
+      }
+    }
   }
 } & {
   other: {
@@ -630,6 +705,19 @@ export const IdempotencyKeyScalarFieldEnum = {
 export type IdempotencyKeyScalarFieldEnum = (typeof IdempotencyKeyScalarFieldEnum)[keyof typeof IdempotencyKeyScalarFieldEnum]
 
 
+export const ReadingOutboxScalarFieldEnum = {
+  id: 'id',
+  aggregateId: 'aggregateId',
+  eventType: 'eventType',
+  payload: 'payload',
+  traceparent: 'traceparent',
+  createdAt: 'createdAt',
+  publishedAt: 'publishedAt'
+} as const
+
+export type ReadingOutboxScalarFieldEnum = (typeof ReadingOutboxScalarFieldEnum)[keyof typeof ReadingOutboxScalarFieldEnum]
+
+
 export const SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -660,6 +748,14 @@ export const JsonNullValueFilter = {
 } as const
 
 export type JsonNullValueFilter = (typeof JsonNullValueFilter)[keyof typeof JsonNullValueFilter]
+
+
+export const NullsOrder = {
+  first: 'first',
+  last: 'last'
+} as const
+
+export type NullsOrder = (typeof NullsOrder)[keyof typeof NullsOrder]
 
 
 
@@ -918,6 +1014,7 @@ export type PrismaClientOptions = PrismaClientOptionsWithAccelerateUrl | PrismaC
 export type GlobalOmitConfig = {
   reading?: Prisma.ReadingOmit
   idempotencyKey?: Prisma.IdempotencyKeyOmit
+  readingOutbox?: Prisma.ReadingOutboxOmit
 }
 
 /* Types for Logging */
