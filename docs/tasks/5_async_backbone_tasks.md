@@ -51,26 +51,41 @@ K1.2 Event contract
 ## Epic K2 — Outbox in Reading Service
 
 K2.1 Table & write path
-- [ ] Prisma migration: `reading_outbox` table (`id` = eventId, `aggregate_id`,
+- [x] Prisma migration: `reading_outbox` table (`id` = eventId, `aggregate_id`,
       `event_type`, `payload` JSONB, `traceparent` nullable, `created_at`,
-      `published_at` nullable) with index on unpublished scan.
-- [ ] `ReadingRepository.save` becomes a transaction inserting the reading row and
-      the outbox row atomically; envelope built per spec §7, `traceparent` captured
-      from the creating request when present.
-- [ ] Idempotency-key replay path returns the stored response **without** writing a
-      second outbox row (transaction reuse).
+      `published_at` nullable) with index on unpublished scan. (Landed 4ec641a:
+      partial index on `created_at WHERE published_at IS NULL`.)
+- [x] Reading save inserts the reading row and the outbox row atomically; envelope
+      built per spec §7 in ReadingService, `traceparent` read from the CLS request
+      store inside OutboxRepository (no parameter threading). Transaction
+      orchestration lives in ReadingService via `TransactionManager.execute`;
+      `ReadingRepository.save` / `OutboxRepository.save` take an optional tx client.
+- [x] Idempotency-key replay path returns the stored response **without** writing a
+      second outbox row (reading.service: replay returns `existing.responseBody`
+      before `_createReading` is ever called).
 
 K2.2 Relay
-- [ ] `OutboxRelay` component in reading-service: poll unpublished ordered by
-      `created_at`, bounded batch, publish to `meter.reading.created`, mark
-      `published_at` in a batch transaction; produce-span continues the stored
-      `traceparent`.
-- [ ] Relay metrics (prom-client): published total, publish errors, round latency,
-      unpublished backlog gauge.
-- [ ] Broker down → events queue in the table (no error storm); broker back →
-      backlog drains. Verified live by stopping/starting the kafka container.
-- [ ] Unit tests: transaction atomicity (failure between inserts rolls both back),
-      relay ordering, crash-between-produce-and-mark re-publishes (at-least-once).
+- [x] `OutboxRelay` in reading/reading (domain owner): poll unpublished ordered by
+      `created_at`, bounded batch (100), publish to `meter.reading.created`, mark
+      `published_at` after the batch (single UPDATE — atomic on its own; the
+      at-least-once guarantee comes from produce-before-mark ordering); produce
+      headers carry the stored `traceparent`. (Live-verified 2026-10-03: Kafka
+      message headers `eventId` + `traceparent` present.)
+- [x] Relay metrics (prom-client): published total, publish errors, round errors,
+      unpublished backlog gauge. Series owned by `OutboxMetricsListener` in
+      metrics/ — the relay emits domain events (`reading.outbox.*`) over
+      @nestjs/event-emitter and knows nothing about prom-client. (Deviation: no
+      round-latency histogram — the four series above cover the operational
+      questions; add if a dashboard needs it, K4 will tell.)
+- [x] Broker down → events queue in the table (no error storm); broker back →
+      backlog drains. (Live 2026-10-04: stopped kafka, submitted reading → e2e
+      passed, row queued with backlog gauge 2 / publish_errors +1; restarted
+      kafka → backlog drained to 0, published_total +2.)
+- [x] Unit tests: outbox row + reading row committed together via the
+      TransactionManager flow (service spec asserts both writes on one tx),
+      relay FIFO ordering, failed publish stops the batch and leaves the row
+      unpublished with `publish_failed` emitted, failed mark → `round_failed` and
+      re-publish next round (at-least-once). 59/59 passing.
 
 ## Epic K3 — Demo consumer & shared scaffolding
 

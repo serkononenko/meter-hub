@@ -3,6 +3,7 @@ import {ReadingService} from './reading.service.js';
 import {MeterService} from '../meter/meter.service.js';
 import {HouseholdAccessService} from '../household/household-access.service.js';
 import {ReadingRepository} from './reading.repository.js';
+import {OutboxRepository} from './outbox.repository.js';
 import {IdempotencyKeyRepository} from './idempotency-key.repository.js';
 import {
     HouseholdNotFoundException,
@@ -42,14 +43,19 @@ const METER = {
 };
 
 function repositoryStub() {
-    return {
-        save: vi.fn().mockResolvedValue(SAVED),
+    const repository = {
         findById: vi.fn().mockResolvedValue(SAVED),
         findByMeterId: vi.fn().mockResolvedValue([SAVED]),
         countByMeterId: vi.fn().mockResolvedValue(1),
         findLatestByMeterId: vi.fn().mockResolvedValue(SAVED),
         findPrevious: vi.fn().mockResolvedValue(null),
     };
+    return Object.assign(repository, {
+        // The service saves through the tx-scoped path (spec 5): save(tx,
+        // reading, event). The stub ignores the tx and resolves SAVED so
+        // existing assertions hold.
+        save: vi.fn().mockResolvedValue(SAVED),
+    });
 }
 
 function meterAccessStub() {
@@ -95,6 +101,20 @@ function idempotencyKeyStub() {
     };
 }
 
+/** Outbox port stub: records the event the service attaches to a save. */
+function outboxStub() {
+    return {save: vi.fn().mockResolvedValue(undefined)};
+}
+
+/** TransactionManager stand-in: runs the callback against a fake tx. */
+function transactionManagerStub() {
+    return {
+        execute: vi.fn().mockImplementation(
+            async (fn: (tx: unknown) => Promise<unknown>) => fn({/* fake tx */}),
+        ),
+    };
+}
+
 function serviceWith(
     repository: ReturnType<typeof repositoryStub>,
     meterAccess: ReturnType<typeof meterAccessStub> = meterAccessStub(),
@@ -102,7 +122,9 @@ function serviceWith(
     householdAccess: HouseholdAccessService = householdAccessStub(),
 ) {
     return new ReadingService(
+        transactionManagerStub() as never,
         repository as unknown as ReadingRepository,
+        outboxStub() as unknown as OutboxRepository,
         idempotencyKeys as unknown as IdempotencyKeyRepository,
         meterAccess as unknown as MeterService,
         householdAccess,
@@ -128,8 +150,9 @@ describe('ReadingService', () => {
                 recordedAt: '2026-08-27T08:30:00.000Z',
                 source: 'MANUAL',
             }),
+            expect.anything(), // the tx client from TransactionManager
         );
-        // The persisted id is generated server-side, not taken from input.
+        // The id is generated server-side, not taken from input.
         const saved = repository.save.mock.calls[0][0];
         expect(saved.id).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
     });
@@ -146,6 +169,7 @@ describe('ReadingService', () => {
 
         expect(repository.save).toHaveBeenCalledWith(
             expect.objectContaining({recordedAt: '2026-08-27T08:30:00.000Z'}),
+            expect.anything(),
         );
     });
 

@@ -20,8 +20,10 @@ export class ReadingRepository {
     constructor(private readonly prisma: PrismaService) {
     }
 
-    async save(reading: Reading): Promise<Reading> {
-        const row = await this.prisma.reading.create({
+    async save(reading: Reading, tx?: Prisma.TransactionClient): Promise<Reading> {
+        const client = tx ?? this.prisma;
+
+        const row = await client.reading.create({
             data: {
                 id: reading.id,
                 meterId: reading.meterId,

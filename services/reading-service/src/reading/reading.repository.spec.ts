@@ -29,6 +29,7 @@ function decimal(value: number) {
     return {toNumber: () => value};
 }
 
+/** The delegate doubles as the transaction client in these tests. */
 function repositoryWith(delegate: ReturnType<typeof prismaStub>) {
     return new ReadingRepository(delegate as unknown as PrismaService);
 }
@@ -45,7 +46,7 @@ describe('ReadingRepository', () => {
             recordedAt: READING_ROW.recordedAt.toISOString(),
             source: ReadingSource.MANUAL,
             createdAt: READING_ROW.createdAt.toISOString(),
-        });
+        }, delegate as never);
 
         expect(delegate.reading.create).toHaveBeenCalledWith({
             data: expect.not.objectContaining({createdAt: expect.anything()}),

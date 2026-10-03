@@ -1,11 +1,17 @@
 import {Injectable} from '@nestjs/common';
 import {plainToInstance} from 'class-transformer';
 import {validate} from 'class-validator';
-import {HouseholdNotFoundException, MeterNotFoundException, ReadingNotFoundException} from "../exceptions/not-found.exception.js";
+import {
+    HouseholdNotFoundException,
+    MeterNotFoundException,
+    ReadingNotFoundException
+} from "../exceptions/not-found.exception.js";
 import {IdempotencyKeyReuseException, ReadingDecreasingException} from "../exceptions/reading-argument.exception.js";
 import {RequestValidationException} from "../exceptions/request-validation.exception.js";
 import {ReadingsApi} from "../generated/reading/api/index.js";
+import {TransactionManager} from '../database/transaction.manager.js';
 import {ReadingRepository} from './reading.repository.js';
+import {OutboxRepository} from "./outbox.repository.js";
 import {IdempotencyKeyRepository} from './idempotency-key.repository.js';
 import {MeterService} from '../meter/meter.service.js';
 import {HouseholdAccessService} from '../household/household-access.service.js';
@@ -15,6 +21,7 @@ import {getObjectHash} from "../utils/get-object-hash.js";
 import {getAuthenticatedUser} from "../utils/get-authenticated-user.js";
 
 import type {CreateReadingRequest, Reading} from "../generated/reading/models/index.js";
+import type {MeterReadingCreated} from '../generated/events/reading-created.v1.schema.js';
 import type {AuthenticatedUser} from "../typedef.js";
 
 
@@ -23,10 +30,12 @@ const IDEMPOTENCY_RETENTION_MS = 24 * 60 * 60 * 1000;
 @Injectable()
 export class ReadingService extends ReadingsApi {
     constructor(
+        private readonly transactions: TransactionManager,
         private readonly repository: ReadingRepository,
+        private readonly outboxRepository: OutboxRepository,
         private readonly idempotencyKeys: IdempotencyKeyRepository,
         private readonly meterService: MeterService,
-        private readonly householdAccess: HouseholdAccessService,
+        private readonly householdAccess: HouseholdAccessService
     ) {
         super();
     }
@@ -87,13 +96,33 @@ export class ReadingService extends ReadingsApi {
 
         await this.assertNotDecreasing(command.meterId, command.value, new Date(command.recordedAt));
 
-        return this.repository.save({
+        const reading: Reading = {
             id: crypto.randomUUID(),
             meterId: command.meterId,
             value: command.value,
             recordedAt: new Date(command.recordedAt).toISOString(),
             source: 'MANUAL',
             createdAt: new Date().toISOString(),
+        };
+        const event: MeterReadingCreated = {
+            eventId: reading.id,
+            eventType: 'meter.reading.created',
+            eventVersion: 1,
+            occurredAt: reading.createdAt,
+            producer: 'reading-service',
+            data: {
+                readingId: reading.id,
+                meterId: reading.meterId,
+                value: reading.value,
+                unit: meter.unit,
+                recordedAt: reading.recordedAt,
+                source: reading.source,
+            },
+        };
+        return this.transactions.execute(async (tx) => {
+            const result = await this.repository.save(reading, tx);
+            await this.outboxRepository.save(event, tx);
+            return result;
         });
     }
 
