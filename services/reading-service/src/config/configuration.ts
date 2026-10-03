@@ -10,6 +10,9 @@ export default () => ({
     household: {
         url: process.env.HOUSEHOLD_SERVICE_URL ?? 'http://localhost:8082'
     },
+    kafka: {
+        brokers: process.env.KAFKA_BROKERS ?? 'localhost:29092'
+    },
     identity: {
         jwt: {
             issuer: process.env.IDENTITY_JWT_ISSUER ?? 'identity-service',

@@ -1,16 +1,23 @@
 import {afterEach, describe, expect, it, vi} from 'vitest';
-import {CURRENT_CORRELATION_ID} from '../middlewares/correlation.middleware.js';
+import type {ClsService} from 'nestjs-cls';
 import {StructuredLoggerService} from './structured-logger.service.js';
 
 describe('StructuredLoggerService', () => {
     const stdout = vi.spyOn(process.stdout, 'write').mockReturnValue(true);
+
+    /** CLS stand-in: returns the correlation id the test stages. */
+    function clsWith(correlationId?: string): ClsService {
+        return {
+            get: (key: string) => (key === 'correlationId' ? correlationId : undefined),
+        } as unknown as ClsService;
+    }
 
     afterEach(() => {
         stdout.mockClear();
     });
 
     it('emits one JSON line with the conventions §14 fields', () => {
-        const logger = new StructuredLoggerService();
+        const logger = new StructuredLoggerService(clsWith(), 'info');
 
         logger.log('Reading created');
 
@@ -24,11 +31,9 @@ describe('StructuredLoggerService', () => {
     });
 
     it('carries the correlation ID as requestId inside request scope', () => {
-        const logger = new StructuredLoggerService();
+        const logger = new StructuredLoggerService(clsWith('7d6f5f2c-0a49-4e10-8ef7-7c3d2b1f4a10'), 'info');
 
-        CURRENT_CORRELATION_ID.run('7d6f5f2c-0a49-4e10-8ef7-7c3d2b1f4a10', () => {
-            logger.warn('Ownership could not be verified');
-        });
+        logger.warn('Ownership could not be verified');
 
         const line = JSON.parse(stdout.mock.calls[0][0] as string) as Record<string, unknown>;
         expect(line.requestId).toBe('7d6f5f2c-0a49-4e10-8ef7-7c3d2b1f4a10');
@@ -36,7 +41,7 @@ describe('StructuredLoggerService', () => {
     });
 
     it('includes structured fields alongside the message', () => {
-        const logger = new StructuredLoggerService();
+        const logger = new StructuredLoggerService(clsWith(), 'info');
 
         logger.error('Unhandled exception', {path: '/api/v1/meters', status: 500});
 
@@ -46,7 +51,7 @@ describe('StructuredLoggerService', () => {
     });
 
     it('filters below the configured threshold', () => {
-        const logger = new StructuredLoggerService('warn');
+        const logger = new StructuredLoggerService(clsWith(), 'warn');
 
         logger.log('hidden info');
         logger.debug('hidden debug');
@@ -58,7 +63,7 @@ describe('StructuredLoggerService', () => {
     });
 
     it('escapes nothing that would break the JSON line', () => {
-        const logger = new StructuredLoggerService();
+        const logger = new StructuredLoggerService(clsWith(), 'info');
 
         logger.log('bad "message" with \\ backslash');
 

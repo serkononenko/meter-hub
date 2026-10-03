@@ -191,6 +191,7 @@ services:
       DATABASE_URL: postgresql://${READING_DB_USER}:${READING_DB_PASSWORD}@postgres:5432/${READING_DB}
       METER_SERVICE_URL: http://meter-service:8083
       HOUSEHOLD_SERVICE_URL: http://household-service:8082
+      KAFKA_BROKERS: kafka:9092
       IDENTITY_JWT_PUBLIC_KEY_PATH: /run/secrets/identity.jwt.public-key
       OTEL_SERVICE_NAME: reading-service
       OTEL_EXPORTER_OTLP_TRACES_ENDPOINT: http://jaeger:4318/v1/traces
@@ -208,6 +209,8 @@ services:
       start_period: 30s
     depends_on:
       postgres:
+        condition: service_healthy
+      kafka:
         condition: service_healthy
       meter-service:
         condition: service_healthy

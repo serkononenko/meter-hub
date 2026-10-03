@@ -1,5 +1,5 @@
 import {Injectable, LoggerService} from '@nestjs/common';
-import {CURRENT_CORRELATION_ID} from '../middlewares/correlation.middleware.js';
+import {ClsService} from 'nestjs-cls';
 import {context, trace} from '@opentelemetry/api';
 
 /**
@@ -43,7 +43,10 @@ type NestLevel = keyof typeof LEVELS;
 export class StructuredLoggerService implements LoggerService {
     private readonly threshold: number;
 
-    constructor(logLevel: string = 'info') {
+    constructor(
+        private readonly cls: ClsService,
+        logLevel: string = 'info',
+    ) {
         this.threshold = SEVERITY[logLevel.toUpperCase()] ?? SEVERITY.INFO;
     }
 
@@ -80,7 +83,7 @@ export class StructuredLoggerService implements LoggerService {
             timestamp: new Date().toISOString(),
             level: LEVELS[level],
             service: SERVICE,
-            requestId: CURRENT_CORRELATION_ID.getStore() ?? null,
+            requestId: this.cls.get('correlationId') ?? null,
             message,
             // OpenTelemetry trace ID when a span is active (spec
             // 2_distributed_tracing_spec.md §FR-6): joins log lines to the
