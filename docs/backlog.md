@@ -8,7 +8,7 @@ Honest list of what the MVP does not do yet. Each item is a deliberate scope cut
 | **Accepted** | Deliberate cut with a defined revisit trigger; no phase assigned yet |
 | **Resolved** | No longer true; kept for the record |
 
-Last reviewed: 2026-10-02
+Last reviewed: 2026-10-04
 
 ---
 
@@ -18,6 +18,7 @@ Last reviewed: 2026-10-02
 |---|---|---|---|---|---|
 | A1 | No service-to-service authentication — services trust any request on the internal Docker network; only the client JWT is verified | A compromised service could call any other service directly | Service tokens / mTLS on the internal network, per [conventions.md](conventions.md) §15 | 1.2 | Open |
 | A2 | Single PostgreSQL container — all four databases share one instance and one volume, no fault isolation | One instance failure takes down every service at once | Schema design (one database + one user per service) keeps migration to per-service instances mechanical ([conventions.md](conventions.md) §11) | 7 | Accepted — do it only when a deployment actually needs isolation |
+| A5 | Hand-rolled idempotency has no in-flight lock — reading-service's find-then-save (C3) lets two concurrent requests with the same key both pass the lookup and both execute; one then fails on the unique constraint with a 500 after its side effects (double reading + double Kafka event). Happy-path only: no 409 for concurrent same-key requests, no fingerprint collision check beyond request hash, no lock renewal | Duplicate side effects on concurrent retries; nonstandard error surface | Migrate to `@nestjs/idempotency` (`@Idempotent()` interceptor): its atomic store-level `acquire()` closes the race; standard IETF-draft codes (`IDEMPOTENCY_KEY_IN_USE` 409 + Retry-After, `IDEMPOTENCY_KEY_REUSED` 422) replace the custom 409; scoped keys per user. No Prisma store ships with the package — one must be written per the docs' store contract (raw `INSERT … ON CONFLICT … WHERE expires_at <= now() RETURNING` for acquire, compare-and-set updateMany for complete/release/extend, response column `json` not `jsonb`) and validated with the package's contract test suite (`@nestjs/idempotency/testing`, concurrent mode). Replay short-circuits at the interceptor, which also makes "replay writes no second outbox row" structural instead of service-level. Delete IdempotencyKeyRepository + cleanup cron afterwards. Consider the same decorator on meter-service's manual-reading endpoint | — | Open — unscheduled (post-Phase-2; Phase 2 async-backbone work is unaffected — the outbox relay path doesn't touch HTTP idempotency) |
 
 ## C — API clients
 
