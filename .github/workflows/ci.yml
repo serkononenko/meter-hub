@@ -76,7 +76,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        service: [meter-service, reading-service]
+        service: [meter-service, reading-service, events-demo]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -124,6 +124,7 @@ jobs:
           sed -i 's/^HOUSEHOLD_DB_PASSWORD=.*/HOUSEHOLD_DB_PASSWORD=ci-household/' .env
           sed -i 's/^METER_DB_PASSWORD=.*/METER_DB_PASSWORD=ci-meter/' .env
           sed -i 's/^READING_DB_PASSWORD=.*/READING_DB_PASSWORD=ci-reading/' .env
+          sed -i 's/^EVENTS_DEMO_DB_PASSWORD=.*/EVENTS_DEMO_DB_PASSWORD=ci-events-demo/' .env
       - name: Start the stack
         run: docker compose up -d --build
       - name: Wait for the gateway
@@ -162,6 +163,7 @@ jobs:
           check household "http://household-service:8082/actuator/health/readiness"
           check meter     "http://meter-service:8083/health/ready"
           check reading   "http://reading-service:8084/health/ready"
+          check events-demo "http://events-demo:8085/health/ready"
       - name: Run the journey test
         # Glob (not a bare e2e/ dir arg): Node 22 resolves a directory as a
         # module and dies with MODULE_NOT_FOUND. Picks up journey + roles.

@@ -215,6 +215,34 @@ services:
       meter-service:
         condition: service_healthy
 
+  # Demo Kafka consumer proving the async backbone (spec 5 §8): subscribes
+  # to meter.reading.created, dedups on eventId in its own database. No
+  # auth, no ports published — its only HTTP surface is health/metrics for
+  # probes and Prometheus. Explicitly demo: Phase 3+ consumers replace it.
+  events-demo:
+    build:
+      context: ./services/events-demo
+    environment:
+      DATABASE_URL: postgresql://${EVENTS_DEMO_DB_USER}:${EVENTS_DEMO_DB_PASSWORD}@postgres:5432/${EVENTS_DEMO_DB}
+      KAFKA_BROKERS: kafka:9092
+      OTEL_SERVICE_NAME: events-demo
+      OTEL_EXPORTER_OTLP_TRACES_ENDPOINT: http://jaeger:4318/v1/traces
+    expose:
+      - "8085"
+    networks:
+      - meter-hub
+    healthcheck:
+      test: [ "CMD", "wget", "-q", "--spider", "http://localhost:8085/health/live" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+
   web:
     build:
       context: ./frontend

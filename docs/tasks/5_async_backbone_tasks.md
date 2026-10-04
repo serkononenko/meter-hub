@@ -90,21 +90,37 @@ K2.2 Relay
 ## Epic K3 — Demo consumer & shared scaffolding
 
 K3.1 `events-demo` service
-- [ ] New Compose service (Node, own database/schema on the shared Postgres per
+- [x] New Compose service (Node, own database/schema on the shared Postgres per
       conventions §11/§16): subscribes to `meter.reading.created`, logs the reading,
       records `eventId` in a dedup table before processing (dedup checked first —
-      redelivery is a no-op).
-- [ ] Health/metrics/tracing wired like the other services (readiness probe, prom-client,
-      span per event with the event's `traceparent` as parent/link).
-- [ ] Topics declared idempotently at startup.
+      redelivery is a no-op). (Landed 2026-10-04: `events_demo_db`/`events_demo_user`
+      in the init script, `processed_events` table, Prisma migration applied at
+      container start. First boot replayed all 277 backlog events and recorded
+      every eventId.)
+- [x] Health/metrics/tracing wired like the other services (readiness probe, prom-client,
+      span per event with the event's `traceparent` as parent/link). (Live: `/health/ready`
+      DB-backed; Prometheus scrapes `events-demo:8085` — target up; consumer span
+      `meter.reading.created process` carries a FOLLOWS_FROM link to the producing
+      request's trace — verified on trace `791f8937`, one waterfall across
+      gateway → reading → meter/household → consumer.)
+- [x] Topics declared idempotently at startup. (Live: `createTopics` both topic and
+      `<topic>.dlq`, TOPIC_ALREADY_EXISTS accepted — restart logs show the accept
+      path and green start.)
 
 K3.2 Consumer scaffolding (extracted, documented in conventions §15)
-- [ ] Shared consumer loop: bounded in-process exponential-backoff retries, then
+- [x] Shared consumer loop: bounded in-process exponential-backoff retries, then
       publish to `<topic>.dlq` with failure headers (reason, attempts, last exception
-      class), commit, move on.
-- [ ] Conventions §15 gains the retry/DLQ policy text and the header set.
-- [ ] Unit tests: poison message → DLQ after budget while later messages on the
-      partition still process; redelivery deduped.
+      class), commit, move on. (`ConsumerLoop` in src/consumer/consumer-loop.ts;
+      `ConsumerMetrics` fixed series names; the demo's handler subclasses the loop.)
+- [x] Conventions §15 gains the retry/DLQ policy text and the header set. (Landed as
+      §15.1 "Event consumer policy (Kafka)".)
+- [x] Unit tests: poison message → DLQ after budget while later messages on the
+      partition still process; redelivery deduped. (6/6 passing, including malformed
+      messages skipping the budget and store failures rethrowing. Live-verified too:
+      offset reset -12 → all 12 redeliveries deduped, `deduped_total 12` /
+      `processed_total 0`; valid-envelope poison → `failed_total 4` then DLQ headers
+      `reason/attempts:4/exceptionClass:TypeError/originalTopic/deadLetteredAt`,
+      lag stayed 0; missing-eventId and unparseable-JSON → DLQ straight.)
 
 ## Epic K4 — Observability
 

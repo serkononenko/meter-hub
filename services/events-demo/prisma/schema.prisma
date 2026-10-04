@@ -1,0 +1,24 @@
+generator client {
+  provider        = "prisma-client"
+  output          = "../src/generated/prisma"
+  previewFeatures = ["typedSql"]
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+/// Processed event IDs for the demo consumer (spec 5 §8): the dedup half
+/// of the at-least-once contract. The consumer inserts the eventId BEFORE
+/// processing (inside the same transaction as any side effect), so a
+/// redelivery — broker retry, consumer restart mid-batch, outbox
+/// produce-before-mark replay — is recognized and skipped. The demo's only
+/// side effect is a log line, so the insert alone suffices here; a real
+/// consumer records the id in the transaction that does its work.
+model ProcessedEvent {
+  eventId    String   @id @map("event_id") @db.Uuid
+  eventType  String   @map("event_type")
+  processedAt DateTime @map("processed_at") @db.Timestamptz(6) @default(now())
+
+  @@map("processed_events")
+}

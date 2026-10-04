@@ -39,3 +39,8 @@ scrape_configs:
     metrics_path: /metrics
     static_configs:
       - targets: ['reading-service:8084']
+
+  - job_name: events-demo
+    metrics_path: /metrics
+    static_configs:
+      - targets: ['events-demo:8085']

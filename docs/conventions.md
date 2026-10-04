@@ -383,6 +383,38 @@ Event names use lowercase dot-separated domain terminology.
 
 Events should include a stable event ID and metadata needed for tracing and idempotent processing.
 
+### 15.1 Event consumer policy (Kafka)
+
+Consumers are built on the shared consumer scaffolding (introduced by the
+events-demo service, spec 5 §9) instead of hand-rolling a loop. The policy it
+implements:
+
+- **Delivery guarantee is at-least-once.** Every consumer must tolerate
+  redelivery. Dedup on the envelope's `eventId` BEFORE processing: record the
+  ID (unique key) in the consumer's own database in the same transaction as
+  the processing side effects, and skip a message whose ID already exists.
+  An insert race lost by a redelivery is the skip signal.
+- **In-flight failure → bounded in-process retries** with exponential backoff
+  (default: 4 attempts, 250 ms base delay → 250/500/1000 ms between tries).
+  Dev-grade: no retry topics unless a consumer genuinely needs to defer work
+  across restarts — then escalate deliberately, not per-consumer ad hoc.
+- **Retry budget exhausted → dead-letter.** Publish the raw message to
+  `<topic>.dlq` with the failure header set below, commit, and move on. A
+  poisoned message must never block its partition. Messages that can never
+  succeed (missing `eventId` header, unparseable JSON) skip the budget and go
+  straight to the DLQ.
+- **DLQ headers** (fixed set, so tooling can rely on them):
+  `reason` (last error text), `attempts` (total attempts made),
+  `exceptionClass` (last error's constructor name), plus `originalTopic` and
+  `deadLetteredAt` added by the scaffolding.
+- **Metrics** per consumer (series names fixed by the scaffolding):
+  `consumer_messages_consumed_total`, `consumer_messages_processed_total`,
+  `consumer_messages_deduped_total`, `consumer_messages_failed_total`,
+  `consumer_dlq_messages_total`. DLQ depth/alerting rides on the last one
+  and the kafka lag exporter (K4).
+- **Topics are declared idempotently at startup** (create-if-missing,
+  `TOPIC_ALREADY_EXISTS` accepted), the consumer's own DLQ included.
+
 ## 16. Database Ownership Rule
 
 A service owns its database and is the only service allowed to write to it.
