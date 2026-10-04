@@ -97,6 +97,16 @@ jobs:
     needs: [spring-tests, nestjs-tests]
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install events-demo deps for the e2e async tests
+        # async-backbone.e2e.test.mjs imports kafkajs + ajv from
+        # services/events-demo/node_modules (the e2e job has no
+        # node_modules of its own). --ignore-scripts: no Prisma generate
+        # needed — only the runtime JS deps are imported.
+        working-directory: services/events-demo
+        run: npm ci --ignore-scripts
       - name: Generate dev JWT keys
         # Same steps as README §Local Setup 3 — the keys are git-ignored;
         # CI generates a throwaway pair and links it where the services
@@ -166,7 +176,9 @@ jobs:
           check events-demo "http://events-demo:8085/health/ready"
       - name: Run the journey test
         # Glob (not a bare e2e/ dir arg): Node 22 resolves a directory as a
-        # module and dies with MODULE_NOT_FOUND. Picks up journey + roles.
+        # module and dies with MODULE_NOT_FOUND. Picks up journey + roles +
+        # async-backbone (which also reads .env DB passwords and runs
+        # `docker compose` / `docker exec` against the running stack).
         run: node --test "e2e/*.test.mjs"
       - name: Container logs on failure
         if: failure()

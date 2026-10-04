@@ -147,14 +147,46 @@ K3.2 Consumer scaffolding (extracted, documented in conventions §15)
 
 ## Epic K5 — End-to-end verification & docs
 
-- [ ] Extend e2e: after the existing reading submission journey, assert the event
+- [x] Extend e2e: after the existing reading submission journey, assert the event
       lands on `meter.reading.created` and matches the v1 schema; kill/restart the
       demo consumer mid-stream and assert no double-processing; assert DLQ via a
-      forced poison (test hook) or documented manual step.
-- [ ] Jaeger check: one waterfall for a reading submission spans HTTP → relay →
-      consumer (traceparent continuity through the async leg).
-- [ ] Restart whole stack (`docker compose down && up`) — dedup table and outbox
-      survive; no duplicate events after restart replay.
-- [ ] Docs: README architecture + dev-mode notes (Kafka section), `docs/ports.md`,
-      backlog entry for the phase's accepted trade-offs if any surface.
-- [ ] CI: e2e job covers the new journey (already `node --test e2e/` since 1b01d27).
+      forced poison (test hook) or documented manual step. (`e2e/async-backbone.e2e.test.mjs`,
+      3 tests: schema-valid event + outbox published_at + traceparent header;
+      valid-envelope poison data:null → DLQ with all 5 failure headers after the
+      4-attempt budget; stop/produce-2/restart → group replays, exactly one dedup
+      row each, consumer log lines show processing. Kafka via localhost:29092,
+      kafkajs/ajv resolved from services/events-demo/node_modules; DB asserts via
+      psql in the postgres container. Gotcha logged for future tests: kafkajs
+      `fetchOffsets` returns `[{topic, partitions: [{offset}]}]`, and consumer
+      position must be seeked inside `run()` (pause → seek → resume), not before.
+      Full suite 6/6 local. Deviation: no in-code test hook — poison is produced
+      directly to the topic, documented as the manual step too.)
+- [x] Jaeger check: one waterfall for a reading submission spans HTTP → relay →
+      consumer (traceparent continuity through the async leg). (Live 2026-10-04:
+      trace `2017e0f4…` — 62 spans gateway → reading-service tx outbox INSERT →
+      meter/household ownership checks; consumer span `meter.reading.created
+      process` in trace `3df8e15e…` carries `FOLLOWS_FROM` → `2017e0f4…` and
+      `messaging.event.id` == the outbox row id `f2e554f0…`. Note: the consumer
+      leg is a separate trace linked FOLLOWS_FROM, by design — Jaeger shows them
+      side by side, not as one literal trace.)
+- [x] Restart whole stack (`docker compose down && up`) — dedup table and outbox
+      survive; no duplicate events after restart replay. (Live 2026-10-04 — and it
+      caught a real bug first: apache/kafka:4.0.0 defaults `log.dirs` to a /tmp
+      path inside the container, so the `kafka_data` volume mount was dead and
+      every restart lost all topics/offsets/events. Fixed with
+      `KAFKA_LOG_DIRS: /var/lib/kafka/data` in both compose files. After the fix:
+      down + up → topic offset 1 preserved, group resumes at it, dedup table 305
+      → 312 rows as new events flow, zero duplicate event_ids, zero
+      double-processing log lines.)
+- [x] Docs: README architecture + dev-mode notes (Kafka section), `docs/ports.md`,
+      backlog entry for the phase's accepted trade-offs if any surface. (README:
+      Kafka dev-mode notes with CLI inspection + manual poison drill, Async
+      backbone observability section, e2e section, start-stack/reset wording.
+      Backlog: new K1 — non-UUID eventId header crashes the dedup insert outside
+      the retry path and blocks the partition (found during e2e development;
+      tests use UUIDs and document the trap). ports.md already had the
+      kafka-exporter row from K4.)
+- [x] CI: e2e job covers the new journey (already `node --test e2e/` since 1b01d27).
+      (Added: setup-node + `npm ci --ignore-scripts` for events-demo in the e2e
+      job — the async tests import kafkajs/ajv from that tree; jobs stay green
+      only in CI runs, verified next push.)

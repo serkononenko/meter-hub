@@ -8,7 +8,7 @@ Honest list of what the MVP does not do yet. Each item is a deliberate scope cut
 | **Accepted** | Deliberate cut with a defined revisit trigger; no phase assigned yet |
 | **Resolved** | No longer true; kept for the record |
 
-Last reviewed: 2026-10-04
+Last reviewed: 2026-10-04 (K5: added K — async backbone)
 
 ---
 
@@ -42,6 +42,12 @@ All API-client items (C1–C3) are resolved — see the Resolved section.
 ## F — Frontend
 
 All frontend items (F1) resolved — see Resolved section.
+
+## K — Async backbone
+
+| ID | Limitation | Impact | Resolution path | Phase | Status |
+|---|---|---|---|---|---|
+| K1 | Consumer dedup insert requires a UUID `eventId` — a message with a malformed (non-UUID) `eventId` header passes the loop's "has eventId" check but throws `PrismaClientKnownRequestError P2007` on the dedup insert, which is outside the retry/DLQ path: kafkajs crashes and restarts the consumer, blocking the partition indefinitely (found in K5 e2e work, 2026-10-04) | One crafted bad header can halt a consumer group; manual offset seek is the only unblock | Catch store-level validation failures in the dedup step and route them to the DLQ like other unclaimable messages (or validate UUID format in the loop's malformed-message gate) | — | Open — unscheduled |
 
 ---
 

@@ -51,6 +51,37 @@ Later iterations may introduce Kafka, Notification Service, Provider Service, De
 > dead-letters poison messages to `meter.reading.created.dlq` (policy in conventions §15.1). It is
 > explicitly a demo — Phase 3+ real consumers replace it.
 
+### Async backbone (Kafka) — dev-mode notes
+
+- **Reading-service produces via a transactional outbox**: the reading row and the
+  `reading_outbox` row commit in one transaction; `OutboxRelay` polls unpublished rows,
+  produces to `meter.reading.created` (headers: `eventId`, `traceparent`), then marks
+  `published_at`. Broker down → events queue in Postgres and drain when it returns.
+- **Consumers follow the shared `ConsumerLoop`** (conventions §15.1): dedup insert
+  (`processed_events` PK) before processing → bounded in-process retries
+  (4 attempts, 250/500/1000 ms) → DLQ at `<topic>.dlq` with `reason`/`attempts`/
+  `exceptionClass`/`originalTopic`/`deadLetteredAt` headers. Poison messages never
+  block the partition.
+- **Observability**: `kafka-exporter` (Compose) exposes consumer-group lag to
+  Prometheus; Grafana's provisioned **"MeterHub Async Backbone"** dashboard shows lag,
+  outbox backlog, consume/retry/DLQ rates and DLQ depth. The consumer opens a
+  `span.kind=consumer` span linked (`FOLLOWS_FROM`) to the producing request's trace,
+  so one reading submission is visible end to end in Jaeger.
+- **Inspecting the topics from the host** (needs nothing but the running broker):
+
+  ```bash
+  docker exec meter-hub-kafka-1 /opt/kafka/bin/kafka-console-consumer.sh \
+    --bootstrap-server localhost:29092 --topic meter.reading.created --from-beginning --max-messages 1
+  docker exec meter-hub-kafka-1 /opt/kafka/bin/kafka-console-consumer.sh \
+    --bootstrap-server localhost:29092 --topic meter.reading.created.dlq --from-beginning
+  ```
+
+- **Forcing a poison message (manual DLQ drill)**: produce an event with a schema-valid
+  UUID `eventId` header but `data: null` — the demo handler throws on it, exhausts the
+  retry budget, and lands on the DLQ with the failure headers. (e2e does exactly this:
+  `e2e/async-backbone.e2e.test.mjs`.) A non-UUID `eventId` instead fails the dedup
+  store insert outside the retry budget — see backlog K-item.
+
 ## Repository Structure
 
 ```text
@@ -155,12 +186,12 @@ done
 docker compose up -d --build
 ```
 
-That single command brings up everything: PostgreSQL (with the four
-databases and users created by `infrastructure/postgres/init/`), all five
-services, and the web application — and it applies database migrations
-automatically (Flyway for the Spring services, `prisma migrate deploy` for
-the NestJS services, each on container start). The web app is then reachable
-at http://localhost:3000.
+That single command brings up everything: PostgreSQL (with the five
+databases and users created by `infrastructure/postgres/init/`), the Kafka
+broker, all five app services, and the web application — and it applies
+database migrations automatically (Flyway for the Spring services,
+`prisma migrate deploy` for the NestJS services, each on container start).
+The web app is then reachable at http://localhost:3000.
 
 Watch it come up and check container status:
 
@@ -260,6 +291,25 @@ filter: `{service=~".+"} |= "<traceId>"` (or the `X-Correlation-ID`
 cardinality labels would wreck Loki's index (spec 3 §6). With Loki
 down, services keep logging locally; Promtail buffers and retries.
 
+### Async backbone (Kafka)
+
+Kafka runs as a dev-grade single-broker KRaft container; `events-demo`
+consumes `meter.reading.created` through the shared `ConsumerLoop` policy
+(see the [Async backbone dev-mode notes](#async-backbone-kafka--dev-mode-notes)
+under the architecture section). Observability hookup:
+
+- **Prometheus** scrapes `kafka-exporter:9308` (`kafka_consumergroup_lag`,
+  `kafka_consumergroup_current_offset`, broker and per-topic metrics) — config in
+  `infrastructure/prometheus/prometheus.yml`. Note: Prometheus does not re-read a
+  bind-mounted config on file change; after editing it run
+  `docker compose restart prometheus`.
+- **Grafana** auto-provisions the **"MeterHub Async Backbone"** dashboard
+  (`infrastructure/grafana/dashboards/meterhub-async-backbone.json`): consumer-group
+  lag, outbox unpublished backlog, publish/consume/retry/DLQ rates, DLQ depth.
+- **Jaeger**: the consumer span carries a `FOLLOWS_FROM` link to the producing
+  request's trace — one reading submission traces gateway → reading-service (outbox)
+  → consumer.
+
 ### CI (GitHub Actions)
 
 `.github/workflows/ci.yml` runs on every push to `main` and every PR:
@@ -289,21 +339,31 @@ the running Compose environment — registration → login → household → met
 isolation. `roles.e2e.test.mjs` adds the multi-user household-roles journey
 (spec 4): owner invites a MEMBER (who reads and writes) and a VIEWER (who
 gets `403 FORBIDDEN_ROLE` on writes), invite error paths, and member
-removal taking effect after the ~30 s verdict-cache TTL:
+removal taking effect after the ~30 s verdict-cache TTL.
+`async-backbone.e2e.test.mjs` extends the journey with the event leg
+(spec 5, Epic K5): the reading submission's event lands on
+`meter.reading.created` and matches the v1 JSON Schema, a poison message
+dead-letters with failure headers while the partition keeps flowing, and a
+mid-stream consumer restart replays the backlog with every redelivery
+deduped:
 
 ```bash
 node --test e2e/
 ```
 
 Requires the Compose stack (or equivalent local services) to be up; override
-the gateway address with `GATEWAY_URL` if it is not on `http://localhost:8080`.
-Each run uses unique test accounts, so it is safe to re-run against a
-persistent database.
+the gateway address with `GATEWAY_URL` if it is not on `http://localhost:8080`,
+and the broker with `KAFKA_BROKERS` if not on `localhost:29092` (the async
+tests also read DB passwords from the repo's `.env` and run `psql`/`docker
+compose` against the running stack). Each run uses unique test accounts, so
+it is safe to re-run against a persistent database. The Kafka/ajv test
+dependencies resolve from `services/events-demo/node_modules` — the e2e job
+has no node_modules of its own.
 
 ### 7. Reset the development database (one command)
 
-Wipes the PostgreSQL volume (all four databases, all data) and recreates it
-from the init script; the next `up` re-runs every migration from scratch:
+Wipes the PostgreSQL volume (all five databases, all data) and the Kafka
+volume (all topics and offsets), recreating both from scratch:
 
 ```bash
 docker compose down -v && docker compose up -d --build
@@ -325,6 +385,8 @@ The API Gateway is the primary HTTP entry point for clients.
 | Reading Service | 8084 | no (internal) | Meter readings and history |
 | Next.js Web | 3000 | yes (`3000:3000`) | Web application |
 | PostgreSQL | 5432 | yes (`5432:5432`) | Shared local database instance |
+| Kafka (host CLI) | 29092 | yes (`29092:29092`) | Broker's HOST listener for CLI inspection |
+| Grafana | 3001 | yes (`3001:3000`) | Dashboards (incl. Async Backbone) |
 
 These ports are local-development defaults and may be overridden through
 environment variables (`SERVER_PORT`, `POSTGRES` port mapping). In Compose,

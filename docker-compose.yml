@@ -43,6 +43,11 @@ services:
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
       KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      # apache/kafka's default log.dirs is /tmp/kraft-combined-logs (inside
+      # the container FS) — without this the kafka_data volume is mounted at
+      # /var/lib/kafka/data but never used, and topics/offsets are lost on
+      # every `docker compose down && up`. Found in K5's restart check.
+      KAFKA_LOG_DIRS: /var/lib/kafka/data
       CLUSTER_ID: meter-hub-dev-cluster-0000000000001
     ports:
       - "29092:29092"
