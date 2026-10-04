@@ -6,18 +6,16 @@ import {
     MeterNotFoundException,
     ReadingNotFoundException
 } from "../exceptions/not-found.exception.js";
-import {IdempotencyKeyReuseException, ReadingDecreasingException} from "../exceptions/reading-argument.exception.js";
+import {ReadingDecreasingException} from "../exceptions/reading-argument.exception.js";
 import {RequestValidationException} from "../exceptions/request-validation.exception.js";
 import {ReadingsApi} from "../generated/reading/api/index.js";
 import {TransactionManager} from '../database/transaction.manager.js';
 import {ReadingRepository} from './reading.repository.js';
 import {OutboxRepository} from "./outbox.repository.js";
-import {IdempotencyKeyRepository} from './idempotency-key.repository.js';
 import {MeterService} from '../meter/meter.service.js';
 import {HouseholdAccessService} from '../household/household-access.service.js';
 import {CreateReadingCommand} from "./commands/create-reading.command.js";
 import {clampPage} from "../utils/clamp-page.js";
-import {getObjectHash} from "../utils/get-object-hash.js";
 import {getAuthenticatedUser} from "../utils/get-authenticated-user.js";
 
 import type {CreateReadingRequest, Reading} from "../generated/reading/models/index.js";
@@ -25,60 +23,25 @@ import type {MeterReadingCreated} from '../generated/events/reading-created.v1.s
 import type {AuthenticatedUser} from "../typedef.js";
 
 
-const IDEMPOTENCY_RETENTION_MS = 24 * 60 * 60 * 1000;
-
 @Injectable()
 export class ReadingService extends ReadingsApi {
     constructor(
         private readonly transactions: TransactionManager,
         private readonly repository: ReadingRepository,
         private readonly outboxRepository: OutboxRepository,
-        private readonly idempotencyKeys: IdempotencyKeyRepository,
         private readonly meterService: MeterService,
         private readonly householdAccess: HouseholdAccessService
     ) {
         super();
     }
 
-    async createReading(payload: CreateReadingRequest, idempotencyKey?: string, _xCorrelationId?: string, request?: Request) {
+    async createReading(payload: CreateReadingRequest, _idempotencyKey?: string, _xCorrelationId?: string, request?: Request) {
         const user = getAuthenticatedUser(request);
 
-        return idempotencyKey
-            ? this.createReadingIdempotent(payload, idempotencyKey, user.userId, user)
-            : this._createReading(payload, user);
+        return this.createReadingRecord(payload, user);
     }
 
-    private async createReadingIdempotent(
-        payload: CreateReadingRequest,
-        idempotencyKey: string,
-        userId: string,
-        user: AuthenticatedUser,
-    ): Promise<Reading> {
-        const requestHash = getObjectHash(payload);
-
-        const existing = await this.idempotencyKeys.find(idempotencyKey);
-
-        if (existing) {
-            if (existing.userId !== userId || existing.requestHash !== requestHash) {
-                throw new IdempotencyKeyReuseException();
-            }
-            return existing.responseBody as Reading;
-        }
-
-        const reading = await this._createReading(payload, user);
-
-        await this.idempotencyKeys.save({
-            key: idempotencyKey,
-            userId,
-            requestHash,
-            responseStatus: 201,
-            responseBody: reading,
-        }, new Date(Date.now() + IDEMPOTENCY_RETENTION_MS));
-
-        return reading;
-    }
-
-    private async _createReading(payload: CreateReadingRequest, user: AuthenticatedUser) {
+    private async createReadingRecord(payload: CreateReadingRequest, user: AuthenticatedUser) {
         const command = plainToInstance(CreateReadingCommand, payload);
 
         await this.validate(command);

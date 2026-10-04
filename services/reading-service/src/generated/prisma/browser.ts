@@ -26,9 +26,13 @@ export * from './enums.js';
 export type Reading = Prisma.ReadingModel
 /**
  * Model IdempotencyKey
- * Idempotency record for retried POST /readings submissions (backlog C3).
- * The key is client-generated and scoped per user; the response snapshot
- * lets a retry within the retention window replay the original outcome.
+ * Idempotency record for retried POST /readings submissions, shaped for
+ * @nestjs/idempotency's IdempotencyStore contract (backlog A5). The table
+ * is owned by PrismaIdempotencyStore's raw SQL — the model exists so the
+ * schema and the client can type the rows it reads back. An in-flight lock
+ * has an owner and no response; a completed record has a response and no
+ * owner. Expired rows are treated as absent (takeover) — pruning is
+ * opportunistic.
  */
 export type IdempotencyKey = Prisma.IdempotencyKeyModel
 /**

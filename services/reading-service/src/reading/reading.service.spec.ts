@@ -4,7 +4,6 @@ import {MeterService} from '../meter/meter.service.js';
 import {HouseholdAccessService} from '../household/household-access.service.js';
 import {ReadingRepository} from './reading.repository.js';
 import {OutboxRepository} from './outbox.repository.js';
-import {IdempotencyKeyRepository} from './idempotency-key.repository.js';
 import {
     HouseholdNotFoundException,
     MeterNotFoundException,
@@ -93,16 +92,7 @@ function householdStub(verdict: {member: boolean; role?: string}): HouseholdAcce
     } as unknown as HouseholdAccessService;
 }
 
-function idempotencyKeyStub() {
-    return {
-        find: vi.fn().mockResolvedValue(null),
-        save: vi.fn().mockResolvedValue(undefined),
-        deleteExpired: vi.fn().mockResolvedValue(0),
-    };
-}
-
-/** Outbox port stub: records the event the service attaches to a save. */
-function outboxStub() {
+/** Outbox port stub: records the event the service attaches to a save. */function outboxStub() {
     return {save: vi.fn().mockResolvedValue(undefined)};
 }
 
@@ -118,14 +108,12 @@ function transactionManagerStub() {
 function serviceWith(
     repository: ReturnType<typeof repositoryStub>,
     meterAccess: ReturnType<typeof meterAccessStub> = meterAccessStub(),
-    idempotencyKeys: ReturnType<typeof idempotencyKeyStub> = idempotencyKeyStub(),
     householdAccess: HouseholdAccessService = householdAccessStub(),
 ) {
     return new ReadingService(
         transactionManagerStub() as never,
         repository as unknown as ReadingRepository,
         outboxStub() as unknown as OutboxRepository,
-        idempotencyKeys as unknown as IdempotencyKeyRepository,
         meterAccess as unknown as MeterService,
         householdAccess,
     );
@@ -341,7 +329,7 @@ describe('ReadingService', () => {
     it('rejects a submission from a VIEWER with FORBIDDEN_ROLE', async () => {
         const repository = repositoryStub();
         const householdAccess = householdStub({member: true, role: 'VIEWER'});
-        const service = serviceWith(repository, meterAccessStub(), idempotencyKeyStub(), householdAccess);
+        const service = serviceWith(repository, meterAccessStub(), householdAccess);
 
         await expect(service.createReading({meterId: METER_ID, value: 1, recordedAt: '2026-08-27T08:30:00Z'}, undefined, undefined, REQUEST_STUB))
             .rejects.toBeInstanceOf(ForbiddenRoleException);
@@ -351,7 +339,7 @@ describe('ReadingService', () => {
     it('rejects a submission from a non-member with the meter 404 mask', async () => {
         const repository = repositoryStub();
         const householdAccess = householdStub({member: false});
-        const service = serviceWith(repository, meterAccessStub(), idempotencyKeyStub(), householdAccess);
+        const service = serviceWith(repository, meterAccessStub(), householdAccess);
 
         await expect(service.createReading({meterId: METER_ID, value: 1, recordedAt: '2026-08-27T08:30:00Z'}, undefined, undefined, REQUEST_STUB))
             .rejects.toBeInstanceOf(MeterNotFoundException);
@@ -360,7 +348,7 @@ describe('ReadingService', () => {
 
     it('fails a submission closed when household-service is unreachable', async () => {
         const repository = repositoryStub();
-        const service = serviceWith(repository, meterAccessStub(), idempotencyKeyStub(), householdDownStub());
+        const service = serviceWith(repository, meterAccessStub(), householdDownStub());
 
         await expect(service.createReading({meterId: METER_ID, value: 1, recordedAt: '2026-08-27T08:30:00Z'}, undefined, undefined, REQUEST_STUB))
             .rejects.toBeInstanceOf(HouseholdServiceUnavailableException);
@@ -370,7 +358,7 @@ describe('ReadingService', () => {
     it('lets a VIEWER read the reading history (reads need no household verdict)', async () => {
         const repository = repositoryStub();
         const householdAccess = householdStub({member: false});
-        const service = serviceWith(repository, meterAccessStub(), idempotencyKeyStub(), householdAccess);
+        const service = serviceWith(repository, meterAccessStub(), householdAccess);
 
         const page = await service.listReadings(METER_ID, undefined, undefined, undefined, REQUEST_STUB);
         const latest = await service.getLatestReading(METER_ID, undefined, REQUEST_STUB);

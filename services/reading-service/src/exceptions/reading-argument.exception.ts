@@ -46,15 +46,3 @@ export class RecordedAtTooOldException extends HttpException {
         }, HttpStatus.UNPROCESSABLE_ENTITY);
     }
 }
-
-export class IdempotencyKeyReuseException extends HttpException {
-    constructor() {
-        super({
-            code: 'IDEMPOTENCY_KEY_REUSE',
-            title: 'Idempotency key already used',
-            detail:
-                'The Idempotency-Key was already used with a different request body. ' +
-                'Generate a new key for a different submission.',
-        }, HttpStatus.CONFLICT);
-    }
-}

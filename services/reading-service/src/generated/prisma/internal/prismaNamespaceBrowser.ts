@@ -85,12 +85,11 @@ export type ReadingScalarFieldEnum = (typeof ReadingScalarFieldEnum)[keyof typeo
 
 
 export const IdempotencyKeyScalarFieldEnum = {
+  keyHash: 'keyHash',
   key: 'key',
-  userId: 'userId',
-  requestHash: 'requestHash',
-  responseStatus: 'responseStatus',
-  responseBody: 'responseBody',
-  createdAt: 'createdAt',
+  fingerprint: 'fingerprint',
+  owner: 'owner',
+  response: 'response',
   expiresAt: 'expiresAt'
 } as const
 
@@ -116,6 +115,14 @@ export const SortOrder = {
 } as const
 
 export type SortOrder = (typeof SortOrder)[keyof typeof SortOrder]
+
+
+export const NullableJsonNullValueInput = {
+  DbNull: DbNull,
+  JsonNull: JsonNull
+} as const
+
+export type NullableJsonNullValueInput = (typeof NullableJsonNullValueInput)[keyof typeof NullableJsonNullValueInput]
 
 
 export const JsonNullValueInput = {

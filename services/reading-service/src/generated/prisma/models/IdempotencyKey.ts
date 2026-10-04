@@ -14,9 +14,13 @@ import type * as Prisma from "../internal/prismaNamespace.js"
 
 /**
  * Model IdempotencyKey
- * Idempotency record for retried POST /readings submissions (backlog C3).
- * The key is client-generated and scoped per user; the response snapshot
- * lets a retry within the retention window replay the original outcome.
+ * Idempotency record for retried POST /readings submissions, shaped for
+ * @nestjs/idempotency's IdempotencyStore contract (backlog A5). The table
+ * is owned by PrismaIdempotencyStore's raw SQL — the model exists so the
+ * schema and the client can type the rows it reads back. An in-flight lock
+ * has an owner and no response; a completed record has a response and no
+ * owner. Expired rows are treated as absent (takeover) — pruning is
+ * opportunistic.
  */
 export type IdempotencyKeyModel = runtime.Types.Result.DefaultSelection<Prisma.$IdempotencyKeyPayload>
 
@@ -29,76 +33,70 @@ export type AggregateIdempotencyKey = {
 }
 
 export type IdempotencyKeyAvgAggregateOutputType = {
-  responseStatus: number | null
+  expiresAt: number | null
 }
 
 export type IdempotencyKeySumAggregateOutputType = {
-  responseStatus: number | null
+  expiresAt: bigint | null
 }
 
 export type IdempotencyKeyMinAggregateOutputType = {
+  keyHash: string | null
   key: string | null
-  userId: string | null
-  requestHash: string | null
-  responseStatus: number | null
-  createdAt: Date | null
-  expiresAt: Date | null
+  fingerprint: string | null
+  owner: string | null
+  expiresAt: bigint | null
 }
 
 export type IdempotencyKeyMaxAggregateOutputType = {
+  keyHash: string | null
   key: string | null
-  userId: string | null
-  requestHash: string | null
-  responseStatus: number | null
-  createdAt: Date | null
-  expiresAt: Date | null
+  fingerprint: string | null
+  owner: string | null
+  expiresAt: bigint | null
 }
 
 export type IdempotencyKeyCountAggregateOutputType = {
+  keyHash: number
   key: number
-  userId: number
-  requestHash: number
-  responseStatus: number
-  responseBody: number
-  createdAt: number
+  fingerprint: number
+  owner: number
+  response: number
   expiresAt: number
   _all: number
 }
 
 
 export type IdempotencyKeyAvgAggregateInputType = {
-  responseStatus?: true
+  expiresAt?: true
 }
 
 export type IdempotencyKeySumAggregateInputType = {
-  responseStatus?: true
+  expiresAt?: true
 }
 
 export type IdempotencyKeyMinAggregateInputType = {
+  keyHash?: true
   key?: true
-  userId?: true
-  requestHash?: true
-  responseStatus?: true
-  createdAt?: true
+  fingerprint?: true
+  owner?: true
   expiresAt?: true
 }
 
 export type IdempotencyKeyMaxAggregateInputType = {
+  keyHash?: true
   key?: true
-  userId?: true
-  requestHash?: true
-  responseStatus?: true
-  createdAt?: true
+  fingerprint?: true
+  owner?: true
   expiresAt?: true
 }
 
 export type IdempotencyKeyCountAggregateInputType = {
+  keyHash?: true
   key?: true
-  userId?: true
-  requestHash?: true
-  responseStatus?: true
-  responseBody?: true
-  createdAt?: true
+  fingerprint?: true
+  owner?: true
+  response?: true
   expiresAt?: true
   _all?: true
 }
@@ -190,13 +188,12 @@ export type IdempotencyKeyGroupByArgs<ExtArgs extends runtime.Types.Extensions.I
 }
 
 export type IdempotencyKeyGroupByOutputType = {
+  keyHash: string
   key: string
-  userId: string
-  requestHash: string
-  responseStatus: number
-  responseBody: runtime.JsonValue
-  createdAt: Date
-  expiresAt: Date
+  fingerprint: string
+  owner: string | null
+  response: runtime.JsonValue | null
+  expiresAt: bigint
   _count: IdempotencyKeyCountAggregateOutputType | null
   _avg: IdempotencyKeyAvgAggregateOutputType | null
   _sum: IdempotencyKeySumAggregateOutputType | null
@@ -223,45 +220,41 @@ export type IdempotencyKeyWhereInput = {
   AND?: Prisma.IdempotencyKeyWhereInput | Prisma.IdempotencyKeyWhereInput[]
   OR?: Prisma.IdempotencyKeyWhereInput[]
   NOT?: Prisma.IdempotencyKeyWhereInput | Prisma.IdempotencyKeyWhereInput[]
-  key?: Prisma.UuidFilter<"IdempotencyKey"> | string
-  userId?: Prisma.UuidFilter<"IdempotencyKey"> | string
-  requestHash?: Prisma.StringFilter<"IdempotencyKey"> | string
-  responseStatus?: Prisma.IntFilter<"IdempotencyKey"> | number
-  responseBody?: Prisma.JsonFilter<"IdempotencyKey">
-  createdAt?: Prisma.DateTimeFilter<"IdempotencyKey"> | Date | string
-  expiresAt?: Prisma.DateTimeFilter<"IdempotencyKey"> | Date | string
+  keyHash?: Prisma.StringFilter<"IdempotencyKey"> | string
+  key?: Prisma.StringFilter<"IdempotencyKey"> | string
+  fingerprint?: Prisma.StringFilter<"IdempotencyKey"> | string
+  owner?: Prisma.StringNullableFilter<"IdempotencyKey"> | string | null
+  response?: Prisma.JsonNullableFilter<"IdempotencyKey">
+  expiresAt?: Prisma.BigIntFilter<"IdempotencyKey"> | bigint | number
 }
 
 export type IdempotencyKeyOrderByWithRelationInput = {
+  keyHash?: Prisma.SortOrder
   key?: Prisma.SortOrder
-  userId?: Prisma.SortOrder
-  requestHash?: Prisma.SortOrder
-  responseStatus?: Prisma.SortOrder
-  responseBody?: Prisma.SortOrder
-  createdAt?: Prisma.SortOrder
+  fingerprint?: Prisma.SortOrder
+  owner?: Prisma.SortOrderInput | Prisma.SortOrder
+  response?: Prisma.SortOrderInput | Prisma.SortOrder
   expiresAt?: Prisma.SortOrder
 }
 
 export type IdempotencyKeyWhereUniqueInput = Prisma.AtLeast<{
-  key?: string
+  keyHash?: string
   AND?: Prisma.IdempotencyKeyWhereInput | Prisma.IdempotencyKeyWhereInput[]
   OR?: Prisma.IdempotencyKeyWhereInput[]
   NOT?: Prisma.IdempotencyKeyWhereInput | Prisma.IdempotencyKeyWhereInput[]
-  userId?: Prisma.UuidFilter<"IdempotencyKey"> | string
-  requestHash?: Prisma.StringFilter<"IdempotencyKey"> | string
-  responseStatus?: Prisma.IntFilter<"IdempotencyKey"> | number
-  responseBody?: Prisma.JsonFilter<"IdempotencyKey">
-  createdAt?: Prisma.DateTimeFilter<"IdempotencyKey"> | Date | string
-  expiresAt?: Prisma.DateTimeFilter<"IdempotencyKey"> | Date | string
-}, "key">
+  key?: Prisma.StringFilter<"IdempotencyKey"> | string
+  fingerprint?: Prisma.StringFilter<"IdempotencyKey"> | string
+  owner?: Prisma.StringNullableFilter<"IdempotencyKey"> | string | null
+  response?: Prisma.JsonNullableFilter<"IdempotencyKey">
+  expiresAt?: Prisma.BigIntFilter<"IdempotencyKey"> | bigint | number
+}, "keyHash">
 
 export type IdempotencyKeyOrderByWithAggregationInput = {
+  keyHash?: Prisma.SortOrder
   key?: Prisma.SortOrder
-  userId?: Prisma.SortOrder
-  requestHash?: Prisma.SortOrder
-  responseStatus?: Prisma.SortOrder
-  responseBody?: Prisma.SortOrder
-  createdAt?: Prisma.SortOrder
+  fingerprint?: Prisma.SortOrder
+  owner?: Prisma.SortOrderInput | Prisma.SortOrder
+  response?: Prisma.SortOrderInput | Prisma.SortOrder
   expiresAt?: Prisma.SortOrder
   _count?: Prisma.IdempotencyKeyCountOrderByAggregateInput
   _avg?: Prisma.IdempotencyKeyAvgOrderByAggregateInput
@@ -274,184 +267,172 @@ export type IdempotencyKeyScalarWhereWithAggregatesInput = {
   AND?: Prisma.IdempotencyKeyScalarWhereWithAggregatesInput | Prisma.IdempotencyKeyScalarWhereWithAggregatesInput[]
   OR?: Prisma.IdempotencyKeyScalarWhereWithAggregatesInput[]
   NOT?: Prisma.IdempotencyKeyScalarWhereWithAggregatesInput | Prisma.IdempotencyKeyScalarWhereWithAggregatesInput[]
-  key?: Prisma.UuidWithAggregatesFilter<"IdempotencyKey"> | string
-  userId?: Prisma.UuidWithAggregatesFilter<"IdempotencyKey"> | string
-  requestHash?: Prisma.StringWithAggregatesFilter<"IdempotencyKey"> | string
-  responseStatus?: Prisma.IntWithAggregatesFilter<"IdempotencyKey"> | number
-  responseBody?: Prisma.JsonWithAggregatesFilter<"IdempotencyKey">
-  createdAt?: Prisma.DateTimeWithAggregatesFilter<"IdempotencyKey"> | Date | string
-  expiresAt?: Prisma.DateTimeWithAggregatesFilter<"IdempotencyKey"> | Date | string
+  keyHash?: Prisma.StringWithAggregatesFilter<"IdempotencyKey"> | string
+  key?: Prisma.StringWithAggregatesFilter<"IdempotencyKey"> | string
+  fingerprint?: Prisma.StringWithAggregatesFilter<"IdempotencyKey"> | string
+  owner?: Prisma.StringNullableWithAggregatesFilter<"IdempotencyKey"> | string | null
+  response?: Prisma.JsonNullableWithAggregatesFilter<"IdempotencyKey">
+  expiresAt?: Prisma.BigIntWithAggregatesFilter<"IdempotencyKey"> | bigint | number
 }
 
 export type IdempotencyKeyCreateInput = {
+  keyHash: string
   key: string
-  userId: string
-  requestHash: string
-  responseStatus: number
-  responseBody: Prisma.JsonNullValueInput | runtime.InputJsonValue
-  createdAt?: Date | string
-  expiresAt: Date | string
+  fingerprint: string
+  owner?: string | null
+  response?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  expiresAt: bigint | number
 }
 
 export type IdempotencyKeyUncheckedCreateInput = {
+  keyHash: string
   key: string
-  userId: string
-  requestHash: string
-  responseStatus: number
-  responseBody: Prisma.JsonNullValueInput | runtime.InputJsonValue
-  createdAt?: Date | string
-  expiresAt: Date | string
+  fingerprint: string
+  owner?: string | null
+  response?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  expiresAt: bigint | number
 }
 
 export type IdempotencyKeyUpdateInput = {
+  keyHash?: Prisma.StringFieldUpdateOperationsInput | string
   key?: Prisma.StringFieldUpdateOperationsInput | string
-  userId?: Prisma.StringFieldUpdateOperationsInput | string
-  requestHash?: Prisma.StringFieldUpdateOperationsInput | string
-  responseStatus?: Prisma.IntFieldUpdateOperationsInput | number
-  responseBody?: Prisma.JsonNullValueInput | runtime.InputJsonValue
-  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  expiresAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  fingerprint?: Prisma.StringFieldUpdateOperationsInput | string
+  owner?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  response?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  expiresAt?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
 }
 
 export type IdempotencyKeyUncheckedUpdateInput = {
+  keyHash?: Prisma.StringFieldUpdateOperationsInput | string
   key?: Prisma.StringFieldUpdateOperationsInput | string
-  userId?: Prisma.StringFieldUpdateOperationsInput | string
-  requestHash?: Prisma.StringFieldUpdateOperationsInput | string
-  responseStatus?: Prisma.IntFieldUpdateOperationsInput | number
-  responseBody?: Prisma.JsonNullValueInput | runtime.InputJsonValue
-  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  expiresAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  fingerprint?: Prisma.StringFieldUpdateOperationsInput | string
+  owner?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  response?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  expiresAt?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
 }
 
 export type IdempotencyKeyCreateManyInput = {
+  keyHash: string
   key: string
-  userId: string
-  requestHash: string
-  responseStatus: number
-  responseBody: Prisma.JsonNullValueInput | runtime.InputJsonValue
-  createdAt?: Date | string
-  expiresAt: Date | string
+  fingerprint: string
+  owner?: string | null
+  response?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  expiresAt: bigint | number
 }
 
 export type IdempotencyKeyUpdateManyMutationInput = {
+  keyHash?: Prisma.StringFieldUpdateOperationsInput | string
   key?: Prisma.StringFieldUpdateOperationsInput | string
-  userId?: Prisma.StringFieldUpdateOperationsInput | string
-  requestHash?: Prisma.StringFieldUpdateOperationsInput | string
-  responseStatus?: Prisma.IntFieldUpdateOperationsInput | number
-  responseBody?: Prisma.JsonNullValueInput | runtime.InputJsonValue
-  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  expiresAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  fingerprint?: Prisma.StringFieldUpdateOperationsInput | string
+  owner?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  response?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  expiresAt?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
 }
 
 export type IdempotencyKeyUncheckedUpdateManyInput = {
+  keyHash?: Prisma.StringFieldUpdateOperationsInput | string
   key?: Prisma.StringFieldUpdateOperationsInput | string
-  userId?: Prisma.StringFieldUpdateOperationsInput | string
-  requestHash?: Prisma.StringFieldUpdateOperationsInput | string
-  responseStatus?: Prisma.IntFieldUpdateOperationsInput | number
-  responseBody?: Prisma.JsonNullValueInput | runtime.InputJsonValue
-  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  expiresAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  fingerprint?: Prisma.StringFieldUpdateOperationsInput | string
+  owner?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  response?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  expiresAt?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
 }
 
 export type IdempotencyKeyCountOrderByAggregateInput = {
+  keyHash?: Prisma.SortOrder
   key?: Prisma.SortOrder
-  userId?: Prisma.SortOrder
-  requestHash?: Prisma.SortOrder
-  responseStatus?: Prisma.SortOrder
-  responseBody?: Prisma.SortOrder
-  createdAt?: Prisma.SortOrder
+  fingerprint?: Prisma.SortOrder
+  owner?: Prisma.SortOrder
+  response?: Prisma.SortOrder
   expiresAt?: Prisma.SortOrder
 }
 
 export type IdempotencyKeyAvgOrderByAggregateInput = {
-  responseStatus?: Prisma.SortOrder
+  expiresAt?: Prisma.SortOrder
 }
 
 export type IdempotencyKeyMaxOrderByAggregateInput = {
+  keyHash?: Prisma.SortOrder
   key?: Prisma.SortOrder
-  userId?: Prisma.SortOrder
-  requestHash?: Prisma.SortOrder
-  responseStatus?: Prisma.SortOrder
-  createdAt?: Prisma.SortOrder
+  fingerprint?: Prisma.SortOrder
+  owner?: Prisma.SortOrder
   expiresAt?: Prisma.SortOrder
 }
 
 export type IdempotencyKeyMinOrderByAggregateInput = {
+  keyHash?: Prisma.SortOrder
   key?: Prisma.SortOrder
-  userId?: Prisma.SortOrder
-  requestHash?: Prisma.SortOrder
-  responseStatus?: Prisma.SortOrder
-  createdAt?: Prisma.SortOrder
+  fingerprint?: Prisma.SortOrder
+  owner?: Prisma.SortOrder
   expiresAt?: Prisma.SortOrder
 }
 
 export type IdempotencyKeySumOrderByAggregateInput = {
-  responseStatus?: Prisma.SortOrder
+  expiresAt?: Prisma.SortOrder
 }
 
-export type IntFieldUpdateOperationsInput = {
-  set?: number
-  increment?: number
-  decrement?: number
-  multiply?: number
-  divide?: number
+export type NullableStringFieldUpdateOperationsInput = {
+  set?: string | null
+}
+
+export type BigIntFieldUpdateOperationsInput = {
+  set?: bigint | number
+  increment?: bigint | number
+  decrement?: bigint | number
+  multiply?: bigint | number
+  divide?: bigint | number
 }
 
 
 
 export type IdempotencyKeySelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
+  keyHash?: boolean
   key?: boolean
-  userId?: boolean
-  requestHash?: boolean
-  responseStatus?: boolean
-  responseBody?: boolean
-  createdAt?: boolean
+  fingerprint?: boolean
+  owner?: boolean
+  response?: boolean
   expiresAt?: boolean
 }, ExtArgs["result"]["idempotencyKey"]>
 
 export type IdempotencyKeySelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
+  keyHash?: boolean
   key?: boolean
-  userId?: boolean
-  requestHash?: boolean
-  responseStatus?: boolean
-  responseBody?: boolean
-  createdAt?: boolean
+  fingerprint?: boolean
+  owner?: boolean
+  response?: boolean
   expiresAt?: boolean
 }, ExtArgs["result"]["idempotencyKey"]>
 
 export type IdempotencyKeySelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
+  keyHash?: boolean
   key?: boolean
-  userId?: boolean
-  requestHash?: boolean
-  responseStatus?: boolean
-  responseBody?: boolean
-  createdAt?: boolean
+  fingerprint?: boolean
+  owner?: boolean
+  response?: boolean
   expiresAt?: boolean
 }, ExtArgs["result"]["idempotencyKey"]>
 
 export type IdempotencyKeySelectScalar = {
+  keyHash?: boolean
   key?: boolean
-  userId?: boolean
-  requestHash?: boolean
-  responseStatus?: boolean
-  responseBody?: boolean
-  createdAt?: boolean
+  fingerprint?: boolean
+  owner?: boolean
+  response?: boolean
   expiresAt?: boolean
 }
 
-export type IdempotencyKeyOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"key" | "userId" | "requestHash" | "responseStatus" | "responseBody" | "createdAt" | "expiresAt", ExtArgs["result"]["idempotencyKey"]>
+export type IdempotencyKeyOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"keyHash" | "key" | "fingerprint" | "owner" | "response" | "expiresAt", ExtArgs["result"]["idempotencyKey"]>
 
 export type $IdempotencyKeyPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "IdempotencyKey"
   objects: {}
   scalars: runtime.Types.Extensions.GetPayloadResult<{
+    keyHash: string
     key: string
-    userId: string
-    requestHash: string
-    responseStatus: number
-    responseBody: runtime.JsonValue
-    createdAt: Date
-    expiresAt: Date
+    fingerprint: string
+    owner: string | null
+    response: runtime.JsonValue | null
+    expiresAt: bigint
   }, ExtArgs["result"]["idempotencyKey"]>
   composites: {}
 }
@@ -535,8 +516,8 @@ export interface IdempotencyKeyDelegate<ExtArgs extends runtime.Types.Extensions
    * // Get first 10 IdempotencyKeys
    * const idempotencyKeys = await prisma.idempotencyKey.findMany({ take: 10 })
    * 
-   * // Only select the `key`
-   * const idempotencyKeyWithKeyOnly = await prisma.idempotencyKey.findMany({ select: { key: true } })
+   * // Only select the `keyHash`
+   * const idempotencyKeyWithKeyHashOnly = await prisma.idempotencyKey.findMany({ select: { keyHash: true } })
    * 
    */
   findMany<T extends IdempotencyKeyFindManyArgs>(args?: Prisma.SelectSubset<T, IdempotencyKeyFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$IdempotencyKeyPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
@@ -580,9 +561,9 @@ export interface IdempotencyKeyDelegate<ExtArgs extends runtime.Types.Extensions
    *   ]
    * })
    * 
-   * // Create many IdempotencyKeys and only return the `key`
-   * const idempotencyKeyWithKeyOnly = await prisma.idempotencyKey.createManyAndReturn({
-   *   select: { key: true },
+   * // Create many IdempotencyKeys and only return the `keyHash`
+   * const idempotencyKeyWithKeyHashOnly = await prisma.idempotencyKey.createManyAndReturn({
+   *   select: { keyHash: true },
    *   data: [
    *     // ... provide data here
    *   ]
@@ -671,9 +652,9 @@ export interface IdempotencyKeyDelegate<ExtArgs extends runtime.Types.Extensions
    *   ]
    * })
    * 
-   * // Update zero or more IdempotencyKeys and only return the `key`
-   * const idempotencyKeyWithKeyOnly = await prisma.idempotencyKey.updateManyAndReturn({
-   *   select: { key: true },
+   * // Update zero or more IdempotencyKeys and only return the `keyHash`
+   * const idempotencyKeyWithKeyHashOnly = await prisma.idempotencyKey.updateManyAndReturn({
+   *   select: { keyHash: true },
    *   where: {
    *     // ... provide filter here
    *   },
@@ -875,13 +856,12 @@ export interface Prisma__IdempotencyKeyClient<T, Null = never, ExtArgs extends r
  * Fields of the IdempotencyKey model
  */
 export interface IdempotencyKeyFieldRefs {
+  readonly keyHash: Prisma.FieldRef<"IdempotencyKey", 'String'>
   readonly key: Prisma.FieldRef<"IdempotencyKey", 'String'>
-  readonly userId: Prisma.FieldRef<"IdempotencyKey", 'String'>
-  readonly requestHash: Prisma.FieldRef<"IdempotencyKey", 'String'>
-  readonly responseStatus: Prisma.FieldRef<"IdempotencyKey", 'Int'>
-  readonly responseBody: Prisma.FieldRef<"IdempotencyKey", 'Json'>
-  readonly createdAt: Prisma.FieldRef<"IdempotencyKey", 'DateTime'>
-  readonly expiresAt: Prisma.FieldRef<"IdempotencyKey", 'DateTime'>
+  readonly fingerprint: Prisma.FieldRef<"IdempotencyKey", 'String'>
+  readonly owner: Prisma.FieldRef<"IdempotencyKey", 'String'>
+  readonly response: Prisma.FieldRef<"IdempotencyKey", 'Json'>
+  readonly expiresAt: Prisma.FieldRef<"IdempotencyKey", 'BigInt'>
 }
     
 

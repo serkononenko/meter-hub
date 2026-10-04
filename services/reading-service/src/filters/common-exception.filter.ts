@@ -57,6 +57,13 @@ export class CommonExceptionFilter implements ExceptionFilter {
                 code = problem.code;
                 title = typeof problem.title === 'string' ? problem.title : title;
                 detail = typeof problem.detail === 'string' ? problem.detail : detail;
+            } else if (typeof problem.statusCode === 'number') {
+                // Framework-thrown HttpExceptions (e.g. @nestjs/idempotency's
+                // IDEMPOTENCY_KEY_IN_USE/REUSED rejections) carry statusCode,
+                // a Nest reason phrase and a message — no title.
+                code = problem.code as string ?? codeFromStatus(status);
+                title = typeof problem.error === 'string' ? problem.error : title;
+                detail = typeof problem.message === 'string' ? problem.message : detail;
             } else {
                 code = codeFromStatus(status);
                 title = typeof problem.title === 'string' ? problem.title : title;

@@ -24,7 +24,9 @@ paths:
         Retried submissions should carry an `Idempotency-Key` header: within
         the retention window, a repeated key returns the original response
         instead of creating a second reading. Sending a key again with a
-        different payload is a client error and returns 409.
+        different payload is a client error and returns 422
+        IDEMPOTENCY_KEY_REUSED; a key that is still being processed answers
+        409 IDEMPOTENCY_KEY_IN_USE with Retry-After (retry the same key).
       security:
         - bearerAuth: []
       parameters:
@@ -153,22 +155,28 @@ paths:
                     correlationId: 7d6f5f2c-0a49-4e10-8ef7-7c3d2b1f4a10
         '409':
           description: >
-            The Idempotency-Key was already used with a different request
-            body. This is a client bug, not a retry: a key identifies one
-            logical submission.
+            A request with this Idempotency-Key is still being processed
+            (in-flight lock, backlog A5). Retryable: wait the Retry-After
+            seconds, then send the same key again — the original response is
+            replayed once the first attempt completes.
           headers:
             X-Correlation-ID:
               $ref: '../../components/headers/correlation-id.yaml'
+            Retry-After:
+              description: Seconds to wait before retrying the same key.
+              schema:
+                type: integer
+                minimum: 1
           content:
             application/problem+json:
               schema:
                 $ref: '../../openapi.yaml#/components/schemas/Problem'
               example:
-                type: https://api.meterhub.local/problems/idempotency-key-reuse
-                title: Idempotency key already used
+                type: https://api.meterhub.local/problems/idempotency-key-in-use
+                title: Idempotency key in use
                 status: 409
-                code: IDEMPOTENCY_KEY_REUSE
-                detail: The Idempotency-Key was already used with a different request body. Generate a new key for a different submission.
+                code: IDEMPOTENCY_KEY_IN_USE
+                detail: A request with this idempotency key is still being processed.
                 correlationId: 7d6f5f2c-0a49-4e10-8ef7-7c3d2b1f4a10
         '500':
           $ref: '../../openapi.yaml#/components/responses/InternalServerError'

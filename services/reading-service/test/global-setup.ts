@@ -18,8 +18,8 @@ import jwt from 'jsonwebtoken';
  *   (GET /api/v1/internal/household-access): the caller's role for their
  *   household, `{exists: false}` otherwise.
  */
-const ALICE = '11111111-1111-4111-8111-111111111111';
-const BOB = '22222222-2222-4222-8222-222222222222';
+export const ALICE = '11111111-1111-4111-8111-111111111111';
+export const BOB = '22222222-2222-4222-8222-222222222222';
 
 /** Meter owned by the ALICE test subject. */
 export const ALICE_METER = '0d7f8a26-6f6f-4a55-9a71-3bd11c0a1f01';

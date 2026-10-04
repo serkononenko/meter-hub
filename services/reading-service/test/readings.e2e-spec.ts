@@ -1,9 +1,9 @@
 import {INestApplication} from '@nestjs/common';
 import {Test} from '@nestjs/testing';
 import request from 'supertest';
-import {afterAll, beforeAll, describe, expect, it} from 'vitest';
+import {beforeAll, describe, expect, it} from 'vitest';
 import {AppModule} from '../src/app.module.js';
-import {ALICE_METER, BOB_METER, mintToken, registerMeter} from './global-setup.js';
+import {ALICE_METER, BOB, BOB_METER, mintToken, registerMeter} from './global-setup.js';
 
 const ALICE = '11111111-1111-4111-8111-111111111111';
 
@@ -339,7 +339,7 @@ describe('Create reading (e2e)', () => {
         expect(history.body.total).toBe(1);
     });
 
-    it('rejects an Idempotency-Key reused with a different body (backlog C3)', async () => {
+    it('rejects an Idempotency-Key reused with a different body (backlog C3/A5)', async () => {
         const token = await mintToken({subject: ALICE});
         const meterId = freshMeter();
         const key = crypto.randomUUID();
@@ -357,19 +357,52 @@ describe('Create reading (e2e)', () => {
             .set('Idempotency-Key', key)
             .send({meterId, value: 200, recordedAt: '2026-08-15T08:00:00Z'});
 
-        expect(reuse.status).toBe(409);
+        expect(reuse.status).toBe(422);
         expect(reuse.headers['content-type']).toContain('application/problem+json');
         expect(reuse.body).toMatchObject({
-            code: 'IDEMPOTENCY_KEY_REUSE',
-            status: 409,
-            title: 'Idempotency key already used',
+            code: 'IDEMPOTENCY_KEY_REUSED',
+            status: 422,
         });
     });
 
-    it('rejects another user presenting a key they did not create (backlog C3)', async () => {
+    it('rejects a duplicate that arrives while the first is in flight (backlog A5)', async () => {
+        const token = await mintToken({subject: ALICE});
+        const meterId = freshMeter();
+        const key = crypto.randomUUID();
+        const payload = {meterId, value: 888, recordedAt: '2026-08-15T08:00:00Z'};
+
+        // Both go out concurrently: exactly one 201, one 409 in-flight.
+        const [a, b] = await Promise.all([
+            request(app.getHttpServer())
+                .post('/api/v1/readings')
+                .set('Authorization', `Bearer ${token}`)
+                .set('Idempotency-Key', key)
+                .send(payload),
+            request(app.getHttpServer())
+                .post('/api/v1/readings')
+                .set('Authorization', `Bearer ${token}`)
+                .set('Idempotency-Key', key)
+                .send(payload),
+        ]);
+
+        const statuses = [a.status, b.status].sort();
+        expect(statuses).toEqual([201, 409]);
+        const conflict = a.status === 409 ? a : b;
+        expect(conflict.body.code).toBe('IDEMPOTENCY_KEY_IN_USE');
+        expect(Number(conflict.headers['retry-after'])).toBeGreaterThan(0);
+
+        // Exactly one reading was created.
+        const history = await request(app.getHttpServer())
+            .get(`/api/v1/meters/${meterId}/readings`)
+            .set('Authorization', `Bearer ${token}`);
+        expect(history.body.total).toBe(1);
+    });
+
+    it('isolates another user presenting a key they did not create (backlog C3/A5)', async () => {
         const alice = await mintToken({subject: ALICE});
-        const bob = await mintToken({subject: '22222222-2222-4222-8222-222222222222'});
+        const bob = await mintToken({subject: BOB});
         const aliceMeter = freshMeter();
+        const bobMeter = freshBobMeter();
         const key = crypto.randomUUID();
 
         const first = await request(app.getHttpServer())
@@ -379,16 +412,26 @@ describe('Create reading (e2e)', () => {
             .send({meterId: aliceMeter, value: 100, recordedAt: '2026-08-15T08:00:00Z'});
         expect(first.status).toBe(201);
 
-        // Bob replays Alice's key against his own meter — keys are scoped
-        // per user, so this is a reuse conflict, not a cross-user leak.
+        // Bob uses Alice's key against his own meter — keys are scoped per
+        // user, so Bob gets his own namespace: his submission executes
+        // normally (no cross-user leak, and no reuse conflict either).
         const stolen = await request(app.getHttpServer())
             .post('/api/v1/readings')
             .set('Authorization', `Bearer ${bob}`)
             .set('Idempotency-Key', key)
-            .send({meterId: BOB_METER, value: 100, recordedAt: '2026-08-15T08:00:00Z'});
+            .send({meterId: bobMeter, value: 100, recordedAt: '2026-08-15T08:00:00Z'});
 
-        expect(stolen.status).toBe(409);
-        expect(stolen.body.code).toBe('IDEMPOTENCY_KEY_REUSE');
+        expect(stolen.status).toBe(201);
+        expect(stolen.body).not.toEqual(first.body);
+
+        // Bob's retry with the same key replays his own reading.
+        const bobRetry = await request(app.getHttpServer())
+            .post('/api/v1/readings')
+            .set('Authorization', `Bearer ${bob}`)
+            .set('Idempotency-Key', key)
+            .send({meterId: bobMeter, value: 100, recordedAt: '2026-08-15T08:00:00Z'});
+        expect(bobRetry.status).toBe(201);
+        expect(bobRetry.body).toEqual(stolen.body);
     });
 
     it('treats requests without an Idempotency-Key as before', async () => {
@@ -415,4 +458,9 @@ describe('Create reading (e2e)', () => {
 /** A meter owned by ALICE that no other test run has seen. */
 function freshMeter(): string {
     return registerMeter(crypto.randomUUID(), ALICE);
+}
+
+/** A meter owned by BOB that no other test run has seen. */
+function freshBobMeter(): string {
+    return registerMeter(crypto.randomUUID(), BOB);
 }
