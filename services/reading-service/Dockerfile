@@ -9,9 +9,10 @@ RUN npm ci
 
 COPY prisma prisma
 COPY prisma.config.ts ./
-# The generated client is committed under src/generated/prisma, but
-# regenerating here keeps it in sync with the checked-in schema.
-RUN npx prisma generate
+# The generated client (including the TypedSQL module under sql/) is committed
+# under src/generated/prisma and copied in with src — plain `prisma generate`
+# here would wipe the TypedSQL module, and `prisma generate --sql` needs a
+# live database. Schema/client drift is caught by local/CI generate instead.
 
 COPY src src
 COPY tsconfig.json tsconfig.build.json nest-cli.json ./

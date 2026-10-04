@@ -16,11 +16,13 @@ import type * as Prisma from "./prismaNamespace.js"
 
 
 const config: runtime.GetPrismaClientConfig = {
-  "previewFeatures": [],
+  "previewFeatures": [
+    "typedSql"
+  ],
   "clientVersion": "7.10.0",
   "engineVersion": "0edf323efd1d98336f3f0a68684b56f689b900d3",
   "activeProvider": "postgresql",
-  "inlineSchema": "generator client {\n  provider = \"prisma-client\"\n  output   = \"../src/generated/prisma\"\n}\n\ndatasource db {\n  provider = \"postgresql\"\n}\n\n/// A meter reading recorded under a meter. The meter lives in Meter Service's\n/// database, so meter_id is a plain UUID reference without a foreign key (no\n/// cross-service DB access — PRD §6.4).\nmodel Reading {\n  id         String        @id @default(uuid()) @db.Uuid\n  meterId    String        @map(\"meter_id\") @db.Uuid\n  value      Decimal       @db.Decimal(20, 6)\n  recordedAt DateTime      @map(\"recorded_at\") @db.Timestamptz(6)\n  source     ReadingSource @default(MANUAL)\n  createdAt  DateTime      @default(now()) @map(\"created_at\") @db.Timestamptz(6)\n\n  @@index([meterId, recordedAt])\n  @@map(\"readings\")\n}\n\nenum ReadingSource {\n  MANUAL\n\n  @@map(\"reading_source\")\n}\n\n/// Idempotency record for retried POST /readings submissions, shaped for\n/// @nestjs/idempotency's IdempotencyStore contract (backlog A5). The table\n/// is owned by PrismaIdempotencyStore's raw SQL — the model exists so the\n/// schema and the client can type the rows it reads back. An in-flight lock\n/// has an owner and no response; a completed record has a response and no\n/// owner. Expired rows are treated as absent (takeover) — pruning is\n/// opportunistic.\nmodel IdempotencyKey {\n  keyHash     String  @id @map(\"key_hash\")\n  key         String\n  fingerprint String\n  owner       String?\n  response    Json?\n  expiresAt   BigInt  @map(\"expires_at\")\n\n  @@index([expiresAt])\n  @@map(\"idempotency_keys\")\n}\n\n/// Transactional outbox for events produced by Reading Service (spec 5).\n/// Written in the same transaction as the reading row; OutboxRelay\n/// publishes and stamps published_at. id == the stable eventId consumers\n/// dedup on. traceparent holds the creating request's W3C trace context.\nmodel ReadingOutbox {\n  id          String    @id @db.Uuid\n  aggregateId String    @map(\"aggregate_id\") @db.Uuid\n  eventType   String    @map(\"event_type\")\n  payload     Json\n  traceparent String?   @map(\"traceparent\")\n  createdAt   DateTime  @default(now()) @map(\"created_at\") @db.Timestamptz(6)\n  publishedAt DateTime? @map(\"published_at\") @db.Timestamptz(6)\n\n  @@index([createdAt])\n  @@map(\"reading_outbox\")\n}\n",
+  "inlineSchema": "generator client {\n  provider        = \"prisma-client\"\n  output          = \"../src/generated/prisma\"\n  previewFeatures = [\"typedSql\"]\n}\n\ndatasource db {\n  provider = \"postgresql\"\n}\n\n/// A meter reading recorded under a meter. The meter lives in Meter Service's\n/// database, so meter_id is a plain UUID reference without a foreign key (no\n/// cross-service DB access — PRD §6.4).\nmodel Reading {\n  id         String        @id @default(uuid()) @db.Uuid\n  meterId    String        @map(\"meter_id\") @db.Uuid\n  value      Decimal       @db.Decimal(20, 6)\n  recordedAt DateTime      @map(\"recorded_at\") @db.Timestamptz(6)\n  source     ReadingSource @default(MANUAL)\n  createdAt  DateTime      @default(now()) @map(\"created_at\") @db.Timestamptz(6)\n\n  @@index([meterId, recordedAt])\n  @@map(\"readings\")\n}\n\nenum ReadingSource {\n  MANUAL\n\n  @@map(\"reading_source\")\n}\n\n/// Idempotency record for retried POST /readings submissions, shaped for\n/// @nestjs/idempotency's IdempotencyStore contract (backlog A5). The table\n/// is owned by PrismaIdempotencyStore's raw SQL — the model exists so the\n/// schema and the client can type the rows it reads back. An in-flight lock\n/// has an owner and no response; a completed record has a response and no\n/// owner. Expired rows are treated as absent (takeover) — pruning is\n/// opportunistic.\nmodel IdempotencyKey {\n  keyHash     String  @id @map(\"key_hash\")\n  key         String\n  fingerprint String\n  owner       String?\n  response    Json?\n  expiresAt   BigInt  @map(\"expires_at\")\n\n  @@index([expiresAt])\n  @@map(\"idempotency_keys\")\n}\n\n/// Transactional outbox for events produced by Reading Service (spec 5).\n/// Written in the same transaction as the reading row; OutboxRelay\n/// publishes and stamps published_at. id == the stable eventId consumers\n/// dedup on. traceparent holds the creating request's W3C trace context.\nmodel ReadingOutbox {\n  id          String    @id @db.Uuid\n  aggregateId String    @map(\"aggregate_id\") @db.Uuid\n  eventType   String    @map(\"event_type\")\n  payload     Json\n  traceparent String?   @map(\"traceparent\")\n  createdAt   DateTime  @default(now()) @map(\"created_at\") @db.Timestamptz(6)\n  publishedAt DateTime? @map(\"published_at\") @db.Timestamptz(6)\n\n  @@index([createdAt])\n  @@map(\"reading_outbox\")\n}\n",
   "runtimeDataModel": {
     "models": {},
     "enums": {},
@@ -166,6 +168,16 @@ export interface PrismaClient<
    */
   $queryRawUnsafe<T = unknown>(query: string, ...values: any[]): Prisma.PrismaPromise<T>;
 
+  /**
+   * Executes a typed SQL query and returns a typed result
+   * @example
+   * ```
+   * import { myQuery } from '@prisma/client/sql'
+   * 
+   * const result = await prisma.$queryRawTyped(myQuery())
+   * ```
+   */
+  $queryRawTyped<T>(typedSql: runtime.TypedSql<unknown[], T>): Prisma.PrismaPromise<T[]>
 
   /**
    * Allows the running of a sequence of read/write operations that are guaranteed to either succeed or fail as a whole.
