@@ -10,6 +10,7 @@
 | Reading Service   | reading-service   |          8084 |             - | HTTP     | Reading management                                                                                 |
 | Events Demo       | events-demo       |          8085 |             - | HTTP     | Demo Kafka consumer (spec 5 §8); health/metrics only, Phase 3+ consumers replace it                |
 | PostgreSQL        | postgres          |          5432 |          5432 | TCP      | Shared local instance; prod binds to loopback only                                                 |
+| Kafka Exporter    | kafka-exporter    |          9308 |             - | HTTP     | Consumer-group lag + broker metrics for Prometheus (spec 5 §10); internal only                     |
 | Prometheus        | prometheus        |          9090 |          9090 | HTTP     | Scrapes the services' metric endpoints                                                             |
 | Grafana           | grafana           |          3000 |          3001 | HTTP     | Dashboards over Prometheus; prod publishes loopback-only on 13001 |
 | Jaeger            | jaeger            |         16686 |         16686 | HTTP     | Trace UI; OTLP collector on 4318 (internal only)                                                   |

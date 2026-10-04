@@ -44,3 +44,10 @@ scrape_configs:
     metrics_path: /metrics
     static_configs:
       - targets: ['events-demo:8085']
+
+  # Kafka lag exporter (spec 5 §10): kafka_consumergroup_lag,
+  # kafka_consumergroup_current_offset, kafka_brokers, per-topic partitions.
+  - job_name: kafka-exporter
+    metrics_path: /metrics
+    static_configs:
+      - targets: ['kafka-exporter:9308']

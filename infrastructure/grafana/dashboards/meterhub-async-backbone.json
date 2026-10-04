@@ -1,0 +1,437 @@
+{
+  "uid": "meterhub-async-backbone",
+  "title": "MeterHub Async Backbone",
+  "tags": [
+    "meterhub"
+  ],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "editable": true,
+  "refresh": "30s",
+  "time": {
+    "from": "now-3h",
+    "to": "now"
+  },
+  "panels": [
+    {
+      "type": "row",
+      "title": "Broker & lag",
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "id": 1
+    },
+    {
+      "type": "stat",
+      "title": "Brokers up",
+      "description": "kafka_brokers from the lag exporter \u2014 1 = the single KRaft broker is reachable.",
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 0,
+        "y": 1
+      },
+      "id": 2,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "meterhub-prometheus"
+      },
+      "targets": [
+        {
+          "expr": "kafka_brokers"
+        }
+      ],
+      "fieldConfig": {
+        "default": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "green",
+                "value": 1
+              }
+            ]
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Consumer group lag \u2014 events-demo (messages)",
+      "description": "kafka_consumergroup_lag per topic/partition from the lag exporter. Sustained growth means consumption fell behind production.",
+      "gridPos": {
+        "h": 8,
+        "w": 10,
+        "x": 4,
+        "y": 1
+      },
+      "id": 3,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "meterhub-prometheus"
+      },
+      "targets": [
+        {
+          "expr": "kafka_consumergroup_lag",
+          "legendFormat": "{{consumergroup}} / {{topic}} p{{partition}}"
+        }
+      ],
+      "fieldConfig": {
+        "default": {
+          "unit": "short",
+          "custom": {
+            "fillOpacity": 10,
+            "lineWidth": 2
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Consumer group current offset \u2014 events-demo",
+      "description": "kafka_consumergroup_current_offset \u2014 where each group actually is on the partition.",
+      "gridPos": {
+        "h": 8,
+        "w": 10,
+        "x": 14,
+        "y": 1
+      },
+      "id": 4,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "meterhub-prometheus"
+      },
+      "targets": [
+        {
+          "expr": "kafka_consumergroup_current_offset",
+          "legendFormat": "{{consumergroup}} / {{topic}} p{{partition}}"
+        }
+      ],
+      "fieldConfig": {
+        "default": {
+          "unit": "short",
+          "custom": {
+            "fillOpacity": 10,
+            "lineWidth": 2
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "type": "row",
+      "title": "Outbox relay (reading-service)",
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 9
+      },
+      "id": 5
+    },
+    {
+      "type": "stat",
+      "title": "Outbox unpublished backlog",
+      "description": "reading_outbox_unpublished \u2014 rows not yet relayed to Kafka. Non-zero after a broker outage drains back to 0.",
+      "gridPos": {
+        "h": 6,
+        "w": 6,
+        "x": 0,
+        "y": 10
+      },
+      "id": 6,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "meterhub-prometheus"
+      },
+      "targets": [
+        {
+          "expr": "reading_outbox_unpublished"
+        }
+      ],
+      "fieldConfig": {
+        "default": {
+          "unit": "short",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 50
+              },
+              {
+                "color": "red",
+                "value": 500
+              }
+            ]
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Relay publish rate (events/s)",
+      "description": "rate(reading_outbox_published_total[5m]) \u2014 outbox rows successfully produced to meter.reading.created.",
+      "gridPos": {
+        "h": 8,
+        "w": 9,
+        "x": 6,
+        "y": 10
+      },
+      "id": 7,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "meterhub-prometheus"
+      },
+      "targets": [
+        {
+          "expr": "rate(reading_outbox_published_total[5m])",
+          "legendFormat": "published"
+        }
+      ],
+      "fieldConfig": {
+        "default": {
+          "unit": "ops",
+          "custom": {
+            "fillOpacity": 10,
+            "lineWidth": 2
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Relay errors (errors/s)",
+      "description": "reading_outbox_publish_errors_total (broker rejected a produce) and reading_outbox_round_errors_total (round-level failure).",
+      "gridPos": {
+        "h": 8,
+        "w": 9,
+        "x": 15,
+        "y": 10
+      },
+      "id": 8,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "meterhub-prometheus"
+      },
+      "targets": [
+        {
+          "expr": "rate(reading_outbox_publish_errors_total[5m])",
+          "legendFormat": "publish errors"
+        },
+        {
+          "expr": "rate(reading_outbox_round_errors_total[5m])",
+          "legendFormat": "round errors"
+        }
+      ],
+      "fieldConfig": {
+        "default": {
+          "unit": "ops",
+          "custom": {
+            "fillOpacity": 30,
+            "lineWidth": 2
+          },
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "red"
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "type": "row",
+      "title": "Consumer (events-demo, consumer_messages_* series)",
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 18
+      },
+      "id": 9
+    },
+    {
+      "type": "timeseries",
+      "title": "Consume rate \u2014 consumed / processed / deduped (msg/s)",
+      "description": "Rates of the shared ConsumerLoop series. Deduped \u2248 redeliveries; processed \u2248 first-time successes.",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 19
+      },
+      "id": 10,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "meterhub-prometheus"
+      },
+      "targets": [
+        {
+          "expr": "rate(consumer_messages_consumed_total[5m])",
+          "legendFormat": "consumed"
+        },
+        {
+          "expr": "rate(consumer_messages_processed_total[5m])",
+          "legendFormat": "processed"
+        },
+        {
+          "expr": "rate(consumer_messages_deduped_total[5m])",
+          "legendFormat": "deduped"
+        }
+      ],
+      "fieldConfig": {
+        "default": {
+          "unit": "ops",
+          "custom": {
+            "fillOpacity": 10,
+            "lineWidth": 2
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Failures \u2014 retries & DLQ (msg/s)",
+      "description": "consumer_messages_failed_total counts every retry attempt; consumer_dlq_messages_total counts messages dead-lettered after the budget.",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 19
+      },
+      "id": 11,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "meterhub-prometheus"
+      },
+      "targets": [
+        {
+          "expr": "rate(consumer_messages_failed_total[5m])",
+          "legendFormat": "failed attempts"
+        },
+        {
+          "expr": "rate(consumer_dlq_messages_total[5m])",
+          "legendFormat": "dead-lettered"
+        }
+      ],
+      "fieldConfig": {
+        "default": {
+          "unit": "ops",
+          "custom": {
+            "fillOpacity": 30,
+            "lineWidth": 2
+          },
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "red"
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "type": "row",
+      "title": "DLQ depth",
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 27
+      },
+      "id": 12
+    },
+    {
+      "type": "stat",
+      "title": "DLQ message count (meter.reading.created.dlq)",
+      "description": "Latest offset on the .dlq topic from the lag exporter \u2014 no consumer group drains it, so last-offset+1 \u2248 depth. 0/undefined means the topic holds no dead letters.",
+      "gridPos": {
+        "h": 6,
+        "w": 12,
+        "x": 0,
+        "y": 28
+      },
+      "id": 13,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "meterhub-prometheus"
+      },
+      "targets": [
+        {
+          "expr": "max(kafka_topic_partition_current_offset{topic=~\".+[.]dlq\"})",
+          "legendFormat": "{{topic}}"
+        }
+      ],
+      "fieldConfig": {
+        "default": {
+          "unit": "short",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 1
+              }
+            ]
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "DLQ offset over time",
+      "description": "Same series as a trend \u2014 a rising line means new dead letters are arriving.",
+      "gridPos": {
+        "h": 6,
+        "w": 12,
+        "x": 12,
+        "y": 28
+      },
+      "id": 14,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "meterhub-prometheus"
+      },
+      "targets": [
+        {
+          "expr": "kafka_topic_partition_current_offset{topic=~\".+[.]dlq\"}",
+          "legendFormat": "{{topic}} p{{partition}}"
+        }
+      ],
+      "fieldConfig": {
+        "default": {
+          "unit": "short",
+          "custom": {
+            "fillOpacity": 10,
+            "lineWidth": 2
+          },
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "orange"
+          }
+        },
+        "overrides": []
+      }
+    }
+  ]
+}

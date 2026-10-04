@@ -124,11 +124,26 @@ K3.2 Consumer scaffolding (extracted, documented in conventions §15)
 
 ## Epic K4 — Observability
 
-- [ ] Kafka lag exporter container in Compose, scraped by the existing Prometheus.
-- [ ] Grafana "Async backbone" dashboard (provisioned, in `infrastructure/`): consumer
+- [x] Kafka lag exporter container in Compose, scraped by the existing Prometheus.
+      (Landed as `kafka-exporter` service — `danielqsj/kafka-exporter:v1.10.0`, the
+      spec's named candidate — `--kafka.server=kafka:9092`, metrics on 9308 internal
+      only, healthchecked, `depends_on` kafka healthy. Prometheus job added; scrape
+      config needs a container restart to be picked up — bind-mounted file isn't
+      re-read live. Live 2026-10-04: target up; `kafka_consumergroup_lag
+      {consumergroup="events-demo",topic="meter.reading.created"} 0`.)
+- [x] Grafana "Async backbone" dashboard (provisioned, in `infrastructure/`): consumer
       group lag, outbox unpublished backlog, publish/consume rates, DLQ depth.
-- [ ] Services-overview dashboard/prometheus config updated for the new targets
-      (kafka exporter, events-demo).
+      (`meterhub-async-backbone.json`: brokers-up stat, lag + current-offset
+      timeseries, outbox backlog stat + publish/error rates, consumed/processed/
+      deduped + failed/DLQ rates, DLQ topic offset stat + trend. All 14 panel
+      expressions executed against live Prometheus and returned series; DLQ topic
+      currently holds the 4 K3 poison messages so the depth panel shows real data.
+      Note: DLQ regex uses `[.]` — PromQL rejects `\.` in `topic=~".+\.dlq"` with
+      "unknown escape sequence".)
+- [x] Services-overview dashboard/prometheus config updated for the new targets
+      (kafka exporter, events-demo). (Overview NestJS panels now include
+      events-demo; "scrape targets up" stat threshold raised 5 → 7. Verified
+      `sum(up)` = 7 with every target healthy.)
 
 ## Epic K5 — End-to-end verification & docs
 

@@ -243,6 +243,26 @@ services:
       kafka:
         condition: service_healthy
 
+  # Kafka lag exporter (spec 5 §10): consumer-group lag + broker/topic
+  # metrics for Prometheus. Metrics endpoint stays inside the network.
+  kafka-exporter:
+    image: danielqsj/kafka-exporter:v1.10.0
+    command: [ "--kafka.server=kafka:9092" ]
+    expose:
+      - "9308"
+    networks:
+      - meter-hub
+    healthcheck:
+      # /metrics answers 200 once Sarama has connected to the broker.
+      test: [ "CMD-SHELL", "wget -q --spider http://localhost:9308/metrics" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    depends_on:
+      kafka:
+        condition: service_healthy
+
   web:
     build:
       context: ./frontend
