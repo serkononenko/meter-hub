@@ -230,7 +230,7 @@ describe('MeterService', () => {
         const repository = repositoryStub();
         const service = serviceWith(repository);
 
-        await expect(service.updateMeter(METER.id, {})).rejects.toBeInstanceOf(RequestValidationException);
+        await expect(service.updateMeter(METER.id, {}, undefined, REQUEST)).rejects.toBeInstanceOf(RequestValidationException);
         expect(repository.update).not.toHaveBeenCalled();
     });
 
@@ -238,7 +238,7 @@ describe('MeterService', () => {
         const repository = repositoryStub();
         const service = serviceWith(repository);
 
-        await expect(service.updateMeter(METER.id, {name: ''})).rejects.toBeInstanceOf(RequestValidationException);
+        await expect(service.updateMeter(METER.id, {name: ''}, undefined, REQUEST)).rejects.toBeInstanceOf(RequestValidationException);
         expect(repository.update).not.toHaveBeenCalled();
     });
 });
