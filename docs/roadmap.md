@@ -118,36 +118,59 @@ in the DLQ, and the lag dashboard shows the consumer group.
 
 ---
 
-## Phase 3 — Provider Service (core)
+## Phase 3 — Provider Service (core) & System Roles
 
 Reminders are driven by what a provider requires, not by a per-meter
 preference: each provider wants readings inside a window (e.g. "between
-the 20th and the last day of the month"). The rule therefore lives with
-the provider, and Meter Service never learns provider specifics
-(`docs/service-boundaries.md` §7). This phase builds the **thin core** of
-Provider Service — no integrations yet — so Reminders consume a real
-model instead of inventing and later migrating one.
+the 20th and the last day of the month"). The provider relationship —
+not the meter — therefore owns the rule, and Meter Service never learns
+provider specifics (`docs/service-boundaries.md` §7). This phase builds
+the **thin core** of Provider Service — no integrations yet — so
+Reminders consume a real model instead of inventing and later migrating
+one. Spec: [spec 6](spec/6_provider_service_spec.md).
 
-- **Provider Service** (next port in the 8085+ block, own `provider-db`)
-  owning `Provider`, `ProviderAccount` and the meter→account binding —
-  the boundary already documented in `docs/service-boundaries.md` §7.
-- **Submission-window rule** on the provider/account: window start and
-  end (day-of-month or "last day"), timezone, cycle (monthly first;
-  quarterly/annual as data, not code). Calendar edge cases (short months,
-  business days) are decided in the spec.
+Two independently shippable epics, in order:
+
+**System roles (Identity Service)** — the prerequisite for a curated
+provider list, since nobody can be an administrator today.
+
+- **`USER` / `ADMIN` system roles**, separate from household
+  `OWNER`/`MEMBER`/`VIEWER`; a `roles` claim in the access token and on
+  `GET /users/me`.
+- **Admins declared by deployment** (`IDENTITY_ADMIN_USER_IDS`, by user ID
+  — registration is unverified, so never by email), reconciled at identity
+  startup; no grant API yet.
+- `ADMIN` is catalog-only: no access to any household's data.
+
+**Provider Service**
+
+- **Provider Service** (port 8086, own `provider_db`, NestJS) owning
+  `Provider`, `ProviderAccount` and the meter→account binding — the
+  boundary already documented in `docs/service-boundaries.md` §7.
+- **Unified provider catalog + private providers** — admin-curated global
+  providers every household picks from, plus household-private ones so a
+  missing provider never blocks anyone; admins can promote a private
+  provider into the catalog, and accounts can be re-pointed to resolve
+  duplicates.
+- **Submission-window rule on the account** (a catalog provider may supply
+  a default window that is copied at creation, never a live link): window
+  start and end (day-of-month or "last day"), timezone, monthly cycle.
+  Calendar edge cases are decided in the spec; one pure window function
+  serves the API and Reminders.
 - **Manual providers are first-class** — a provider with no integration,
   where the user submits readings themself, is the case reminders exist
   for.
 - **Binding with validity dates** — a meter can move to another provider
   over time (supplier switch); bindings carry `validFrom`/`validTo`.
-- **Events** — `ProviderAccountLinked` / rule-changed events under
-  `contracts/events/`, published through the outbox, so Reminders can
-  react to rule changes.
-- **UI** — provider and account management, bind a meter to an account.
+- **Events** — `provider.account.changed` / `provider.binding.changed`
+  state snapshots under `contracts/events/`, published through the outbox,
+  so Reminders can react to rule changes.
+- **UI** — provider picker, account and binding management, catalog admin
+  screen for admins.
 
-**Done when:** a household can define a provider account with a
-submission window, bind a meter to it, and the rule and binding changes
-appear as events on the backbone.
+**Done when:** an admin can curate the catalog; a household can create an
+account from a catalog provider with a submission window, bind a meter to
+it, and the rule and binding changes appear as events on the backbone.
 
 ---
 
