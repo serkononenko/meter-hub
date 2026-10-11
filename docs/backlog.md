@@ -8,7 +8,7 @@ Honest list of what the MVP does not do yet. Each item is a deliberate scope cut
 | **Accepted** | Deliberate cut with a defined revisit trigger; no phase assigned yet |
 | **Resolved** | No longer true; kept for the record |
 
-Last reviewed: 2026-10-11 (K1 resolved)
+Last reviewed: 2026-10-11 (K1, D1 resolved)
 
 ---
 
@@ -35,9 +35,7 @@ All API-client items (C1–C3) are resolved — see the Resolved section.
 
 ## D — Data
 
-| ID | Limitation | Impact | Resolution path | Phase | Status |
-|---|---|---|---|---|---|
-| D1 | No soft delete or audit trail — deletes (where exposed) are hard; only `createdAt` exists | No `updatedAt`, no actor tracking; accidental deletes are unrecoverable | `updatedAt` + actor tracking on mutations; replace hard deletes with archived/expired states for household/meter lifecycle | 1.3 | Open |
+All data items (D1, D2) are resolved — see the Resolved section.
 
 ## F — Frontend
 
@@ -53,6 +51,7 @@ All async-backbone items (K1) are resolved — see the Resolved section.
 
 | ID | Was | Resolved | Evidence |
 |---|---|---|---|
+| D1 | No soft delete or audit trail — member removal was a hard `DELETE`; only `createdAt` existed on most rows, no actor tracking | 2026-10-11 | Household-service `household_members` gained `created_by` / `removed_at` / `removed_by`; `removeMember` now soft-removes (`markRemoved`, attributed to the owner) and every live read (member list, role verdict for meter/reading services, household list/get, role counts) filters `removed_at IS NULL`. The one-membership-per-pair constraint became a partial unique index on live rows, so a removed user can be re-added next to their tombstone. `created_by` is the owner for the creator's row and the invite's creator for redeemed invites. Meter-service `meters` gained `created_by` / `updated_by` (JWT subject, set on create/update; `updatedAt` already existed and meter lifecycle already used `ARCHIVED`). Actor columns are DB-only — no contract change. Covered by `MembershipServiceTest`, a household integration test (remove → 404 for the ex-member, tombstone row attributed, re-add works) and meter service/repository specs; both migrations verified against Postgres 17. Not covered: `households` has no update/delete endpoint yet, so it needed nothing; readings are immutable and left without actor columns |
 | K1 | Consumer dedup insert requires a UUID `eventId` — a non-UUID `eventId` header threw `P2007` from the dedup insert, outside the retry/DLQ path, so kafkajs crashed and restarted the consumer on the same offset, blocking the partition (found in K5 e2e work, 2026-10-04) | 2026-10-11 | `ConsumerLoop.handleMessage` validates `eventId` against a UUID pattern in the malformed-message gate, before the dedup insert; invalid ids go straight to the DLQ (`reason: invalid-eventId`, `MalformedMessage`, raw value preserved) and the partition keeps flowing. Covered by a unit test in `consumer-loop.spec.ts` (handler not invoked, dedup store untouched) |
 | O5 | CI runs tests only — no image publishing, no environments | 2026-09-26 | Images published to ghcr.io on green `main` (`linux/amd64`, tagged `main`/`latest`/SHA); Portainer pull-based deploy documented in [deploy-portainer.md](deploy-portainer.md) |
 | O6 | Reading source enum unresolved — clients could not assume what `source` values exist | 2026-09-26 | Contract pins `source` to `MANUAL` for the MVP (`contracts/openapi/services/reading-service/openapi.yaml`); `DEVICE` arrives with Phase 6 |
