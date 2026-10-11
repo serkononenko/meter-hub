@@ -229,18 +229,46 @@ mounted async-backbone JSON).
 
 ## Epic P7 — Frontend
 
-- [ ] Regenerate the provider client from the P1 contract.
-- [ ] Provider picker (catalog, then own private, "Add my own"); account list with the
-      window in plain language; account editor with zod rule form pre-filled from
-      `defaultRule`; re-point provider action.
-- [ ] Meter view: current provider/account and current-or-next window, "No provider linked"
-      state, bind/unbind with end date.
-- [ ] Catalog admin screen, route gated on `isAdmin()` (S3): list/create/edit default
-      window/archive, private-providers-in-use list with promote.
-- [ ] VIEWER hides writes; new problem codes mapped to messages.
-- [ ] `tsc --noEmit`, eslint, `next build` clean; Playwright journeys against Compose
-      (admin curates, member binds a meter, viewer read-only, non-admin cannot reach the
-      admin screen).
+> Landed 2026-10-11 (commits 952bfbe, 9d78cee, 5441ab7), flows verified live
+> through the gateway with Playwright against the Compose stack.
+
+- [x] Provider client regenerated from the P1 contract (orval prefix-map entry
+      `provider-service`); regeneration also caught the meter/reading clients up to
+      their contracts' A3 wording and 403 responses.
+- [x] Provider picker (catalog first, private marked, "Add my own provider…" creates
+      a private provider inline); account list shows the rule in plain words
+      ("Readings due: opens on day 20 of the month, closes on the last day of the
+      month"); account editor with shared zod rule form pre-filled from
+      `defaultRule`, provider re-pointing, archive/restore with confirm step.
+- [x] Meter cards show the current-or-next submission window as a register-styled
+      strip (Spline Sans Mono date range + open/upcoming chip + days countdown),
+      "No provider linked" empty state, link/unlink actions — bind with valid-from,
+      end with last-day (dialog keyed by binding so bind/end modes don't leak).
+- [x] Catalog admin screen at `/catalog`: nav item + `AdminGate` gated on
+      `isAdmin()` (S3); list/create/edit default window/archive for global
+      providers with live plain-language preview; private-providers-in-use list
+      with promote. Required a backend gap fix (9d78cee): the providers list
+      without `householdId` returned only GLOBAL rows, so admins had no way to
+      discover private providers — admins now get private rows too, e2e-covered.
+- [x] VIEWERs get read-only panels (same `canWrite` pattern as meters); provider
+      problem codes (`ACCOUNT_ARCHIVED`, `INVALID_SUBMISSION_RULE`,
+      `FORBIDDEN_SYSTEM_ROLE`, …) mapped to plain-language messages.
+- [x] `tsc --noEmit`, eslint, `next build` all clean. Live Playwright journeys
+      against Compose: non-admin sees "Administrators only" and no nav item; admin
+      creates a catalog provider (rule preview updates live); member picks it,
+      default rule prefills, account created; meter link → window chip appears
+      ("Opens in 9 d" on the 11th for a day-20 rule); end link → binding `validTo`
+      set (still "active today" per inclusive closing, backend-verified);
+      "Add my own" creates a private provider inline; promote moves it to GLOBAL.
+      Not covered: a dedicated VIEWER click-through (the `canWrite` flag pattern is
+      shared with meters, which are covered), and the rule form's overlap error
+      path is only observed via API message, not scripted.
+
+Detours: the default rule form (opens 1st, closes last day) turned out to be an
+*invalid* rule — consecutive full-month windows leave no gap, which the backend
+rejects; the form default is now opens 1st / closes 20th. The e2e suite shares
+`provider_db` with the live Compose stack and wipes its data (the known P5
+gotcha) — dev data was recreated through the API afterwards.
 
 ## Epic P8 — End-to-end verification & docs
 
