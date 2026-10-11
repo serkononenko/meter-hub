@@ -162,12 +162,19 @@ async function becomeAdmin(userId) {
     return undo;
 }
 
-/** End offset of partition 0 of a topic. */
+/** End offset of partition 0 of a topic, creating the topic if absent. */
 async function endOffset(topic) {
     const kafka = new Kafka({clientId: 'meterhub-e2e', brokers: KAFKA.split(',')});
     const admin = kafka.admin();
     await admin.connect();
     try {
+        // A cold stack has no provider topics — nothing has published yet.
+        // Without them fetchTopicOffsets reports NOT_LEADER / no-host errors
+        // and the consumer probes below die before any event can arrive.
+        const existing = await admin.listTopics();
+        if (!existing.includes(topic)) {
+            await admin.createTopics({topics: [{topic, numPartitions: 1, replicationFactor: 1}]});
+        }
         const offsets = await admin.fetchTopicOffsets(topic);
         return Number(offsets[0].offset);
     } finally {
