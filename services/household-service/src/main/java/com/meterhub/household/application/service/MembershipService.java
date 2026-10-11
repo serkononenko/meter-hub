@@ -86,7 +86,7 @@ public class MembershipService
         if (target.role() == MembershipRole.OWNER) {
             throw new OwnerCannotBeRemovedException();
         }
-        householdMemberRepository.delete(target);
+        householdMemberRepository.markRemoved(target, requesterId, OffsetDateTime.now());
     }
 
     // --- invites ---
@@ -171,6 +171,7 @@ public class MembershipService
                         .userId(redeemerId)
                         .role(granted)
                         .createdAt(now)
+                        .createdBy(invite.createdBy())
                         .build());
                 }
                 return new RedeemedInvite(household.id(), household.name(), granted);
@@ -198,6 +199,7 @@ public class MembershipService
                 .userId(redeemerId)
                 .role(granted)
                 .createdAt(now)
+                .createdBy(invite.createdBy())
                 .build());
         } else {
             granted = existing.role();

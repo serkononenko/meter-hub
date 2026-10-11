@@ -8,6 +8,7 @@ import com.meterhub.household.ports.outbound.HouseholdMemberRepository;
 import org.jooq.DSLContext;
 import org.springframework.stereotype.Repository;
 
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -33,6 +34,7 @@ public class HouseholdMemberRepositoryAdapter implements HouseholdMemberReposito
         return dsl.selectFrom(Tables.HOUSEHOLD_MEMBERS)
             .where(Tables.HOUSEHOLD_MEMBERS.HOUSEHOLD_ID.eq(householdId))
             .and(Tables.HOUSEHOLD_MEMBERS.USER_ID.eq(userId))
+            .and(Tables.HOUSEHOLD_MEMBERS.REMOVED_AT.isNull())
             .fetchOptional(this::convert);
     }
 
@@ -40,6 +42,7 @@ public class HouseholdMemberRepositoryAdapter implements HouseholdMemberReposito
     public List<HouseholdMember> findAllByHouseholdId(UUID householdId) {
         return dsl.selectFrom(Tables.HOUSEHOLD_MEMBERS)
             .where(Tables.HOUSEHOLD_MEMBERS.HOUSEHOLD_ID.eq(householdId))
+            .and(Tables.HOUSEHOLD_MEMBERS.REMOVED_AT.isNull())
             .orderBy(Tables.HOUSEHOLD_MEMBERS.CREATED_AT.asc())
             .fetch(this::convert);
     }
@@ -49,13 +52,17 @@ public class HouseholdMemberRepositoryAdapter implements HouseholdMemberReposito
         return dsl.fetchCount(
             Tables.HOUSEHOLD_MEMBERS,
             Tables.HOUSEHOLD_MEMBERS.HOUSEHOLD_ID.eq(householdId)
-                .and(Tables.HOUSEHOLD_MEMBERS.ROLE.eq(role.name())));
+                .and(Tables.HOUSEHOLD_MEMBERS.ROLE.eq(role.name()))
+                .and(Tables.HOUSEHOLD_MEMBERS.REMOVED_AT.isNull()));
     }
 
     @Override
-    public void delete(HouseholdMember member) {
-        dsl.deleteFrom(Tables.HOUSEHOLD_MEMBERS)
+    public void markRemoved(HouseholdMember member, UUID removedBy, OffsetDateTime removedAt) {
+        dsl.update(Tables.HOUSEHOLD_MEMBERS)
+            .set(Tables.HOUSEHOLD_MEMBERS.REMOVED_AT, removedAt)
+            .set(Tables.HOUSEHOLD_MEMBERS.REMOVED_BY, removedBy)
             .where(Tables.HOUSEHOLD_MEMBERS.ID.eq(member.id()))
+            .and(Tables.HOUSEHOLD_MEMBERS.REMOVED_AT.isNull())
             .execute();
     }
 
@@ -66,6 +73,9 @@ public class HouseholdMemberRepositoryAdapter implements HouseholdMemberReposito
         record.setUserId(member.userId());
         record.setRole(member.role().name());
         record.setCreatedAt(member.createdAt());
+        record.setCreatedBy(member.createdBy());
+        record.setRemovedAt(member.removedAt());
+        record.setRemovedBy(member.removedBy());
         return record;
     }
 
@@ -76,6 +86,9 @@ public class HouseholdMemberRepositoryAdapter implements HouseholdMemberReposito
             .userId(record.getUserId())
             .role(MembershipRole.valueOf(record.getRole()))
             .createdAt(record.getCreatedAt())
+            .createdBy(record.getCreatedBy())
+            .removedAt(record.getRemovedAt())
+            .removedBy(record.getRemovedBy())
             .build();
     }
 }

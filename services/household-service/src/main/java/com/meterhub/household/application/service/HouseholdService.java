@@ -56,6 +56,7 @@ public class HouseholdService implements CreateHouseholdUseCase, ListHouseholdsU
             .userId(command.ownerUserId())
             .role(MembershipRole.OWNER)
             .createdAt(now)
+            .createdBy(command.ownerUserId())
             .build();
         householdMemberRepository.save(owner);
 

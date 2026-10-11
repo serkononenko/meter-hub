@@ -210,6 +210,47 @@ class HouseholdAuthorizationIntegrationTest {
 
     // --- helpers ---
 
+    @Test
+    void removedMemberLosesAccessButTheRowSurvivesAsAnAuditTombstoneAndTheyCanBeReAdded() {
+        String aliceToken = tokenFor(ALICE_EMAIL_SUBJECT);
+        String bobToken = tokenFor(BOB_SUBJECT);
+        UUID householdId = createdHouseholdId(aliceToken, "Shared home");
+        UUID alice = UUID.fromString(ALICE_EMAIL_SUBJECT);
+        UUID bob = UUID.fromString(BOB_SUBJECT);
+        insertMember(householdId, bob, alice);
+        assertThat(getHousehold(bobToken, householdId).getStatus().value()).isEqualTo(200);
+
+        int removed = client.delete().uri("/api/v1/households/{h}/members/{u}", householdId, bob)
+            .headers(headers -> headers.setBearerAuth(aliceToken))
+            .exchange()
+            .returnResult(byte[].class)
+            .getStatus().value();
+
+        assertThat(removed).isEqualTo(204);
+        assertThat(getHousehold(bobToken, householdId).getStatus().value()).isEqualTo(404);
+        var tombstone = dsl.selectFrom(HouseholdMembers.HOUSEHOLD_MEMBERS)
+            .where(HouseholdMembers.HOUSEHOLD_MEMBERS.USER_ID.eq(bob))
+            .fetchOne();
+        assertThat(tombstone).isNotNull();
+        assertThat(tombstone.getRemovedAt()).isNotNull();
+        assertThat(tombstone.getRemovedBy()).isEqualTo(alice);
+        assertThat(tombstone.getCreatedBy()).isEqualTo(alice);
+
+        // The partial unique index frees (household, user) for a fresh live row.
+        insertMember(householdId, bob, alice);
+        assertThat(getHousehold(bobToken, householdId).getStatus().value()).isEqualTo(200);
+    }
+
+    private void insertMember(UUID householdId, UUID userId, UUID createdBy) {
+        dsl.insertInto(HouseholdMembers.HOUSEHOLD_MEMBERS)
+            .set(HouseholdMembers.HOUSEHOLD_MEMBERS.ID, UUID.randomUUID())
+            .set(HouseholdMembers.HOUSEHOLD_MEMBERS.HOUSEHOLD_ID, householdId)
+            .set(HouseholdMembers.HOUSEHOLD_MEMBERS.USER_ID, userId)
+            .set(HouseholdMembers.HOUSEHOLD_MEMBERS.ROLE, "MEMBER")
+            .set(HouseholdMembers.HOUSEHOLD_MEMBERS.CREATED_BY, createdBy)
+            .execute();
+    }
+
     private String tokenFor(String subject) {
         Instant now = Instant.now();
         return signedToken(subject, "identity-service", List.of("meterhub-api"), now, now.plusSeconds(300));

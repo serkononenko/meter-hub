@@ -30,6 +30,7 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -80,7 +81,7 @@ class MembershipServiceTest {
 
         assertThatThrownBy(() -> membershipService.removeMember(MEMBER_ID, HOUSEHOLD_ID, VIEWER_ID))
             .isInstanceOf(ForbiddenRoleException.class);
-        verify(householdMemberRepository, never()).delete(any());
+        verify(householdMemberRepository, never()).markRemoved(any(), any(), any());
     }
 
     @Test
@@ -89,11 +90,11 @@ class MembershipServiceTest {
 
         assertThatThrownBy(() -> membershipService.removeMember(OWNER_ID, HOUSEHOLD_ID, OWNER_ID))
             .isInstanceOf(OwnerCannotBeRemovedException.class);
-        verify(householdMemberRepository, never()).delete(any());
+        verify(householdMemberRepository, never()).markRemoved(any(), any(), any());
     }
 
     @Test
-    void removeMemberDeletesTheTargetMembership() {
+    void removeMemberSoftRemovesTheTargetMembershipAttributedToTheRequester() {
         membership(OWNER_ID, MembershipRole.OWNER);
         HouseholdMember target = member(VIEWER_ID, MembershipRole.VIEWER);
         when(householdMemberRepository.findByHouseholdIdAndUserId(HOUSEHOLD_ID, VIEWER_ID))
@@ -101,7 +102,7 @@ class MembershipServiceTest {
 
         membershipService.removeMember(OWNER_ID, HOUSEHOLD_ID, VIEWER_ID);
 
-        verify(householdMemberRepository).delete(target);
+        verify(householdMemberRepository).markRemoved(eq(target), eq(OWNER_ID), any(OffsetDateTime.class));
     }
 
     @Test

@@ -43,6 +43,7 @@ public class HouseholdRepositoryAdapter implements HouseholdRepository {
             .join(Tables.HOUSEHOLD_MEMBERS)
             .on(Tables.HOUSEHOLD_MEMBERS.HOUSEHOLD_ID.eq(Tables.HOUSEHOLDS.ID))
             .where(Tables.HOUSEHOLD_MEMBERS.USER_ID.eq(userId))
+            .and(Tables.HOUSEHOLD_MEMBERS.REMOVED_AT.isNull())
             .orderBy(Tables.HOUSEHOLDS.CREATED_AT.desc())
             .fetch(HouseholdRepositoryAdapter::convertWithRole);
     }
@@ -55,6 +56,7 @@ public class HouseholdRepositoryAdapter implements HouseholdRepository {
             .on(Tables.HOUSEHOLD_MEMBERS.HOUSEHOLD_ID.eq(Tables.HOUSEHOLDS.ID))
             .where(Tables.HOUSEHOLDS.ID.eq(id))
             .and(Tables.HOUSEHOLD_MEMBERS.USER_ID.eq(userId))
+            .and(Tables.HOUSEHOLD_MEMBERS.REMOVED_AT.isNull())
             .fetchOptional(HouseholdRepositoryAdapter::convertWithRole);
     }
 
