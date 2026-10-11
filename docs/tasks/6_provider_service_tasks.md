@@ -72,12 +72,10 @@ S1.3 Token issuance
 
 ## Epic S4 — S verification & docs
 
-- [ ] Live through the gateway: admin ID in env → login → decode token shows
-      `["USER","ADMIN"]`; unlisted user shows `["USER"]`; demote via env + restart →
-      next refresh drops `ADMIN`.
-- [ ] `docs/service-boundaries.md` §2 (Identity) gains system roles, the claim, and the
+- [x] Live through the gateway (2026-10-11, Compose): admin ID in env → login → decoded token shows `["USER","ADMIN"]`; an unlisted user shows `["USER"]`; env cleared + identity restart → next refresh drops `ADMIN`. Test users removed, identity restored to an empty admin list.
+- [x] `docs/service-boundaries.md` §2 (Identity) gains system roles, the claim, and the
       "household roles stay in Household Service" line.
-- [ ] `docs/api-examples.md`: `/users/me` response with `roles`.
+- [x] `docs/api-examples.md`: `roles` on the register, login and `/users/me` examples, the token claim, and a pointer to the admin procedure. (The register/login examples also lacked `createdAt`; left as they were.)
 
 ## Epic P1 — Contract, events & scaffolding (provider-service)
 

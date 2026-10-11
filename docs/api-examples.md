@@ -33,7 +33,8 @@ curl -sS -X POST "$GATEWAY/api/identity-service/api/v1/auth/register" \
   "id": "9f1d3a5e-7c4b-4d1e-9a2f-3b8c5d6e7f10",
   "email": "jane@example.com",
   "username": "jane.doe",
-  "status": "ACTIVE"
+  "status": "ACTIVE",
+  "roles": ["USER"]
 }
 ```
 
@@ -65,9 +66,15 @@ curl -sS -X POST "$GATEWAY/api/identity-service/api/v1/auth/login" \
   "refreshToken": "b1c2d3e4-...",
   "tokenType": "Bearer",
   "expiresIn": 900,
-  "user": { "id": "9f1d3a5e-...", "email": "jane@example.com", "username": "jane.doe" }
+  "user": { "id": "9f1d3a5e-...", "email": "jane@example.com", "username": "jane.doe", "roles": ["USER"] }
 }
 ```
+
+The access token carries a `roles` claim with the user's system roles
+(`["USER"]`, or `["USER","ADMIN"]` for a deployment-declared administrator).
+System roles are platform-level and separate from the household roles in
+section 8. A role change shows up in the next token issued, at the latest
+one access-token lifetime later.
 
 Access tokens live 15 minutes; refresh tokens 30 days. Wrong password and
 unknown email return the identical `401` with `"code":"INVALID_CREDENTIALS"`
@@ -84,6 +91,20 @@ Who am I:
 ```bash
 curl -sS "$GATEWAY/api/identity-service/api/v1/users/me" -H "Authorization: Bearer $TOKEN"
 ```
+
+```json
+{
+  "id": "9f1d3a5e-7c4b-4d1e-9a2f-3b8c5d6e7f10",
+  "email": "jane@example.com",
+  "username": "jane.doe",
+  "status": "ACTIVE",
+  "roles": ["USER"],
+  "createdAt": "2026-10-11T09:00:00Z"
+}
+```
+
+To become an administrator, add this `id` to `IDENTITY_ADMIN_USER_IDS` and
+restart identity-service (see `docs/deploy-portainer.md`, "Granting admin").
 
 ## 3. Create a household
 

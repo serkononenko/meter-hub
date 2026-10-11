@@ -187,8 +187,21 @@ Identity Service owns user identity and authentication.
 User
 Credential
 RefreshToken / Session
-Role
+SystemRole
 ```
+
+### System roles
+
+Identity owns platform-level roles only: `USER` (every account) and `ADMIN`.
+They are issued as a `roles` claim in the access token, and `GET /users/me`
+returns them. `ADMIN` is declared by deployment (`IDENTITY_ADMIN_USER_IDS`, user
+IDs reconciled at startup); its planned use is managing the global provider
+catalog (Provider Service), and nothing consumes the claim yet.
+
+System roles are distinct from household membership roles
+(`OWNER` / `MEMBER` / `VIEWER`), which Household Service owns. An `ADMIN` has no
+access to any household's data, and services other than the one that needs the
+claim ignore it. The gateway does not evaluate roles.
 
 ### API
 
