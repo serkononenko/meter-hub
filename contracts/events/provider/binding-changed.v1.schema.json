@@ -1,0 +1,69 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "meter-hub:events:provider:binding-changed:v1",
+  "title": "provider.binding.changed",
+  "description": "Published by provider-service (via outbox) when a meter is bound to a provider account or a binding is ended. A full state snapshot of the binding; consumers discard one whose version is not newer than the one they hold. Keyed by meterId, so a meter's bindings stay ordered within the partition.",
+  "type": "object",
+  "required": ["eventId", "eventType", "eventVersion", "occurredAt", "producer", "data"],
+  "additionalProperties": false,
+  "properties": {
+    "eventId": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Stable event identifier, == outbox row id; the dedup key on the consumer side."
+    },
+    "eventType": {
+      "type": "string",
+      "const": "provider.binding.changed"
+    },
+    "eventVersion": {
+      "type": "integer",
+      "const": 1
+    },
+    "occurredAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "producer": {
+      "type": "string",
+      "const": "provider-service"
+    },
+    "data": {
+      "type": "object",
+      "required": ["bindingId", "accountId", "householdId", "meterId", "validFrom", "validTo", "version"],
+      "additionalProperties": false,
+      "properties": {
+        "bindingId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "accountId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "householdId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "meterId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "validFrom": {
+          "type": "string",
+          "format": "date"
+        },
+        "validTo": {
+          "type": ["string", "null"],
+          "format": "date",
+          "description": "Last day the binding applies; null while open-ended."
+        },
+        "version": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Per-binding counter, incremented on every change."
+        }
+      }
+    }
+  }
+}

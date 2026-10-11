@@ -1,0 +1,106 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "meter-hub:events:provider:account-changed:v1",
+  "title": "provider.account.changed",
+  "description": "Published by provider-service (via outbox) whenever a provider account is created, its rule or provider changes, or it is archived. A full state snapshot, not a delta: consumers rebuild their view from any sequence of these and discard a snapshot whose version is not newer than the one they hold. Keyed by accountId, so per-account order is preserved within the partition.",
+  "type": "object",
+  "required": ["eventId", "eventType", "eventVersion", "occurredAt", "producer", "data"],
+  "additionalProperties": false,
+  "properties": {
+    "eventId": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Stable event identifier, == outbox row id; the dedup key on the consumer side."
+    },
+    "eventType": {
+      "type": "string",
+      "const": "provider.account.changed"
+    },
+    "eventVersion": {
+      "type": "integer",
+      "const": 1
+    },
+    "occurredAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "producer": {
+      "type": "string",
+      "const": "provider-service"
+    },
+    "data": {
+      "type": "object",
+      "required": ["accountId", "providerId", "householdId", "version", "rule", "archived"],
+      "additionalProperties": false,
+      "properties": {
+        "accountId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "providerId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "householdId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "version": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Per-account counter, incremented on every change."
+        },
+        "rule": {
+          "$ref": "#/$defs/submissionRule"
+        },
+        "archived": {
+          "type": "boolean"
+        }
+      }
+    }
+  },
+  "$defs": {
+    "daySpec": {
+      "type": "object",
+      "required": ["kind"],
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": ["DAY_OF_MONTH", "LAST_DAY"]
+        },
+        "day": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 31
+        },
+        "offsetDays": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 27
+        }
+      }
+    },
+    "submissionRule": {
+      "type": "object",
+      "required": ["cycle", "opens", "closes", "timezone"],
+      "additionalProperties": false,
+      "properties": {
+        "cycle": {
+          "type": "string",
+          "enum": ["MONTHLY"]
+        },
+        "opens": {
+          "$ref": "#/$defs/daySpec"
+        },
+        "closes": {
+          "$ref": "#/$defs/daySpec"
+        },
+        "timezone": {
+          "type": "string",
+          "description": "IANA time zone name."
+        }
+      }
+    }
+  }
+}

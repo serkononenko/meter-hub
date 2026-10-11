@@ -1,0 +1,1198 @@
+openapi: 3.0.3
+info:
+  title: MeterHub Provider Service API
+  description: >-
+    Provider Service HTTP API. Covers the provider catalog, household provider
+    accounts with their submission windows, and the binding of meters to
+    accounts. Providers are either global (curated by system administrators,
+    visible to everyone) or private to one household. Household membership
+    roles are owned by household-service; system roles come from the access
+    token's `roles` claim.
+  version: 1.0.0
+
+tags:
+  - name: Providers
+    description: Global catalog and household-private providers
+  - name: ProviderAccounts
+    description: A household's account with a provider, carrying the submission window
+  - name: MeterBindings
+    description: Which provider account a meter belongs to, over time
+  - name: SubmissionWindows
+    description: When readings are due for a meter
+  - name: Internal
+    description: Service-to-service endpoints (API gateway denies them; not part of the public API surface)
+
+paths:
+  /api/v1/providers:
+    post:
+      tags: [Providers]
+      operationId: createProvider
+      summary: Create a global catalog provider or a household-private provider
+      description: >-
+        `scope: GLOBAL` requires the ADMIN system role and no `householdId`.
+        `scope: HOUSEHOLD` requires `householdId` and at least a MEMBER role in
+        that household; VIEWERs get 403 FORBIDDEN_ROLE, non-members get the
+        same not-found problem as an unknown household.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '../../openapi.yaml#/components/parameters/CorrelationId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateProviderRequest'
+            example:
+              scope: GLOBAL
+              name: Energy Co
+              defaultRule:
+                cycle: MONTHLY
+                opens: {kind: DAY_OF_MONTH, day: 20}
+                closes: {kind: LAST_DAY, offsetDays: 0}
+                timezone: Europe/Kyiv
+      responses:
+        '201':
+          description: Provider created.
+          headers:
+            X-Correlation-ID:
+              $ref: '../../components/headers/correlation-id.yaml'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Provider'
+        '400':
+          $ref: '../../openapi.yaml#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/UnauthorizedProblem'
+        '403':
+          $ref: '#/components/responses/ForbiddenProblem'
+        '404':
+          $ref: '#/components/responses/NotFoundProblem'
+        '422':
+          $ref: '#/components/responses/UnprocessableProblem'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailableProblem'
+        '500':
+          $ref: '../../openapi.yaml#/components/responses/InternalServerError'
+
+    get:
+      tags: [Providers]
+      operationId: listProviders
+      summary: List the providers visible to the caller
+      description: >-
+        Without `householdId`, returns the global catalog. With `householdId`,
+        returns the catalog plus that household's private providers (the pick
+        list for creating an account) — any membership role suffices. `scope`
+        narrows either result.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: householdId
+          in: query
+          required: false
+          schema:
+            type: string
+            format: uuid
+        - name: scope
+          in: query
+          required: false
+          schema:
+            $ref: '#/components/schemas/ProviderScope'
+        - name: includeArchived
+          in: query
+          required: false
+          schema:
+            type: boolean
+            default: false
+        - $ref: '../../openapi.yaml#/components/parameters/CorrelationId'
+      responses:
+        '200':
+          description: Visible providers, ordered by name.
+          headers:
+            X-Correlation-ID:
+              $ref: '../../components/headers/correlation-id.yaml'
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Provider'
+        '400':
+          $ref: '../../openapi.yaml#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/UnauthorizedProblem'
+        '404':
+          $ref: '#/components/responses/NotFoundProblem'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailableProblem'
+        '500':
+          $ref: '../../openapi.yaml#/components/responses/InternalServerError'
+
+  /api/v1/providers/{providerId}:
+    get:
+      tags: [Providers]
+      operationId: getProvider
+      summary: Get a visible provider
+      description: A private provider of another household is reported as not found.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/ProviderId'
+        - $ref: '../../openapi.yaml#/components/parameters/CorrelationId'
+      responses:
+        '200':
+          description: The provider.
+          headers:
+            X-Correlation-ID:
+              $ref: '../../components/headers/correlation-id.yaml'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Provider'
+        '401':
+          $ref: '#/components/responses/UnauthorizedProblem'
+        '404':
+          $ref: '#/components/responses/NotFoundProblem'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailableProblem'
+        '500':
+          $ref: '../../openapi.yaml#/components/responses/InternalServerError'
+
+    patch:
+      tags: [Providers]
+      operationId: updateProvider
+      summary: Rename, annotate, set the default window of, or archive a provider
+      description: >-
+        Global providers require the ADMIN system role; private providers
+        require MEMBER or above in the owning household. Archiving removes the
+        provider from the pick list but leaves existing accounts working.
+        There is no delete.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/ProviderId'
+        - $ref: '../../openapi.yaml#/components/parameters/CorrelationId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateProviderRequest'
+            example:
+              archived: true
+      responses:
+        '200':
+          description: The updated provider.
+          headers:
+            X-Correlation-ID:
+              $ref: '../../components/headers/correlation-id.yaml'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Provider'
+        '400':
+          $ref: '../../openapi.yaml#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/UnauthorizedProblem'
+        '403':
+          $ref: '#/components/responses/ForbiddenProblem'
+        '404':
+          $ref: '#/components/responses/NotFoundProblem'
+        '422':
+          $ref: '#/components/responses/UnprocessableProblem'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailableProblem'
+        '500':
+          $ref: '../../openapi.yaml#/components/responses/InternalServerError'
+
+  /api/v1/providers/{providerId}/promote:
+    post:
+      tags: [Providers]
+      operationId: promoteProvider
+      summary: Move a private provider into the global catalog
+      description: >-
+        Requires the ADMIN system role. The provider becomes global; the
+        originating household's accounts keep pointing at it. Promoting an
+        already-global provider is a conflict.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/ProviderId'
+        - $ref: '../../openapi.yaml#/components/parameters/CorrelationId'
+      responses:
+        '200':
+          description: The now-global provider.
+          headers:
+            X-Correlation-ID:
+              $ref: '../../components/headers/correlation-id.yaml'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Provider'
+        '401':
+          $ref: '#/components/responses/UnauthorizedProblem'
+        '403':
+          $ref: '#/components/responses/ForbiddenProblem'
+        '404':
+          $ref: '#/components/responses/NotFoundProblem'
+        '409':
+          $ref: '#/components/responses/ConflictProblem'
+        '500':
+          $ref: '../../openapi.yaml#/components/responses/InternalServerError'
+
+  /api/v1/provider-accounts:
+    post:
+      tags: [ProviderAccounts]
+      operationId: createProviderAccount
+      summary: Create the household's account with a provider
+      description: >-
+        Requires at least MEMBER in the household. The provider must be visible
+        to the household (global, or private to it). When `rule` is omitted the
+        provider's default window is copied; if the provider has none either,
+        the request is rejected with 422 INVALID_SUBMISSION_RULE.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '../../openapi.yaml#/components/parameters/CorrelationId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateProviderAccountRequest'
+            example:
+              providerId: 5b2f1c64-3e0a-4a8e-9f1d-7a6c2e9d0b11
+              householdId: 3f9c1a2e-8d4b-4a1f-9e2c-5b7d6a8e1c30
+              label: Electricity
+              accountNumber: '0012345678'
+      responses:
+        '201':
+          description: Account created.
+          headers:
+            X-Correlation-ID:
+              $ref: '../../components/headers/correlation-id.yaml'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProviderAccount'
+        '400':
+          $ref: '../../openapi.yaml#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/UnauthorizedProblem'
+        '403':
+          $ref: '#/components/responses/ForbiddenProblem'
+        '404':
+          $ref: '#/components/responses/NotFoundProblem'
+        '422':
+          $ref: '#/components/responses/UnprocessableProblem'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailableProblem'
+        '500':
+          $ref: '../../openapi.yaml#/components/responses/InternalServerError'
+
+    get:
+      tags: [ProviderAccounts]
+      operationId: listProviderAccounts
+      summary: List a household's provider accounts
+      description: >-
+        `householdId` is required. Any membership role may read. `providerId`
+        narrows to one provider's accounts.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: householdId
+          in: query
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: providerId
+          in: query
+          required: false
+          schema:
+            type: string
+            format: uuid
+        - name: includeArchived
+          in: query
+          required: false
+          schema:
+            type: boolean
+            default: false
+        - $ref: '../../openapi.yaml#/components/parameters/CorrelationId'
+      responses:
+        '200':
+          description: The household's accounts, oldest first.
+          headers:
+            X-Correlation-ID:
+              $ref: '../../components/headers/correlation-id.yaml'
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ProviderAccount'
+        '400':
+          $ref: '../../openapi.yaml#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/UnauthorizedProblem'
+        '404':
+          $ref: '#/components/responses/NotFoundProblem'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailableProblem'
+        '500':
+          $ref: '../../openapi.yaml#/components/responses/InternalServerError'
+
+  /api/v1/provider-accounts/{accountId}:
+    get:
+      tags: [ProviderAccounts]
+      operationId: getProviderAccount
+      summary: Get a provider account
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/AccountId'
+        - $ref: '../../openapi.yaml#/components/parameters/CorrelationId'
+      responses:
+        '200':
+          description: The account.
+          headers:
+            X-Correlation-ID:
+              $ref: '../../components/headers/correlation-id.yaml'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProviderAccount'
+        '401':
+          $ref: '#/components/responses/UnauthorizedProblem'
+        '404':
+          $ref: '#/components/responses/NotFoundProblem'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailableProblem'
+        '500':
+          $ref: '../../openapi.yaml#/components/responses/InternalServerError'
+
+    patch:
+      tags: [ProviderAccounts]
+      operationId: updateProviderAccount
+      summary: Change an account's label, window, provider, or archive it
+      description: >-
+        Requires at least MEMBER. Setting `providerId` re-points the account to
+        another provider visible to the household, which is how a duplicate
+        private provider is replaced by its catalog entry; bindings are
+        untouched. A change to the rule or provider bumps `version`. Archiving
+        an account that still has an open binding is rejected.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/AccountId'
+        - $ref: '../../openapi.yaml#/components/parameters/CorrelationId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateProviderAccountRequest'
+            example:
+              providerId: 5b2f1c64-3e0a-4a8e-9f1d-7a6c2e9d0b11
+      responses:
+        '200':
+          description: The updated account.
+          headers:
+            X-Correlation-ID:
+              $ref: '../../components/headers/correlation-id.yaml'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProviderAccount'
+        '400':
+          $ref: '../../openapi.yaml#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/UnauthorizedProblem'
+        '403':
+          $ref: '#/components/responses/ForbiddenProblem'
+        '404':
+          $ref: '#/components/responses/NotFoundProblem'
+        '409':
+          $ref: '#/components/responses/ConflictProblem'
+        '422':
+          $ref: '#/components/responses/UnprocessableProblem'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailableProblem'
+        '500':
+          $ref: '../../openapi.yaml#/components/responses/InternalServerError'
+
+  /api/v1/meter-bindings:
+    post:
+      tags: [MeterBindings]
+      operationId: createMeterBinding
+      summary: Bind a meter to a provider account
+      description: >-
+        Requires at least MEMBER in the account's household. The meter must
+        exist and belong to that household (checked against Meter Service with
+        the caller's token). A meter has at most one binding at a time;
+        overlapping bindings are rejected. `validFrom` defaults to today in the
+        account's timezone.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '../../openapi.yaml#/components/parameters/CorrelationId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateMeterBindingRequest'
+            example:
+              accountId: 8c1e7d20-5a4f-4b9e-a3d2-0f6b1c9e7a42
+              meterId: 0d7f8a26-6f6f-4a55-9a71-3bd11c0a1f01
+      responses:
+        '201':
+          description: Binding created.
+          headers:
+            X-Correlation-ID:
+              $ref: '../../components/headers/correlation-id.yaml'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MeterBinding'
+        '400':
+          $ref: '../../openapi.yaml#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/UnauthorizedProblem'
+        '403':
+          $ref: '#/components/responses/ForbiddenProblem'
+        '404':
+          $ref: '#/components/responses/NotFoundProblem'
+        '409':
+          $ref: '#/components/responses/ConflictProblem'
+        '422':
+          $ref: '#/components/responses/UnprocessableProblem'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailableProblem'
+        '500':
+          $ref: '../../openapi.yaml#/components/responses/InternalServerError'
+
+    get:
+      tags: [MeterBindings]
+      operationId: listMeterBindings
+      summary: List bindings of a meter or of an account
+      description: >-
+        Exactly one of `meterId` and `accountId` is required. Any membership
+        role may read. A meter's history is newest first.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: meterId
+          in: query
+          required: false
+          schema:
+            type: string
+            format: uuid
+        - name: accountId
+          in: query
+          required: false
+          schema:
+            type: string
+            format: uuid
+        - $ref: '../../openapi.yaml#/components/parameters/CorrelationId'
+      responses:
+        '200':
+          description: Matching bindings.
+          headers:
+            X-Correlation-ID:
+              $ref: '../../components/headers/correlation-id.yaml'
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/MeterBinding'
+        '400':
+          $ref: '../../openapi.yaml#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/UnauthorizedProblem'
+        '404':
+          $ref: '#/components/responses/NotFoundProblem'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailableProblem'
+        '500':
+          $ref: '../../openapi.yaml#/components/responses/InternalServerError'
+
+  /api/v1/meter-bindings/{bindingId}:
+    patch:
+      tags: [MeterBindings]
+      operationId: endMeterBinding
+      summary: End a binding
+      description: >-
+        Sets `validTo`, which may not precede `validFrom`. Bindings are never
+        deleted; a supplier switch is ending one binding and creating another,
+        the same day if needed.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: bindingId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - $ref: '../../openapi.yaml#/components/parameters/CorrelationId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EndMeterBindingRequest'
+            example:
+              validTo: '2026-10-31'
+      responses:
+        '200':
+          description: The ended binding.
+          headers:
+            X-Correlation-ID:
+              $ref: '../../components/headers/correlation-id.yaml'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MeterBinding'
+        '400':
+          $ref: '../../openapi.yaml#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/UnauthorizedProblem'
+        '403':
+          $ref: '#/components/responses/ForbiddenProblem'
+        '404':
+          $ref: '#/components/responses/NotFoundProblem'
+        '422':
+          $ref: '#/components/responses/UnprocessableProblem'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailableProblem'
+        '500':
+          $ref: '../../openapi.yaml#/components/responses/InternalServerError'
+
+  /api/v1/submission-windows:
+    get:
+      tags: [SubmissionWindows]
+      operationId: getSubmissionWindows
+      summary: Current and next submission window for a meter
+      description: >-
+        Resolves the binding in force at `at` (default now) and computes the
+        window that contains `at` (if any) and the next one to open. A meter
+        with no binding at `at` is a normal state and answers 200 with an empty
+        object. Any membership role may read.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: meterId
+          in: query
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: at
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date-time
+        - $ref: '../../openapi.yaml#/components/parameters/CorrelationId'
+      responses:
+        '200':
+          description: The meter's windows, or an empty object when no provider is bound.
+          headers:
+            X-Correlation-ID:
+              $ref: '../../components/headers/correlation-id.yaml'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MeterSubmissionWindows'
+        '400':
+          $ref: '../../openapi.yaml#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/UnauthorizedProblem'
+        '404':
+          $ref: '#/components/responses/NotFoundProblem'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailableProblem'
+        '500':
+          $ref: '../../openapi.yaml#/components/responses/InternalServerError'
+
+  # Internal surface: not proxied by the gateway (denyAll on
+  # /api/v1/internal/**) and unauthenticated until A1 (service-to-service
+  # authentication) lands, like the other services' internal endpoints.
+  /api/v1/internal/submission-windows:
+    get:
+      tags: [Internal]
+      operationId: listAccountSubmissionWindows
+      summary: Windows of an account overlapping a time range
+      description: >-
+        Computed with the same window function as the public endpoint, so
+        Reminders never re-implements the calendar rules. Returns every window
+        whose span overlaps [from, to), oldest first.
+      security: []
+      parameters:
+        - name: accountId
+          in: query
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: from
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date-time
+        - name: to
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date-time
+        - $ref: '../../openapi.yaml#/components/parameters/CorrelationId'
+      responses:
+        '200':
+          description: Windows overlapping the range (possibly empty).
+          headers:
+            X-Correlation-ID:
+              $ref: '../../components/headers/correlation-id.yaml'
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/SubmissionWindow'
+        '400':
+          $ref: '../../openapi.yaml#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFoundProblem'
+        '500':
+          $ref: '../../openapi.yaml#/components/responses/InternalServerError'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: >-
+        Access token issued by identity-service. The `roles` claim carries the
+        user's system roles; only `ADMIN` is consulted here, and only for the
+        global catalog.
+
+  parameters:
+    ProviderId:
+      name: providerId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    AccountId:
+      name: accountId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+
+  responses:
+    UnauthorizedProblem:
+      description: No access token was supplied, or it is invalid or expired.
+      headers:
+        X-Correlation-ID:
+          $ref: '../../components/headers/correlation-id.yaml'
+      content:
+        application/problem+json:
+          schema:
+            $ref: '../../openapi.yaml#/components/schemas/Problem'
+          examples:
+            missingToken:
+              summary: No access token was supplied
+              value:
+                type: https://api.meterhub.local/problems/unauthorized
+                title: Authentication required
+                status: 401
+                code: UNAUTHORIZED
+                detail: A valid Bearer access token is required.
+                correlationId: 7d6f5f2c-0a49-4e10-8ef7-7c3d2b1f4a10
+
+    ForbiddenProblem:
+      description: >-
+        The caller is authenticated but lacks the role the action needs: a
+        household VIEWER writing, or a non-administrator touching the global
+        catalog.
+      headers:
+        X-Correlation-ID:
+          $ref: '../../components/headers/correlation-id.yaml'
+      content:
+        application/problem+json:
+          schema:
+            $ref: '../../openapi.yaml#/components/schemas/Problem'
+          examples:
+            forbiddenRole:
+              summary: VIEWER cannot write
+              value:
+                type: https://api.meterhub.local/problems/forbidden-role
+                title: Forbidden for role
+                status: 403
+                code: FORBIDDEN_ROLE
+                detail: The VIEWER role does not allow modifying provider data.
+                correlationId: 7d6f5f2c-0a49-4e10-8ef7-7c3d2b1f4a10
+            forbiddenSystemRole:
+              summary: Only administrators manage the global catalog
+              value:
+                type: https://api.meterhub.local/problems/forbidden-system-role
+                title: Forbidden for system role
+                status: 403
+                code: FORBIDDEN_SYSTEM_ROLE
+                detail: Managing the global provider catalog requires the ADMIN system role.
+                correlationId: 7d6f5f2c-0a49-4e10-8ef7-7c3d2b1f4a10
+
+    NotFoundProblem:
+      description: >-
+        The resource does not exist or is not visible to the caller. Resources
+        of households the caller does not belong to are indistinguishable from
+        missing ones.
+      headers:
+        X-Correlation-ID:
+          $ref: '../../components/headers/correlation-id.yaml'
+      content:
+        application/problem+json:
+          schema:
+            $ref: '../../openapi.yaml#/components/schemas/Problem'
+          examples:
+            providerNotFound:
+              summary: Provider unknown or private to another household
+              value:
+                type: https://api.meterhub.local/problems/provider-not-found
+                title: Provider not found
+                status: 404
+                code: PROVIDER_NOT_FOUND
+                detail: No provider with this identifier is visible to the authenticated user.
+                correlationId: 7d6f5f2c-0a49-4e10-8ef7-7c3d2b1f4a10
+            providerAccountNotFound:
+              summary: Account unknown or in a household the caller cannot see
+              value:
+                type: https://api.meterhub.local/problems/provider-account-not-found
+                title: Provider account not found
+                status: 404
+                code: PROVIDER_ACCOUNT_NOT_FOUND
+                detail: No provider account with this identifier is visible to the authenticated user.
+                correlationId: 7d6f5f2c-0a49-4e10-8ef7-7c3d2b1f4a10
+            meterBindingNotFound:
+              summary: Binding unknown or in a household the caller cannot see
+              value:
+                type: https://api.meterhub.local/problems/meter-binding-not-found
+                title: Meter binding not found
+                status: 404
+                code: METER_BINDING_NOT_FOUND
+                detail: No meter binding with this identifier is visible to the authenticated user.
+                correlationId: 7d6f5f2c-0a49-4e10-8ef7-7c3d2b1f4a10
+            householdNotFound:
+              summary: Household unknown or the caller is not a member
+              value:
+                type: https://api.meterhub.local/problems/household-not-found
+                title: Household not found
+                status: 404
+                code: HOUSEHOLD_NOT_FOUND
+                detail: No household with this identifier is visible to the authenticated user.
+                correlationId: 7d6f5f2c-0a49-4e10-8ef7-7c3d2b1f4a10
+
+    ConflictProblem:
+      description: The request conflicts with the current state.
+      headers:
+        X-Correlation-ID:
+          $ref: '../../components/headers/correlation-id.yaml'
+      content:
+        application/problem+json:
+          schema:
+            $ref: '../../openapi.yaml#/components/schemas/Problem'
+          examples:
+            meterAlreadyBound:
+              summary: The meter already has a binding in the requested period
+              value:
+                type: https://api.meterhub.local/problems/meter-already-bound
+                title: Meter already bound
+                status: 409
+                code: METER_ALREADY_BOUND
+                detail: The meter already has a binding that overlaps the requested period.
+                correlationId: 7d6f5f2c-0a49-4e10-8ef7-7c3d2b1f4a10
+            accountHasActiveBindings:
+              summary: End the account's bindings before archiving it
+              value:
+                type: https://api.meterhub.local/problems/account-has-active-bindings
+                title: Account has active bindings
+                status: 409
+                code: ACCOUNT_HAS_ACTIVE_BINDINGS
+                detail: The account still has open meter bindings; end them before archiving it.
+                correlationId: 7d6f5f2c-0a49-4e10-8ef7-7c3d2b1f4a10
+            providerAlreadyGlobal:
+              summary: The provider is already in the global catalog
+              value:
+                type: https://api.meterhub.local/problems/provider-already-global
+                title: Provider already global
+                status: 409
+                code: PROVIDER_ALREADY_GLOBAL
+                detail: The provider is already part of the global catalog.
+                correlationId: 7d6f5f2c-0a49-4e10-8ef7-7c3d2b1f4a10
+
+    UnprocessableProblem:
+      description: The request is well-formed but violates a business rule.
+      headers:
+        X-Correlation-ID:
+          $ref: '../../components/headers/correlation-id.yaml'
+      content:
+        application/problem+json:
+          schema:
+            $ref: '../../openapi.yaml#/components/schemas/Problem'
+          examples:
+            invalidSubmissionRule:
+              summary: The submission window rule is not valid
+              value:
+                type: https://api.meterhub.local/problems/invalid-submission-rule
+                title: Invalid submission rule
+                status: 422
+                code: INVALID_SUBMISSION_RULE
+                detail: The window is longer than one cycle.
+                correlationId: 7d6f5f2c-0a49-4e10-8ef7-7c3d2b1f4a10
+            householdMismatch:
+              summary: The referenced objects belong to different households
+              value:
+                type: https://api.meterhub.local/problems/household-mismatch
+                title: Household mismatch
+                status: 422
+                code: HOUSEHOLD_MISMATCH
+                detail: The provider is not visible to the account's household.
+                correlationId: 7d6f5f2c-0a49-4e10-8ef7-7c3d2b1f4a10
+            meterNotFound:
+              summary: The meter is unknown or not in the account's household
+              value:
+                type: https://api.meterhub.local/problems/meter-not-found
+                title: Meter not found
+                status: 422
+                code: METER_NOT_FOUND
+                detail: No meter with this identifier exists in the account's household.
+                correlationId: 7d6f5f2c-0a49-4e10-8ef7-7c3d2b1f4a10
+
+    ServiceUnavailableProblem:
+      description: Household Service or Meter Service could not be reached; the request fails closed.
+      headers:
+        X-Correlation-ID:
+          $ref: '../../components/headers/correlation-id.yaml'
+      content:
+        application/problem+json:
+          schema:
+            $ref: '../../openapi.yaml#/components/schemas/Problem'
+          examples:
+            householdServiceUnavailable:
+              summary: The household access check could not be completed
+              value:
+                type: https://api.meterhub.local/problems/household-service-unavailable
+                title: Household service unavailable
+                status: 503
+                code: HOUSEHOLD_SERVICE_UNAVAILABLE
+                detail: The household access check could not be completed.
+                correlationId: 7d6f5f2c-0a49-4e10-8ef7-7c3d2b1f4a10
+
+  schemas:
+    ProviderScope:
+      type: string
+      enum: [GLOBAL, HOUSEHOLD]
+      description: GLOBAL entries form the admin-curated catalog; HOUSEHOLD providers are private to one household.
+
+    SubmissionCycle:
+      type: string
+      enum: [MONTHLY]
+      description: Only monthly windows are accepted for now.
+
+    DayKind:
+      type: string
+      enum: [DAY_OF_MONTH, LAST_DAY]
+
+    DaySpec:
+      type: object
+      additionalProperties: false
+      required: [kind]
+      description: >-
+        A day within the cycle month. DAY_OF_MONTH uses `day` (days beyond the
+        month's length clamp to its last day); LAST_DAY counts back from the
+        last day of the month by `offsetDays` (default 0).
+      properties:
+        kind:
+          $ref: '#/components/schemas/DayKind'
+        day:
+          type: integer
+          minimum: 1
+          maximum: 31
+          description: Required for DAY_OF_MONTH, ignored for LAST_DAY.
+        offsetDays:
+          type: integer
+          minimum: 0
+          maximum: 27
+          description: Used by LAST_DAY (default 0), ignored for DAY_OF_MONTH.
+      example:
+        kind: DAY_OF_MONTH
+        day: 20
+
+    SubmissionRule:
+      type: object
+      additionalProperties: false
+      required: [cycle, opens, closes, timezone]
+      description: >-
+        When readings are due. The window opens at 00:00 on the opening day and
+        closes at the end of the closing day, both in `timezone`. If the closing
+        day falls before the opening day it is the next month's.
+      properties:
+        cycle:
+          $ref: '#/components/schemas/SubmissionCycle'
+        opens:
+          $ref: '#/components/schemas/DaySpec'
+        closes:
+          $ref: '#/components/schemas/DaySpec'
+        timezone:
+          type: string
+          description: IANA time zone name.
+          example: Europe/Kyiv
+      example:
+        cycle: MONTHLY
+        opens: {kind: DAY_OF_MONTH, day: 20}
+        closes: {kind: LAST_DAY, offsetDays: 0}
+        timezone: Europe/Kyiv
+
+    Provider:
+      type: object
+      additionalProperties: false
+      required: [id, scope, name, archived, createdAt, updatedAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        scope:
+          $ref: '#/components/schemas/ProviderScope'
+        householdId:
+          type: string
+          format: uuid
+          nullable: true
+          description: The owning household for HOUSEHOLD providers; null for GLOBAL ones.
+        name:
+          type: string
+        notes:
+          type: string
+          nullable: true
+        defaultRule:
+          allOf:
+            - $ref: '#/components/schemas/SubmissionRule'
+          description: Template copied into new accounts, never a live link. Absent when the provider suggests no window.
+        archived:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    CreateProviderRequest:
+      type: object
+      additionalProperties: false
+      required: [scope, name]
+      properties:
+        scope:
+          $ref: '#/components/schemas/ProviderScope'
+        householdId:
+          type: string
+          format: uuid
+          description: Required for HOUSEHOLD, forbidden for GLOBAL.
+        name:
+          type: string
+          minLength: 1
+          maxLength: 200
+        notes:
+          type: string
+          maxLength: 2000
+        defaultRule:
+          $ref: '#/components/schemas/SubmissionRule'
+
+    UpdateProviderRequest:
+      type: object
+      additionalProperties: false
+      minProperties: 1
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 200
+        notes:
+          type: string
+          maxLength: 2000
+        defaultRule:
+          $ref: '#/components/schemas/SubmissionRule'
+        archived:
+          type: boolean
+
+    ProviderAccount:
+      type: object
+      additionalProperties: false
+      required: [id, providerId, householdId, label, rule, version, archived, createdAt, updatedAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        providerId:
+          type: string
+          format: uuid
+        householdId:
+          type: string
+          format: uuid
+        label:
+          type: string
+        accountNumber:
+          type: string
+          nullable: true
+        rule:
+          $ref: '#/components/schemas/SubmissionRule'
+        version:
+          type: integer
+          description: Incremented on every change to the rule or provider.
+        archived:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    CreateProviderAccountRequest:
+      type: object
+      additionalProperties: false
+      required: [providerId, householdId, label]
+      properties:
+        providerId:
+          type: string
+          format: uuid
+        householdId:
+          type: string
+          format: uuid
+        label:
+          type: string
+          minLength: 1
+          maxLength: 200
+        accountNumber:
+          type: string
+          maxLength: 100
+        rule:
+          $ref: '#/components/schemas/SubmissionRule'
+
+    UpdateProviderAccountRequest:
+      type: object
+      additionalProperties: false
+      minProperties: 1
+      properties:
+        label:
+          type: string
+          minLength: 1
+          maxLength: 200
+        accountNumber:
+          type: string
+          maxLength: 100
+        rule:
+          $ref: '#/components/schemas/SubmissionRule'
+        providerId:
+          type: string
+          format: uuid
+        archived:
+          type: boolean
+
+    MeterBinding:
+      type: object
+      additionalProperties: false
+      required: [id, accountId, householdId, meterId, validFrom, version, createdAt, updatedAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        accountId:
+          type: string
+          format: uuid
+        householdId:
+          type: string
+          format: uuid
+        meterId:
+          type: string
+          format: uuid
+        validFrom:
+          type: string
+          format: date
+        validTo:
+          type: string
+          format: date
+          nullable: true
+          description: Last day the binding applies; null while open-ended.
+        version:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    CreateMeterBindingRequest:
+      type: object
+      additionalProperties: false
+      required: [accountId, meterId]
+      properties:
+        accountId:
+          type: string
+          format: uuid
+        meterId:
+          type: string
+          format: uuid
+        validFrom:
+          type: string
+          format: date
+
+    EndMeterBindingRequest:
+      type: object
+      additionalProperties: false
+      required: [validTo]
+      properties:
+        validTo:
+          type: string
+          format: date
+
+    SubmissionWindow:
+      type: object
+      additionalProperties: false
+      required: [opensAt, closesAt, accountId, providerId]
+      properties:
+        opensAt:
+          type: string
+          format: date-time
+        closesAt:
+          type: string
+          format: date-time
+          description: Exclusive upper bound — the instant after the last moment readings are accepted.
+        accountId:
+          type: string
+          format: uuid
+        providerId:
+          type: string
+          format: uuid
+
+    MeterSubmissionWindows:
+      type: object
+      additionalProperties: false
+      description: Empty when the meter has no binding at the requested time.
+      properties:
+        binding:
+          $ref: '#/components/schemas/MeterBinding'
+        current:
+          allOf:
+            - $ref: '#/components/schemas/SubmissionWindow'
+          description: The window containing the requested time. Absent when none is open.
+        next:
+          $ref: '#/components/schemas/SubmissionWindow'
