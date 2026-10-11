@@ -20,6 +20,9 @@ model Meter {
   status       MeterStatus @default(ACTIVE)
   createdAt    DateTime    @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt    DateTime    @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  // Actors (JWT subject) for audit — backlog D1. Null for pre-D1 rows.
+  createdBy    String?     @map("created_by") @db.Uuid
+  updatedBy    String?     @map("updated_by") @db.Uuid
 
   @@index([householdId])
   // A manufacturer serial number identifies one physical meter, so a household

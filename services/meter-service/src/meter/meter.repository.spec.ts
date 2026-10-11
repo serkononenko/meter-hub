@@ -29,6 +29,8 @@ function repositoryWith(delegate: ReturnType<typeof prismaStub>) {
     return new MeterRepository(delegate as unknown as PrismaService);
 }
 
+const ACTOR = '9d1f3b52-7c64-4e0a-8a2d-1f6b0c3e5a77';
+
 describe('PrismaMeterRepository', () => {
     it('persists a meter without overwriting generated timestamps', async () => {
         const delegate = prismaStub();
@@ -44,10 +46,14 @@ describe('PrismaMeterRepository', () => {
             status: MeterStatus.ACTIVE,
             createdAt: METER_ROW.createdAt.toISOString(),
             updatedAt: METER_ROW.createdAt.toISOString(),
-        });
+        }, ACTOR);
 
         expect(delegate.meter.create).toHaveBeenCalledWith({
             data: expect.not.objectContaining({updatedAt: expect.anything()}),
+            select: expect.anything(),
+        });
+        expect(delegate.meter.create).toHaveBeenCalledWith({
+            data: expect.objectContaining({createdBy: ACTOR, updatedBy: ACTOR}),
             select: expect.anything(),
         });
         expect(meter).toMatchObject({

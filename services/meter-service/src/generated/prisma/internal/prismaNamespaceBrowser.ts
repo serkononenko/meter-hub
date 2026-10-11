@@ -79,7 +79,9 @@ export const MeterScalarFieldEnum = {
   unit: 'unit',
   status: 'status',
   createdAt: 'createdAt',
-  updatedAt: 'updatedAt'
+  updatedAt: 'updatedAt',
+  createdBy: 'createdBy',
+  updatedBy: 'updatedBy'
 } as const
 
 export type MeterScalarFieldEnum = (typeof MeterScalarFieldEnum)[keyof typeof MeterScalarFieldEnum]
@@ -99,4 +101,12 @@ export const QueryMode = {
 } as const
 
 export type QueryMode = (typeof QueryMode)[keyof typeof QueryMode]
+
+
+export const NullsOrder = {
+  first: 'first',
+  last: 'last'
+} as const
+
+export type NullsOrder = (typeof NullsOrder)[keyof typeof NullsOrder]
 

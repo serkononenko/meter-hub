@@ -10,6 +10,7 @@ interface MeterUpdate {
     serialNumber?: string;
     unit?: MeterRow['unit'];
     status?: MeterRow['status'];
+    updatedBy?: string;
 }
 
 const METER_SELECT = {
@@ -29,7 +30,7 @@ export class MeterRepository {
     constructor(private readonly prisma: PrismaService) {
     }
 
-    async save(meter: Meter): Promise<Meter> {
+    async save(meter: Meter, createdBy: string): Promise<Meter> {
         const row = await this.prisma.meter.create({
             data: {
                 id: meter.id,
@@ -40,6 +41,8 @@ export class MeterRepository {
                 unit: meter.unit,
                 status: meter.status,
                 createdAt: meter.createdAt,
+                createdBy,
+                updatedBy: createdBy,
             },
             select: METER_SELECT,
         });
@@ -70,7 +73,9 @@ export class MeterRepository {
     }
 }
 
-function toMeter(row: MeterRow): Meter {
+type SelectedMeter = Prisma.MeterGetPayload<{ select: typeof METER_SELECT }>;
+
+function toMeter(row: SelectedMeter): Meter {
     return {
         id: row.id,
         householdId: row.householdId,

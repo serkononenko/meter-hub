@@ -27,9 +27,10 @@ export class MeterService extends MetersApi {
 
     async createMeter(payload: CreateMeterRequest, _correlationId?: string, request?: Request) {
         const command = plainToInstance(CreateMeterCommand, payload);
+        const actorId = getAuthenticatedUser(request).userId;
 
         await this.validate(command);
-        await this.canWrite(command.householdId, request);
+        await this.canWrite(command.householdId, actorId);
 
         return this.guardSerialConflict(() => this.repository.save({
             id: crypto.randomUUID(),
@@ -41,7 +42,7 @@ export class MeterService extends MetersApi {
             status: 'ACTIVE',
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString()
-        }), command.serialNumber);
+        }, actorId), command.serialNumber);
     }
 
     async getMeter(meterId: string, _correlationId?: string, request?: Request) {
@@ -54,7 +55,7 @@ export class MeterService extends MetersApi {
         }
 
         try {
-            await this.canRead(meter.householdId, request);
+            await this.canRead(meter.householdId, getAuthenticatedUser(request).userId);
         } catch (error) {
             if (error instanceof HouseholdNotFoundException) {
                 throw new MeterNotFoundException(meterId);
@@ -70,7 +71,7 @@ export class MeterService extends MetersApi {
     async listMeters(householdId: string, _correlationId?: string, request?: Request) {
         this.requireNotEmpty(householdId);
 
-        await this.canRead(householdId, request);
+        await this.canRead(householdId, getAuthenticatedUser(request).userId);
 
         return this.repository.findByHouseholdId(householdId);
     }
@@ -79,13 +80,14 @@ export class MeterService extends MetersApi {
         this.requireNotEmpty(meterId);
 
         const command = plainToInstance(UpdateMeterCommand, payload);
+        const actorId = getAuthenticatedUser(request).userId;
 
         await this.validate(command);
 
         const prevMeter = await this.getMeter(meterId, _correlationId, request);
 
         try {
-            await this.canWrite(prevMeter.householdId, request);
+            await this.canWrite(prevMeter.householdId, actorId);
         } catch (error) {
             if (error instanceof HouseholdNotFoundException) {
                 throw new MeterNotFoundException(meterId);
@@ -94,7 +96,7 @@ export class MeterService extends MetersApi {
         }
 
         const meter = await this.guardSerialConflict(
-            () => this.repository.update(prevMeter.id, command),
+            () => this.repository.update(prevMeter.id, {...command, updatedBy: getAuthenticatedUser(request).userId}),
             command.serialNumber ?? '',
         );
 
@@ -116,12 +118,12 @@ export class MeterService extends MetersApi {
         }
     }
 
-    private canRead(householdId: string, request?: Request): Promise<void> {
-        return this.householdAccess.assertCanRead(householdId, getAuthenticatedUser(request).userId);
+    private canRead(householdId: string, actorId: string): Promise<void> {
+        return this.householdAccess.assertCanRead(householdId, actorId);
     }
 
-    private canWrite(householdId: string, request?: Request): Promise<void> {
-        return this.householdAccess.assertCanWrite(householdId, getAuthenticatedUser(request).userId);
+    private canWrite(householdId: string, actorId: string): Promise<void> {
+        return this.householdAccess.assertCanWrite(householdId, actorId);
     }
 
     private async validate(command: Object) {

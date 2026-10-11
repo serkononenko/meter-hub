@@ -36,6 +36,8 @@ export type MeterMinAggregateOutputType = {
   status: $Enums.MeterStatus | null
   createdAt: Date | null
   updatedAt: Date | null
+  createdBy: string | null
+  updatedBy: string | null
 }
 
 export type MeterMaxAggregateOutputType = {
@@ -48,6 +50,8 @@ export type MeterMaxAggregateOutputType = {
   status: $Enums.MeterStatus | null
   createdAt: Date | null
   updatedAt: Date | null
+  createdBy: string | null
+  updatedBy: string | null
 }
 
 export type MeterCountAggregateOutputType = {
@@ -60,6 +64,8 @@ export type MeterCountAggregateOutputType = {
   status: number
   createdAt: number
   updatedAt: number
+  createdBy: number
+  updatedBy: number
   _all: number
 }
 
@@ -74,6 +80,8 @@ export type MeterMinAggregateInputType = {
   status?: true
   createdAt?: true
   updatedAt?: true
+  createdBy?: true
+  updatedBy?: true
 }
 
 export type MeterMaxAggregateInputType = {
@@ -86,6 +94,8 @@ export type MeterMaxAggregateInputType = {
   status?: true
   createdAt?: true
   updatedAt?: true
+  createdBy?: true
+  updatedBy?: true
 }
 
 export type MeterCountAggregateInputType = {
@@ -98,6 +108,8 @@ export type MeterCountAggregateInputType = {
   status?: true
   createdAt?: true
   updatedAt?: true
+  createdBy?: true
+  updatedBy?: true
   _all?: true
 }
 
@@ -183,6 +195,8 @@ export type MeterGroupByOutputType = {
   status: $Enums.MeterStatus
   createdAt: Date
   updatedAt: Date
+  createdBy: string | null
+  updatedBy: string | null
   _count: MeterCountAggregateOutputType | null
   _min: MeterMinAggregateOutputType | null
   _max: MeterMaxAggregateOutputType | null
@@ -216,6 +230,8 @@ export type MeterWhereInput = {
   status?: Prisma.EnumMeterStatusFilter<"Meter"> | $Enums.MeterStatus
   createdAt?: Prisma.DateTimeFilter<"Meter"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Meter"> | Date | string
+  createdBy?: Prisma.UuidNullableFilter<"Meter"> | string | null
+  updatedBy?: Prisma.UuidNullableFilter<"Meter"> | string | null
 }
 
 export type MeterOrderByWithRelationInput = {
@@ -228,6 +244,8 @@ export type MeterOrderByWithRelationInput = {
   status?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  createdBy?: Prisma.SortOrderInput | Prisma.SortOrder
+  updatedBy?: Prisma.SortOrderInput | Prisma.SortOrder
 }
 
 export type MeterWhereUniqueInput = Prisma.AtLeast<{
@@ -244,6 +262,8 @@ export type MeterWhereUniqueInput = Prisma.AtLeast<{
   status?: Prisma.EnumMeterStatusFilter<"Meter"> | $Enums.MeterStatus
   createdAt?: Prisma.DateTimeFilter<"Meter"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Meter"> | Date | string
+  createdBy?: Prisma.UuidNullableFilter<"Meter"> | string | null
+  updatedBy?: Prisma.UuidNullableFilter<"Meter"> | string | null
 }, "id" | "householdId_serialNumber">
 
 export type MeterOrderByWithAggregationInput = {
@@ -256,6 +276,8 @@ export type MeterOrderByWithAggregationInput = {
   status?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  createdBy?: Prisma.SortOrderInput | Prisma.SortOrder
+  updatedBy?: Prisma.SortOrderInput | Prisma.SortOrder
   _count?: Prisma.MeterCountOrderByAggregateInput
   _max?: Prisma.MeterMaxOrderByAggregateInput
   _min?: Prisma.MeterMinOrderByAggregateInput
@@ -274,6 +296,8 @@ export type MeterScalarWhereWithAggregatesInput = {
   status?: Prisma.EnumMeterStatusWithAggregatesFilter<"Meter"> | $Enums.MeterStatus
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"Meter"> | Date | string
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<"Meter"> | Date | string
+  createdBy?: Prisma.UuidNullableWithAggregatesFilter<"Meter"> | string | null
+  updatedBy?: Prisma.UuidNullableWithAggregatesFilter<"Meter"> | string | null
 }
 
 export type MeterCreateInput = {
@@ -286,6 +310,8 @@ export type MeterCreateInput = {
   status?: $Enums.MeterStatus
   createdAt?: Date | string
   updatedAt?: Date | string
+  createdBy?: string | null
+  updatedBy?: string | null
 }
 
 export type MeterUncheckedCreateInput = {
@@ -298,6 +324,8 @@ export type MeterUncheckedCreateInput = {
   status?: $Enums.MeterStatus
   createdAt?: Date | string
   updatedAt?: Date | string
+  createdBy?: string | null
+  updatedBy?: string | null
 }
 
 export type MeterUpdateInput = {
@@ -310,6 +338,8 @@ export type MeterUpdateInput = {
   status?: Prisma.EnumMeterStatusFieldUpdateOperationsInput | $Enums.MeterStatus
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  createdBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  updatedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 export type MeterUncheckedUpdateInput = {
@@ -322,6 +352,8 @@ export type MeterUncheckedUpdateInput = {
   status?: Prisma.EnumMeterStatusFieldUpdateOperationsInput | $Enums.MeterStatus
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  createdBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  updatedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 export type MeterCreateManyInput = {
@@ -334,6 +366,8 @@ export type MeterCreateManyInput = {
   status?: $Enums.MeterStatus
   createdAt?: Date | string
   updatedAt?: Date | string
+  createdBy?: string | null
+  updatedBy?: string | null
 }
 
 export type MeterUpdateManyMutationInput = {
@@ -346,6 +380,8 @@ export type MeterUpdateManyMutationInput = {
   status?: Prisma.EnumMeterStatusFieldUpdateOperationsInput | $Enums.MeterStatus
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  createdBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  updatedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 export type MeterUncheckedUpdateManyInput = {
@@ -358,6 +394,8 @@ export type MeterUncheckedUpdateManyInput = {
   status?: Prisma.EnumMeterStatusFieldUpdateOperationsInput | $Enums.MeterStatus
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  createdBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  updatedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 export type MeterHouseholdIdSerialNumberCompoundUniqueInput = {
@@ -375,6 +413,8 @@ export type MeterCountOrderByAggregateInput = {
   status?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  createdBy?: Prisma.SortOrder
+  updatedBy?: Prisma.SortOrder
 }
 
 export type MeterMaxOrderByAggregateInput = {
@@ -387,6 +427,8 @@ export type MeterMaxOrderByAggregateInput = {
   status?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  createdBy?: Prisma.SortOrder
+  updatedBy?: Prisma.SortOrder
 }
 
 export type MeterMinOrderByAggregateInput = {
@@ -399,6 +441,8 @@ export type MeterMinOrderByAggregateInput = {
   status?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  createdBy?: Prisma.SortOrder
+  updatedBy?: Prisma.SortOrder
 }
 
 export type StringFieldUpdateOperationsInput = {
@@ -421,6 +465,10 @@ export type DateTimeFieldUpdateOperationsInput = {
   set?: Date | string
 }
 
+export type NullableStringFieldUpdateOperationsInput = {
+  set?: string | null
+}
+
 
 
 export type MeterSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
@@ -433,6 +481,8 @@ export type MeterSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = 
   status?: boolean
   createdAt?: boolean
   updatedAt?: boolean
+  createdBy?: boolean
+  updatedBy?: boolean
 }, ExtArgs["result"]["meter"]>
 
 export type MeterSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
@@ -445,6 +495,8 @@ export type MeterSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensi
   status?: boolean
   createdAt?: boolean
   updatedAt?: boolean
+  createdBy?: boolean
+  updatedBy?: boolean
 }, ExtArgs["result"]["meter"]>
 
 export type MeterSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
@@ -457,6 +509,8 @@ export type MeterSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensi
   status?: boolean
   createdAt?: boolean
   updatedAt?: boolean
+  createdBy?: boolean
+  updatedBy?: boolean
 }, ExtArgs["result"]["meter"]>
 
 export type MeterSelectScalar = {
@@ -469,9 +523,11 @@ export type MeterSelectScalar = {
   status?: boolean
   createdAt?: boolean
   updatedAt?: boolean
+  createdBy?: boolean
+  updatedBy?: boolean
 }
 
-export type MeterOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "householdId" | "type" | "name" | "serialNumber" | "unit" | "status" | "createdAt" | "updatedAt", ExtArgs["result"]["meter"]>
+export type MeterOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "householdId" | "type" | "name" | "serialNumber" | "unit" | "status" | "createdAt" | "updatedAt" | "createdBy" | "updatedBy", ExtArgs["result"]["meter"]>
 
 export type $MeterPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "Meter"
@@ -486,6 +542,8 @@ export type $MeterPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs 
     status: $Enums.MeterStatus
     createdAt: Date
     updatedAt: Date
+    createdBy: string | null
+    updatedBy: string | null
   }, ExtArgs["result"]["meter"]>
   composites: {}
 }
@@ -918,6 +976,8 @@ export interface MeterFieldRefs {
   readonly status: Prisma.FieldRef<"Meter", 'MeterStatus'>
   readonly createdAt: Prisma.FieldRef<"Meter", 'DateTime'>
   readonly updatedAt: Prisma.FieldRef<"Meter", 'DateTime'>
+  readonly createdBy: Prisma.FieldRef<"Meter", 'String'>
+  readonly updatedBy: Prisma.FieldRef<"Meter", 'String'>
 }
     
 

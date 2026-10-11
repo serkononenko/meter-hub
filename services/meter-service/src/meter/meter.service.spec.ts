@@ -102,6 +102,7 @@ describe('MeterService', () => {
         expect(household.assertCanWrite).toHaveBeenCalledWith(HOUSEHOLD, USER_ID)
         expect(repository.save).toHaveBeenCalledWith(
             expect.objectContaining({householdId: HOUSEHOLD, serialNumber: METER.serialNumber}),
+            USER_ID,
         );
         expect(created.id).toBe(METER.id);
     });
@@ -163,7 +164,7 @@ describe('MeterService', () => {
 
         await service.updateMeter(METER.id, {status: 'ARCHIVED'}, undefined, REQUEST);
 
-        expect(repository.update).toHaveBeenCalledWith(METER.id, {status: 'ARCHIVED'});
+        expect(repository.update).toHaveBeenCalledWith(METER.id, {status: 'ARCHIVED', updatedBy: USER_ID});
     });
 
     it('refuses updating a meter that does not exist', async () => {
