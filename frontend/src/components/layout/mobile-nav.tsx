@@ -12,6 +12,8 @@ import Typography from "@mui/material/Typography";
 import type {NavItemConfig} from "@/types/nav";
 import {paths} from "@/paths";
 import {isNavItemActive} from "@/lib/is-nav-item-active";
+import {useAuth} from "@/contexts/auth-context";
+import {isAdmin} from "@/lib/auth/roles";
 
 import {navItems} from "./config";
 import {navIcons} from "./nav-icons";
@@ -24,6 +26,8 @@ export interface MobileNavProps {
 /** Drawer navigation shown below the `lg` breakpoint, ported from the Devias Kit. */
 export function MobileNav({open, onClose}: MobileNavProps): React.JSX.Element {
   const pathname = usePathname();
+  const {user} = useAuth();
+  const visibleNavItems = navItems.filter((item) => !item.adminOnly || isAdmin(user));
 
   return (
     <Drawer
@@ -67,7 +71,7 @@ export function MobileNav({open, onClose}: MobileNavProps): React.JSX.Element {
       </Stack>
       <Divider sx={{borderColor: "var(--mui-palette-neutral-700)"}} />
       <Box component="nav" sx={{flex: "1 1 auto", p: "12px"}}>
-        {renderNavItems({pathname, items: navItems})}
+        {renderNavItems({pathname, items: visibleNavItems})}
       </Box>
     </Drawer>
   );

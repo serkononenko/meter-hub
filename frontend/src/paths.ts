@@ -5,6 +5,7 @@ export const paths = {
   /** Post-login landing view. */
   households: "/households",
   settings: "/settings",
+  catalog: "/catalog",
   errors: {notFound: "/errors/not-found"},
 } as const;
 

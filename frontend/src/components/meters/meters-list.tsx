@@ -20,11 +20,15 @@ import {
 } from "@/lib/api/generated/meter-service";
 import type {Meter} from "@/lib/api/generated/meter-service/model";
 import {useGetLatestReading} from "@/lib/api/generated/reading-service";
+import {useGetSubmissionWindows} from "@/lib/api/generated/provider-service";
 import {meterStatusLabels, meterTypeLabels, formatReadingValue} from "@/lib/meters/labels";
 import {meterTypeColor} from "@/theme/meter-type-colors";
+import LinkIcon from "@mui/icons-material/Link";
 
 import {ReadingsHistory} from "@/components/readings/readings-history";
 import {ReadingCreateDialog} from "@/components/readings/reading-create-dialog";
+import {SubmissionWindowCard} from "@/components/providers/submission-window-card";
+import {MeterBindingDialog} from "@/components/providers/meter-binding-card";
 import {MeterCreateDialog} from "./meter-create-dialog";
 import {MeterEditDialog} from "./meter-edit-dialog";
 
@@ -118,6 +122,8 @@ export function MetersList({canWrite = true, householdId}: MetersListProps): Rea
 function MeterCard({canWrite, meter, onEdit}: {canWrite: boolean; meter: Meter; onEdit: () => void}): React.JSX.Element {
   const [recordOpen, setRecordOpen] = React.useState(false);
   const [historyOpen, setHistoryOpen] = React.useState(false);
+  const [bindingOpen, setBindingOpen] = React.useState(false);
+  const [currentBindingId, setCurrentBindingId] = React.useState<string | null>(null);
 
   return (
     <Card sx={{borderLeft: "3px solid", borderLeftColor: meterTypeColor(meter.type)}}>
@@ -136,6 +142,7 @@ function MeterCard({canWrite, meter, onEdit}: {canWrite: boolean; meter: Meter; 
             </Box>
           </Typography>
           <LatestReading meterId={meter.id} unit={meter.unit} />
+          {meter.status === "ACTIVE" ? <SubmissionWindowCard meterId={meter.id} /> : null}
           <ReadingsHistory meter={meter} open={historyOpen} />
         </Stack>
       </CardContent>
@@ -163,8 +170,42 @@ function MeterCard({canWrite, meter, onEdit}: {canWrite: boolean; meter: Meter; 
           </Button>
         ) : null}
       </CardActions>
+      {canWrite && meter.status === "ACTIVE" ? (
+        <CardActions sx={{pt: 0}}>
+          <MeterBindingAction meter={meter} onClick={() => setBindingOpen(true)} onBinding={setCurrentBindingId} />
+        </CardActions>
+      ) : null}
       <ReadingCreateDialog meter={meter} onClose={() => setRecordOpen(false)} open={recordOpen} />
+      <MeterBindingDialog
+        currentBindingId={currentBindingId}
+        key={currentBindingId ?? "unbound"}
+        meter={meter}
+        onClose={() => setBindingOpen(false)}
+        open={bindingOpen}
+      />
     </Card>
+  );
+}
+
+/**
+ * Provider link action for a meter: "Link provider" while unbound,
+ * "End link" while bound. The current binding comes from the same
+ * windows query that drives the window display.
+ */
+function MeterBindingAction({meter, onBinding, onClick}: {meter: Meter; onBinding: (bindingId: string | null) => void; onClick: () => void}): React.JSX.Element {
+  const windowsQuery = useGetSubmissionWindows({meterId: meter.id});
+  const response = windowsQuery.data;
+  const binding =
+    response && !isErrorResponse(response) ? response.data.binding : undefined;
+
+  React.useEffect(() => {
+    onBinding(binding?.id ?? null);
+  }, [binding?.id, onBinding]);
+
+  return (
+    <Button onClick={onClick} size="small" startIcon={<LinkIcon />}>
+      {binding ? "End provider link" : "Link provider"}
+    </Button>
   );
 }
 

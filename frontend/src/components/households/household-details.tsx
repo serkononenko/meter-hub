@@ -14,6 +14,7 @@ import {isErrorResponse, problemMessage} from "@/lib/api/problems";
 import {useGetHousehold} from "@/lib/api/generated/household-service";
 import {householdRoleLabels} from "@/lib/households/labels";
 import {MetersList} from "@/components/meters/meters-list";
+import {ProviderAccountsPanel} from "@/components/providers/provider-accounts-panel";
 import {MembersPanel} from "./members-panel";
 
 function formatDate(value: string): string {
@@ -85,6 +86,7 @@ export function HouseholdDetails(): React.JSX.Element {
         </CardContent>
       </Card>
       <MetersList canWrite={household.role !== "VIEWER"} householdId={household.id} />
+      <ProviderAccountsPanel canWrite={household.role !== "VIEWER"} householdId={household.id} />
       {isOwner ? <MembersPanel householdId={household.id} /> : null}
     </Stack>
   );
