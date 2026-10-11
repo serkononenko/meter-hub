@@ -290,7 +290,71 @@ simply do not exist from their point of view. The e2e journey test
 (`node --test e2e/journey.e2e.test.mjs`) asserts all of the above
 continuously.
 
-## 10. Typical errors
+## 10. Providers — catalog, accounts, windows
+
+The provider flow links a meter to a utility provider and tells the household
+when readings are due.
+
+Admins curate the global catalog (see "To become an administrator" above):
+
+```bash
+curl -sS -X POST "$GATEWAY/api/provider-service/api/v1/providers" \
+  -H "Authorization: Bearer $ADMIN_TOKEN" -H 'Content-Type: application/json' \
+  -d '{
+    "scope": "GLOBAL",
+    "name": "City Power",
+    "defaultRule": {
+      "cycle": "MONTHLY",
+      "opens": {"kind": "DAY_OF_MONTH", "day": 20},
+      "closes": {"kind": "LAST_DAY", "offsetDays": 0},
+      "timezone": "Europe/Kyiv"
+    }
+  }'
+```
+
+A household member creates an account at a provider — the provider's default
+rule is copied when the request omits `rule`:
+
+```bash
+curl -sS -X POST "$GATEWAY/api/provider-service/api/v1/provider-accounts" \
+  -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' \
+  -d '{"providerId":"<providerId>","householdId":"<householdId>","label":"Flat 12"}'
+```
+
+Then binds a meter to the account (`validFrom` defaults to today):
+
+```bash
+curl -sS -X POST "$GATEWAY/api/provider-service/api/v1/meter-bindings" \
+  -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' \
+  -d '{"accountId":"<accountId>","meterId":"<meterId>"}'
+```
+
+From then on the meter has submission windows:
+
+```bash
+curl -sS "$GATEWAY/api/provider-service/api/v1/submission-windows?meterId=<meterId>" \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+```json
+{
+  "binding": { "id": "…", "accountId": "…", "validFrom": "2026-10-11", "validTo": null },
+  "current": {
+    "opensAt": "2026-10-20T00:00:00+03:00",
+    "closesAt": "2026-11-01T00:00:00+03:00",
+    "accountId": "…", "providerId": "…"
+  },
+  "next": { "…": "…" }
+}
+```
+
+An empty object means no binding is in force for the meter. Households can
+also add their own private providers (`"scope": "HOUSEHOLD"`), rename or
+archive providers and accounts, and end a binding with
+`PATCH /api/v1/meter-bindings/{bindingId}` (`{"validTo": "…"}`) before
+rebinding — a supplier switch keeps both binding rows.
+
+## 11. Typical errors
 
 | Status | `code` | When |
 |---|---|---|
@@ -300,16 +364,26 @@ continuously.
 | 401 | `INVALID_CREDENTIALS` | login with wrong password or unknown email |
 | 401 | `INVALID_REFRESH_TOKEN` | unknown, consumed or revoked refresh token |
 | 403 | `HOUSEHOLD_ACCESS_DENIED` | authenticated, but not the owner of the household (member management, invites) |
-| 403 | `FORBIDDEN_ROLE` | VIEWER attempting a meter or reading write |
+| 403 | `FORBIDDEN_ROLE` | VIEWER attempting a meter, reading, provider or binding write |
+| 403 | `FORBIDDEN_SYSTEM_ROLE` | non-admin attempting a global catalog write (create/edit/promote) |
 | 404 | `METER_NOT_FOUND` / `HOUSEHOLD_NOT_FOUND` / `READING_NOT_FOUND` | unknown, other user's resource, or a household you have no membership in |
+| 404 | `PROVIDER_NOT_FOUND` / `PROVIDER_ACCOUNT_NOT_FOUND` / `METER_BINDING_NOT_FOUND` | unknown provider resource, or a private one owned by another household |
 | 404 | `INVITE_NOT_FOUND` | unknown or revoked invitation code |
 | 409 | `EMAIL_ALREADY_EXISTS` / `USERNAME_ALREADY_EXISTS` | duplicate registration |
 | 409 | `METER_SERIAL_NUMBER_CONFLICT` | duplicate serial in the same household |
 | 409 | `INVITE_ALREADY_USED` | invitation code redeemed a second time |
 | 409 | `OWNER_CANNOT_BE_REMOVED` | removing the household owner (including self-removal) |
+| 409 | `PROVIDER_ALREADY_GLOBAL` | promoting a provider that is already in the catalog |
+| 409 | `METER_ALREADY_BOUND` | a binding overlapping the requested period already exists |
+| 409 | `PROVIDER_ARCHIVED` / `ACCOUNT_ARCHIVED` | choosing an archived provider/account (existing links keep working) |
+| 409 | `BINDING_ALREADY_ENDED` | ending a binding that already has a `validTo` |
 | 410 | `INVITE_EXPIRED` | invitation code past its 7-day expiry |
 | 422 | `READING_DECREASING` | reading lower than the newest one |
-| 503 | `HOUSEHOLD_SERVICE_UNAVAILABLE` | meter/reading ownership check could not reach the household service (fail closed) |
+| 422 | `INVALID_SUBMISSION_RULE` | rule leaves no gap between consecutive windows |
+| 422 | `INVALID_BINDING_PERIOD` | `validTo` before the binding's `validFrom` |
+| 422 | `HOUSEHOLD_MISMATCH` | binding a meter to an account of another household |
+| 503 | `HOUSEHOLD_SERVICE_UNAVAILABLE` | meter/reading/provider ownership check could not reach the household service (fail closed) |
+| 503 | `METER_SERVICE_UNAVAILABLE` | provider ownership check could not reach the meter service (fail closed) |
 
 Every error body carries `correlationId`; include it (or send your own
 `X-Correlation-ID` header) when grepping `docker compose logs` for a failure.

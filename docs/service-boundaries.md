@@ -52,7 +52,8 @@ API Gateway
    ├── Identity Service
    ├── Household Service
    ├── Meter Service
-   └── Reading Service
+   ├── Reading Service
+   └── Provider Service
 ```
 
 ## Core Principles
@@ -94,8 +95,15 @@ Reading Service
     Kafka
       │
       ├── Notification Service
-      ├── Analytics Service
-      └── Provider Service
+      └── Analytics Service
+
+Provider Service
+      │
+      │ ProviderBindingChanged
+      ▼
+    Kafka
+      │
+      └── Notification Service
 ```
 
 ---
@@ -195,8 +203,8 @@ SystemRole
 Identity owns platform-level roles only: `USER` (every account) and `ADMIN`.
 They are issued as a `roles` claim in the access token, and `GET /users/me`
 returns them. `ADMIN` is declared by deployment (`IDENTITY_ADMIN_USER_IDS`, user
-IDs reconciled at startup); its planned use is managing the global provider
-catalog (Provider Service), and nothing consumes the claim yet.
+IDs reconciled at startup); it gates global provider catalog writes in Provider
+Service.
 
 System roles are distinct from household membership roles
 (`OWNER` / `MEMBER` / `VIEWER`), which Household Service owns. An `ADMIN` has no
@@ -506,37 +514,91 @@ notification-db
 
 ---
 
-# 7. Provider Service — Future
+# 7. Provider Service
 
-**Status:** Planned, not part of MVP.
+**Technology:** NestJS + Prisma (port 8086)
 
 ### Responsibility
 
-Manage utility providers and integrations used to submit readings.
+Own the provider catalog and each household's link from its meters to utility
+providers. It answers two questions:
+
+- *Who supplies this household?* — the provider catalog (global providers
+  curated by system admins) plus household-private providers members add
+  themselves.
+- *When are readings due?* — per-account submission rules (monthly cycles with
+  open/close day specs and an IANA timezone), resolved into current/next
+  submission windows for any bound meter.
 
 ### Owned Data
 
 ```text
-Provider
-ProviderAccount
-ProviderIntegration
+provider_db
+├── Provider            (catalog or household-private; defaultRule; archivedAt)
+├── ProviderAccount     (household's account at a provider; effective rule)
+├── MeterBinding        (meter ↔ account link with validFrom/validTo)
+└── ProviderOutbox      (event relay, same pattern as Reading Service)
 ```
 
-### Example Architecture
+### System Roles
+
+Global catalog writes (create, edit, archive, promote) require the ADMIN
+system role — a platform-level role from Identity Service, distinct from any
+household role. A household OWNER is not a system admin.
+
+Household-private providers and accounts follow household roles: MEMBER+
+writes, VIEWER read-only. An ADMIN outside the household gets the same 404 a
+stranger gets — the admin role does not pierce household walls for reads.
+
+### Example Model
 
 ```text
-                   Provider Service
-                          │
-              ┌───────────┼───────────┐
-              ▼           ▼           ▼
-          Provider A  Provider B   Custom HTTP
+MeterBinding
+├── id
+├── accountId        → ProviderAccount
+├── meterId          (verified against Meter Service at bind time)
+├── householdId
+├── validFrom        (inclusive)
+├── validTo          (inclusive; null = open-ended)
+└── version          (snapshot counter, bumped on every change)
 ```
 
-### Important Boundary
+### API
 
-Meter Service should not know how a reading is submitted to a specific utility provider.
+```text
+POST   /api/v1/providers                        create catalog (ADMIN) or private provider
+GET    /api/v1/providers                        visible providers (catalog, own private)
+PATCH  /api/v1/providers/{id}                   edit / archive / restore
+POST   /api/v1/providers/{id}/promote           private → global (ADMIN)
+POST   /api/v1/provider-accounts                account (rule defaults to provider's)
+GET    /api/v1/provider-accounts?householdId=   household's accounts
+POST   /api/v1/meter-bindings                   bind meter to account
+PATCH  /api/v1/meter-bindings/{bindingId}       end binding (validTo)
+GET    /api/v1/submission-windows?meterId=      current/next window for a meter
+```
 
-Provider Service owns provider-specific integration logic.
+### Events (outbox → Kafka)
+
+Full-state snapshots, keyed for per-aggregate ordering; consumers discard a
+snapshot whose version is not newer than the one they hold (contracts under
+`contracts/events/provider/`):
+
+- `provider.account.changed` — keyed by accountId (rule, archive state)
+- `provider.binding.changed` — keyed by meterId (binding period, version)
+
+### Boundary
+
+Meter Service never learns provider specifics: it stores meters and verifies
+ownership when Provider Service resolves a meter at bind/list/window time.
+A meter with a provider link looks exactly like one without — the link lives
+in provider_db, and the Meter Service schema has no provider columns.
+
+Provider Service knows meter *ownership* but never reading *values*; readings
+stay in Reading Service. Submission windows say *when* a reading is due, not
+*whether* one arrived.
+
+Direct provider integrations (submitting to the utility's API) remain future
+work; they belong here when they come, not in Meter or Reading Service.
 
 ---
 
@@ -602,7 +664,8 @@ The Reading Service should remain independent of the physical device implementat
 | Reminder | Notification Service |
 | Notification | Notification Service |
 | Provider | Provider Service |
-| Provider Credentials | Provider Service |
+| Provider Account | Provider Service |
+| Meter Binding | Provider Service |
 | Device | Device Service |
 
 ---
@@ -643,13 +706,20 @@ Example:
 ```text
 Reading Service
       │
-      │ ReadingCreated
+      │ meter.reading.created
       ▼
     Kafka
       │
       ├── Notification Service
-      ├── Provider Service
       └── Analytics Service
+
+Provider Service
+      │
+      │ provider.account.changed / provider.binding.changed
+      ▼
+    Kafka
+      │
+      └── Notification Service (reminders when a window is about to close)
 ```
 
 The producer should not need to know which consumers exist.
@@ -761,7 +831,7 @@ Async Architecture
  └── Notification
         │
         ▼
-Provider Integration
+Provider Core (done) — direct utility integrations remain future
  │
  └── Provider Service
         │
@@ -789,6 +859,6 @@ Observability / Platform
 5. Household owns household membership.
 6. Meter owns meters, but not readings.
 7. Reading owns readings and reading history.
-8. Provider owns provider-specific submission logic.
+8. Provider owns the provider catalog, account links and submission windows — never reading values.
 9. Device owns device-specific ingestion concerns.
 10. Cross-service interactions should use APIs or events, never shared database access.

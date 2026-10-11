@@ -100,8 +100,8 @@ meter-hub/
 ├── contracts/
 │   ├── openapi/           # root + per-service OpenAPI contracts
 │   └── events/
-├── e2e/
-│   └── journey.e2e.test.mjs
+├── e2e/                   # gateway-driven journey tests: journey, roles,
+│                          # async-backbone, providers
 ├── docs/                  # conventions, port plan, task checklist
 └── docker-compose.yml
 ```
@@ -346,7 +346,15 @@ removal taking effect after the ~30 s verdict-cache TTL.
 `meter.reading.created` and matches the v1 JSON Schema, a poison message
 dead-letters with failure headers while the partition keeps flowing, and a
 mid-stream consumer restart replays the backlog with every redelivery
-deduped:
+deduped. `providers.e2e.test.mjs` drives the provider journey (spec 6,
+Epic P8): a fresh user is declared in `IDENTITY_ADMIN_USER_IDS` (the test
+edits `.env` and restarts identity-service, reverting afterwards), curates
+a catalog provider with a default window, a household member creates an
+account and binds a meter, submission windows resolve, a viewer reads but
+cannot write, catalog writes need the ADMIN system role, an admin without
+household membership is `404`-masked, a supplier switch (end + rebind)
+keeps both rows, an overlapping bind is rejected, and both provider events
+are observed on Kafka and validated against their v1 schemas:
 
 ```bash
 node --test e2e/

@@ -272,15 +272,36 @@ gotcha) — dev data was recreated through the API afterwards.
 
 ## Epic P8 — End-to-end verification & docs
 
-- [ ] `e2e/providers.e2e.test.mjs` through the gateway: admin (via env-declared ID) creates
-      a catalog provider with a default window → household member creates an account →
-      binds a meter → windows API answers → viewer can read, not write → non-admin gets
-      `FORBIDDEN_SYSTEM_ROLE` on the catalog → admin without membership gets `404` on the
-      household's accounts → supplier switch (end + rebind) keeps both rows → overlapping
-      bind rejected → `provider.account.changed` / `binding.changed` observed on Kafka.
-      Original journey and roles tests stay green (`node --test e2e/`).
-- [ ] `docs/service-boundaries.md` §7: Provider Service from "Future" to the real boundary
-      (owned data, events, "Meter Service never learns provider specifics").
-- [ ] `docs/api-examples.md` and README e2e section updated.
-- [ ] Roadmap Phase 3 marked done with a dated note; backlog gains an entry only if a real
-      limitation surfaced (e.g. unverified-registration admin bootstrap, admin demotion lag).
+> Landed 2026-10-11; all four e2e suites green against the live Compose stack.
+
+- [x] `e2e/providers.e2e.test.mjs` through the gateway (Compose): admin (a fresh user
+      appended to `IDENTITY_ADMIN_USER_IDS` in `.env`, promoted by identity-service's
+      reconciliation runner on restart; `.env` reverted + restart in `finally`) creates
+      a catalog provider with a default window → household member creates an account
+      (default rule copied) → binds a meter (validFrom defaults to today) → windows API
+      resolves current-or-next → viewer reads windows but gets `FORBIDDEN_ROLE` on bind →
+      non-admin gets `FORBIDDEN_SYSTEM_ROLE` on catalog create → admin without membership
+      gets 404-masking (`HOUSEHOLD_NOT_FOUND` on accounts list, `PROVIDER_ACCOUNT_NOT_FOUND`
+      on bind) → supplier switch (end today + rebind tomorrow — periods are inclusive on
+      both ends, so the rebind must start the day after the end date) keeps both rows →
+      overlapping bind rejected with 409 `METER_ALREADY_BOUND` →
+      `provider.account.changed` (×2) and `provider.binding.changed` (×3) consumed from
+      Kafka and validated against their v1 JSON Schemas. Original journey and roles tests
+      stay green (3/3), async-backbone 3/3, full provider spec passes repeatedly.
+- [x] `docs/service-boundaries.md` §7 rewritten from "Future" to the real boundary:
+      responsibility (catalog + private providers, submission windows), owned data
+      (`provider_db` tables), system-role vs household-role split, model, API table,
+      outbox events with snapshot semantics, and the two-sided boundary — Meter Service
+      never learns provider specifics, Provider Service never sees reading values.
+      Identity §"System roles" and the ownership table updated to match; Kafka event
+      examples now use real topic names.
+- [x] `docs/api-examples.md`: new §10 provider walkthrough (catalog create, account,
+      binding, windows) and §11 error table extended with every provider code
+      (`FORBIDDEN_SYSTEM_ROLE`, `METER_ALREADY_BOUND`, `PROVIDER_ARCHIVED`,
+      `INVALID_SUBMISSION_RULE`, `HOUSEHOLD_MISMATCH`, `METER_SERVICE_UNAVAILABLE`, …).
+      README §6 e2e section covers `providers.e2e.test.mjs`; repo tree updated.
+- [x] Roadmap Phase 3 marked done with a dated note. Backlog: no new entry — the two
+      candidate limitations both already have homes: admin bootstrap is documented
+      deployment config (`IDENTITY_ADMIN_USER_IDS` reconcile-on-startup; the e2e test
+      now exercises it), and admin demotion lag is bounded by the same reconcile pass
+      (next restart), not a standing gap.

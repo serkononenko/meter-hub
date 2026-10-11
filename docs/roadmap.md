@@ -120,6 +120,12 @@ in the DLQ, and the lag dashboard shows the consumer group.
 
 ## Phase 3 — Provider Service (core) & System Roles
 
+> **Landed 2026-10-11** (spec 6, epics S1–S3 and P1–P8, final e2e in
+> `e2e/providers.e2e.test.mjs`). Catalog + private providers, accounts with
+> submission-window rules, meter bindings, outbox events, admin-gated UI,
+> gateway routes and observability shipped. Direct provider integrations
+> remain future work (Phase 6).
+
 Reminders are driven by what a provider requires, not by a per-meter
 preference: each provider wants readings inside a window (e.g. "between
 the 20th and the last day of the month"). The provider relationship —
