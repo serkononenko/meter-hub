@@ -47,6 +47,19 @@ model ProviderAccount {
   @@map("provider_accounts")
 }
 
+model ProviderOutbox {
+  id          String    @id @db.Uuid
+  aggregateId String    @map("aggregate_id") @db.Uuid
+  eventType   String    @map("event_type")
+  payload     Json
+  traceparent String?
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  publishedAt DateTime? @map("published_at") @db.Timestamptz(6)
+
+  @@index([publishedAt, createdAt])
+  @@map("provider_outbox")
+}
+
 model MeterBinding {
   id          String          @id @db.Uuid
   accountId   String          @map("account_id") @db.Uuid

@@ -28,6 +28,11 @@ beforeAll(async () => {
     process.env.IDENTITY_JWT_ISSUER = 'identity-service';
     process.env.IDENTITY_JWT_AUDIENCE = 'meterhub-api';
     process.env.IDENTITY_JWT_PUBLIC_KEY_PATH = path;
+    // The specs write real outbox rows; an unreachable broker keeps the relay from publishing them to a
+    // developer's running Kafka (events just stay queued, which is what the specs assert on).
+    process.env.KAFKA_BROKERS = '127.0.0.1:1';
+    // Specs drive relay rounds explicitly; a background timer racing them made the outbox assertions flaky.
+    process.env.OUTBOX_RELAY_ENABLED = 'false';
 
     householdServer = createServer(householdStubHandler);
     await new Promise<void>((resolve) => householdServer.listen(0, '127.0.0.1', resolve));

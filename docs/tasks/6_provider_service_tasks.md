@@ -173,14 +173,26 @@ P1.3 Scaffolding
 
 ## Epic P5 — Submission-window API & events
 
-- [ ] `GET /submission-windows?meterId=&at=`: binding in force + `{current?, next}`;
+- [x] `GET /submission-windows?meterId=&at=`: binding in force + `{current?, next}`;
       meter without a binding → `200` empty body.
-- [ ] Internal `GET /internal/submission-windows?accountId=&from=&to=` (if D3 stands).
-- [ ] Outbox table + relay + Kafka producer ported from reading-service; account and
+- [x] Internal `GET /internal/submission-windows?accountId=&from=&to=` (D3 stands).
+- [x] Outbox table + relay + Kafka producer ported from reading-service; account and
       binding changes write snapshot rows in the same transaction as the change; `version`
       carried; topics `provider.account.changed` / `provider.binding.changed`.
-- [ ] Tests: event per mutation, none for rejected mutations, no outbox row on failed
+- [x] Tests: event per mutation, none for rejected mutations, no outbox row on failed
       transaction, out-of-order `version` detectable; relay survives broker downtime.
+- Verified: 88/88 e2e (adds 14 window + 9 outbox cases) and 81/81 unit tests (adds the relay, ported from reading-service, and the event builders), `tsc`, lint, build — and **30 consecutive full e2e runs with no failure**. Live on Compose: a real household and meter, account created, relabelled twice (the second a no-op), binding created and ended → four outbox rows (`account.changed` v1, v2; `binding.changed` v1, v2), all published to the real broker, and all four consumed from Kafka validate against the committed JSON Schemas with ajv.
+- Mutations that each failed the suite: account update writes no event; a no-op update still writes one; ending a binding writes no event; the binding event written before the overlap check (so a lost race would leave an event behind); the account UPDATE committed outside the transaction that writes its event. A dedicated test makes the outbox write throw and asserts the account row and version are rolled back.
+- Events carry ids, versions and the window rule — not the account's label or account number (asserted).
+- Topics: nothing creates them explicitly. The broker's default auto-creation made `provider.account.changed` / `provider.binding.changed` on first publish, the same way reading-service's topic exists; there is no topic-provisioning step to forget in Portainer.
+- Behaviour decisions worth reviewing:
+  - **`GET /submission-windows` on a meter the caller cannot see is `404 METER_NOT_FOUND`**, not 422: a read of a meter is not a bad reference in a request body. Binding to such a meter keeps `422 METER_NOT_FOUND` (it *is* a bad reference there). The contract documents both.
+  - **The binding in force is found in the account's own time zone** (a binding starting 1 March is in force from 22:00 UTC on 28 Feb for a Kyiv account), the same day boundary the windows use.
+  - **Internal endpoint is unauthenticated** (marked public from the module, since the generated controller can't carry the decorator) until A1 service-to-service auth lands, like the other services' internal surfaces. The gateway `denyAll` for `/api/v1/internal/**` is P6.
+  - **Kafka producer connects on first publish**, not at startup, so the service boots and serves HTTP while the broker is down and events queue in the table; verified (a failing publish leaves the row unpublished and requests still work).
+  - New switch `OUTBOX_RELAY_ENABLED` (default on). The specs turn it off and drive rounds explicitly: with the 500 ms timer racing them, three different assertions flaked at roughly 1 run in 10, and each was a genuine race in the *test*, not in the relay.
+- Dev-environment gotcha found the hard way: the e2e specs and the Compose `provider-service` container share `provider_db`. While the container runs, its relay publishes the specs' rows to the dev broker — about 350 junk events landed on the two provider topics before I noticed. With the container stopped a full e2e run adds none (checked: 352 → 352). They are harmless on a dev broker (nothing consumes these topics yet) and were left in place; `docker compose down -v` clears them, and CI is unaffected (its own Postgres, no broker). Worth a dedicated test database if this bites again.
+- Not done here: Prometheus/Grafana for the outbox metrics (`provider_outbox_*`) and the gateway routes are P6; the consumer side is Phase 4. The Orval frontend client is still P7.
 
 ## Epic P6 — Gateway, Compose & observability
 

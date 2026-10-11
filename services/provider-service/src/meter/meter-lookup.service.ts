@@ -1,7 +1,7 @@
 import {HttpStatus, Injectable} from "@nestjs/common";
 import {FetchError, MetersApi, ResponseError} from '../generated/meter/index.js';
 import {MeterServiceUnavailableException} from '../exceptions/service-unavailable.exception.js';
-import {MeterNotFoundException} from '../exceptions/unprocessable.exception.js';
+import {MeterNotFoundException} from '../exceptions/not-found.exception.js';
 
 import type {Meter} from '../generated/meter/index.js';
 

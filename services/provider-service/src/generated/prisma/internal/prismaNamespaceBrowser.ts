@@ -53,6 +53,7 @@ export const AnyNull = runtime.AnyNull
 export const ModelName = {
   Provider: 'Provider',
   ProviderAccount: 'ProviderAccount',
+  ProviderOutbox: 'ProviderOutbox',
   MeterBinding: 'MeterBinding'
 } as const
 
@@ -104,6 +105,19 @@ export const ProviderAccountScalarFieldEnum = {
 } as const
 
 export type ProviderAccountScalarFieldEnum = (typeof ProviderAccountScalarFieldEnum)[keyof typeof ProviderAccountScalarFieldEnum]
+
+
+export const ProviderOutboxScalarFieldEnum = {
+  id: 'id',
+  aggregateId: 'aggregateId',
+  eventType: 'eventType',
+  payload: 'payload',
+  traceparent: 'traceparent',
+  createdAt: 'createdAt',
+  publishedAt: 'publishedAt'
+} as const
+
+export type ProviderOutboxScalarFieldEnum = (typeof ProviderOutboxScalarFieldEnum)[keyof typeof ProviderOutboxScalarFieldEnum]
 
 
 export const MeterBindingScalarFieldEnum = {

@@ -800,6 +800,15 @@ components:
                 code: METER_BINDING_NOT_FOUND
                 detail: No meter binding with this identifier is visible to the authenticated user.
                 correlationId: 7d6f5f2c-0a49-4e10-8ef7-7c3d2b1f4a10
+            meterNotFound:
+              summary: Meter unknown or not visible to the caller
+              value:
+                type: https://api.meterhub.local/problems/meter-not-found
+                title: Meter not found
+                status: 404
+                code: METER_NOT_FOUND
+                detail: No meter with this identifier is visible to the authenticated user.
+                correlationId: 7d6f5f2c-0a49-4e10-8ef7-7c3d2b1f4a10
             householdNotFound:
               summary: Household unknown or the caller is not a member
               value:

@@ -31,7 +31,7 @@ export class HouseholdMismatchException extends UnprocessableEntityException {
     }
 }
 
-export class MeterNotFoundException extends UnprocessableEntityException {
+export class UnknownMeterReferenceException extends UnprocessableEntityException {
     constructor() {
         super({
             code: 'METER_NOT_FOUND',

@@ -12,6 +12,8 @@ import {InvalidSubmissionRuleException} from '../exceptions/unprocessable.except
 import {ProviderAccountsApi} from '../generated/provider/api/index.js';
 import {HouseholdAccessService} from '../household/household-access.service.js';
 import {ProviderRepository} from '../provider/provider.repository.js';
+import {accountChanged} from '../outbox/provider-events.js';
+import {OutboxRepository} from '../outbox/outbox.repository.js';
 import {requireValidRule} from '../submission-window/require-valid-rule.js';
 import {localDateOf} from '../submission-window/calendar.js';
 import {sameRule} from '../submission-window/same-rule.js';
@@ -39,6 +41,7 @@ export class ProviderAccountService extends ProviderAccountsApi {
         private readonly accounts: ProviderAccountRepository,
         private readonly providers: ProviderRepository,
         private readonly householdAccess: HouseholdAccessService,
+        private readonly outbox: OutboxRepository,
     ) {
         super();
     }
@@ -55,14 +58,20 @@ export class ProviderAccountService extends ProviderAccountsApi {
         await this.householdAccess.assertCanWrite(command.householdId, user.userId);
         const provider = await this.chooseProvider(command.providerId, command.householdId);
 
-        return this.accounts.save({
-            id: randomUUID(),
-            providerId: provider.id,
-            householdId: command.householdId,
-            label: command.label,
-            accountNumber: command.accountNumber,
-            rule: this.ruleForNewAccount(command, provider),
-            actorId: user.userId,
+        const rule = this.ruleForNewAccount(command, provider);
+
+        return this.transactions.execute(async (tx) => {
+            const created = await this.accounts.save({
+                id: randomUUID(),
+                providerId: provider.id,
+                householdId: command.householdId,
+                label: command.label,
+                accountNumber: command.accountNumber,
+                rule,
+                actorId: user.userId,
+            }, tx);
+            await this.outbox.save(accountChanged(created), created.id, tx);
+            return created;
         });
     }
 
@@ -157,7 +166,13 @@ export class ProviderAccountService extends ProviderAccountsApi {
                 changed = true;
             }
 
-            return changed ? this.accounts.update(id, changes, tx) : current;
+            if (!changed) {
+                return current;
+            }
+
+            const updated = await this.accounts.update(id, changes, tx);
+            await this.outbox.save(accountChanged(updated), updated.id, tx);
+            return updated;
         });
     }
 

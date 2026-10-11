@@ -46,6 +46,7 @@ describe('Provider accounts (e2e)', () => {
     });
 
     afterEach(async () => {
+        await prisma.providerOutbox.deleteMany();
         await prisma.meterBinding.deleteMany();
         await prisma.providerAccount.deleteMany();
         await prisma.provider.deleteMany();

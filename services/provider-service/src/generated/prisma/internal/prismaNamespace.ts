@@ -399,6 +399,7 @@ type FieldRefInputType<Model, FieldType> = Model extends never ? never : FieldRe
 export const ModelName = {
   Provider: 'Provider',
   ProviderAccount: 'ProviderAccount',
+  ProviderOutbox: 'ProviderOutbox',
   MeterBinding: 'MeterBinding'
 } as const
 
@@ -415,7 +416,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "provider" | "providerAccount" | "meterBinding"
+    modelProps: "provider" | "providerAccount" | "providerOutbox" | "meterBinding"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -567,6 +568,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    ProviderOutbox: {
+      payload: Prisma.$ProviderOutboxPayload<ExtArgs>
+      fields: Prisma.ProviderOutboxFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.ProviderOutboxFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ProviderOutboxPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.ProviderOutboxFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ProviderOutboxPayload>
+        }
+        findFirst: {
+          args: Prisma.ProviderOutboxFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ProviderOutboxPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.ProviderOutboxFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ProviderOutboxPayload>
+        }
+        findMany: {
+          args: Prisma.ProviderOutboxFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ProviderOutboxPayload>[]
+        }
+        create: {
+          args: Prisma.ProviderOutboxCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ProviderOutboxPayload>
+        }
+        createMany: {
+          args: Prisma.ProviderOutboxCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.ProviderOutboxCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ProviderOutboxPayload>[]
+        }
+        delete: {
+          args: Prisma.ProviderOutboxDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ProviderOutboxPayload>
+        }
+        update: {
+          args: Prisma.ProviderOutboxUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ProviderOutboxPayload>
+        }
+        deleteMany: {
+          args: Prisma.ProviderOutboxDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.ProviderOutboxUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.ProviderOutboxUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ProviderOutboxPayload>[]
+        }
+        upsert: {
+          args: Prisma.ProviderOutboxUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ProviderOutboxPayload>
+        }
+        aggregate: {
+          args: Prisma.ProviderOutboxAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateProviderOutbox>
+        }
+        groupBy: {
+          args: Prisma.ProviderOutboxGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.ProviderOutboxGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.ProviderOutboxCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.ProviderOutboxCountAggregateOutputType> | number
+        }
+      }
+    }
     MeterBinding: {
       payload: Prisma.$MeterBindingPayload<ExtArgs>
       fields: Prisma.MeterBindingFieldRefs
@@ -712,6 +787,19 @@ export const ProviderAccountScalarFieldEnum = {
 } as const
 
 export type ProviderAccountScalarFieldEnum = (typeof ProviderAccountScalarFieldEnum)[keyof typeof ProviderAccountScalarFieldEnum]
+
+
+export const ProviderOutboxScalarFieldEnum = {
+  id: 'id',
+  aggregateId: 'aggregateId',
+  eventType: 'eventType',
+  payload: 'payload',
+  traceparent: 'traceparent',
+  createdAt: 'createdAt',
+  publishedAt: 'publishedAt'
+} as const
+
+export type ProviderOutboxScalarFieldEnum = (typeof ProviderOutboxScalarFieldEnum)[keyof typeof ProviderOutboxScalarFieldEnum]
 
 
 export const MeterBindingScalarFieldEnum = {
@@ -1007,6 +1095,7 @@ export type PrismaClientOptions = PrismaClientOptionsWithAccelerateUrl | PrismaC
 export type GlobalOmitConfig = {
   provider?: Prisma.ProviderOmit
   providerAccount?: Prisma.ProviderAccountOmit
+  providerOutbox?: Prisma.ProviderOutboxOmit
   meterBinding?: Prisma.MeterBindingOmit
 }
 

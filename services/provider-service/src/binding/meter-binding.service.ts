@@ -6,6 +6,7 @@ import {TransactionManager} from '../database/transaction.manager.js';
 import {
     HouseholdNotFoundException,
     MeterBindingNotFoundException,
+    MeterNotFoundException,
     ProviderAccountNotFoundException,
 } from '../exceptions/not-found.exception.js';
 import {
@@ -14,11 +15,14 @@ import {
     HouseholdMismatchException,
     InvalidBindingPeriodException,
     MeterAlreadyBoundException,
+    UnknownMeterReferenceException,
 } from '../exceptions/unprocessable.exception.js';
 import {Prisma} from '../generated/prisma/client.js';
 import {MeterBindingsApi} from '../generated/provider/api/index.js';
 import {HouseholdAccessService} from '../household/household-access.service.js';
 import {MeterLookupService} from '../meter/meter-lookup.service.js';
+import {OutboxRepository} from '../outbox/outbox.repository.js';
+import {bindingChanged} from '../outbox/provider-events.js';
 import {localDateOf} from '../submission-window/calendar.js';
 import {getAuthenticatedUser} from '../utils/get-authenticated-user.js';
 import {optionalUuid, requireUuid} from '../validation/require-uuid.js';
@@ -44,6 +48,7 @@ export class MeterBindingService extends MeterBindingsApi {
         private readonly accounts: ProviderAccountRepository,
         private readonly meters: MeterLookupService,
         private readonly householdAccess: HouseholdAccessService,
+        private readonly outbox: OutboxRepository,
     ) {
         super();
     }
@@ -71,7 +76,7 @@ export class MeterBindingService extends MeterBindingsApi {
         }
 
         // Resolved before the transaction: a database transaction must not span a network call.
-        const meter = await this.meters.getVisibleMeter(command.meterId);
+        const meter = await this.visibleMeterReference(command.meterId);
 
         if (meter.householdId !== account.householdId) {
             throw new HouseholdMismatchException();
@@ -87,7 +92,7 @@ export class MeterBindingService extends MeterBindingsApi {
                     throw new MeterAlreadyBoundException();
                 }
 
-                return this.bindings.save({
+                const created = await this.bindings.save({
                     id: randomUUID(),
                     accountId: account.id,
                     householdId: account.householdId,
@@ -95,6 +100,8 @@ export class MeterBindingService extends MeterBindingsApi {
                     validFrom,
                     actorId: user.userId,
                 }, tx);
+                await this.outbox.save(bindingChanged(created), created.meterId, tx);
+                return created;
             });
         } catch (error) {
             // The advisory lock serialises writers; the partial unique index is the backstop that
@@ -166,8 +173,21 @@ export class MeterBindingService extends MeterBindingsApi {
                 throw new InvalidBindingPeriodException(current.validFrom, command.validTo);
             }
 
-            return this.bindings.end(id, command.validTo, user.userId, tx);
+            const ended = await this.bindings.end(id, command.validTo, user.userId, tx);
+            await this.outbox.save(bindingChanged(ended), ended.meterId, tx);
+            return ended;
         });
+    }
+
+    private async visibleMeterReference(meterId: string) {
+        try {
+            return await this.meters.getVisibleMeter(meterId);
+        } catch (error) {
+            if (error instanceof MeterNotFoundException) {
+                throw new UnknownMeterReferenceException();
+            }
+            throw error;
+        }
     }
 
     private async listForAccount(accountId: string, userId: string): Promise<MeterBinding[]> {

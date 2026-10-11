@@ -11,6 +11,16 @@ export class HouseholdNotFoundException extends NotFoundException {
     }
 }
 
+export class MeterNotFoundException extends NotFoundException {
+    constructor() {
+        super({
+            code: 'METER_NOT_FOUND',
+            title: 'Meter not found',
+            detail: 'No meter with this identifier is visible to the authenticated user.',
+        });
+    }
+}
+
 export class ProviderNotFoundException extends NotFoundException {
     constructor() {
         super({

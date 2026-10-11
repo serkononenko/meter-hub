@@ -53,6 +53,11 @@ export type Provider = Prisma.ProviderModel
  */
 export type ProviderAccount = Prisma.ProviderAccountModel
 /**
+ * Model ProviderOutbox
+ * 
+ */
+export type ProviderOutbox = Prisma.ProviderOutboxModel
+/**
  * Model MeterBinding
  * 
  */

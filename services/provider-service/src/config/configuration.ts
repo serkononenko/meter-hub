@@ -7,6 +7,12 @@ export default () => ({
     meter: {
         url: process.env.METER_SERVICE_URL ?? 'http://localhost:8083'
     },
+    kafka: {
+        brokers: process.env.KAFKA_BROKERS ?? 'localhost:29092'
+    },
+    outbox: {
+        relayEnabled: (process.env.OUTBOX_RELAY_ENABLED ?? 'true') !== 'false',
+    },
     household: {
         url: process.env.HOUSEHOLD_SERVICE_URL ?? 'http://localhost:8082'
     },

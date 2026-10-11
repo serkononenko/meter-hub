@@ -1,11 +1,14 @@
 import {MiddlewareConsumer, Module, NestModule} from '@nestjs/common';
 import {APP_FILTER} from '@nestjs/core';
 import {ConfigModule} from "@nestjs/config";
+import {EventEmitterModule} from '@nestjs/event-emitter';
+import {ScheduleModule} from '@nestjs/schedule';
 import {ClsModule, ClsMiddleware} from 'nestjs-cls';
 import {AuthModule} from './auth/auth.module.js';
 import {DatabaseModule} from './database/database.module.js';
 import {CorrelationIdMiddleware} from './middlewares/correlation.middleware.js';
 import {HealthModule} from './health/health.module.js';
+import {OutboxModule} from './outbox/outbox.module.js';
 import {ProviderModule} from './provider/provider.module.js';
 import {CommonExceptionFilter} from './filters/common-exception.filter.js';
 import {UnauthorizedExceptionFilter} from "./filters/unauthorized-exception.filter.js";
@@ -26,9 +29,12 @@ import {RequestLoggingMiddleware} from './logging/request-logging.middleware.js'
             global: true,
             middleware: {mount: false},
         }),
+        EventEmitterModule.forRoot(),
+        ScheduleModule.forRoot(),
         LoggingModule,
         MetricsModule,
         DatabaseModule,
+        OutboxModule,
         AuthModule,
         HealthModule,
         ProviderModule,

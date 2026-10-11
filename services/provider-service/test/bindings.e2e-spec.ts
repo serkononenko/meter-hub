@@ -49,6 +49,7 @@ describe('Meter bindings (e2e)', () => {
     });
 
     afterEach(async () => {
+        await prisma.providerOutbox.deleteMany();
         await prisma.meterBinding.deleteMany();
         await prisma.providerAccount.deleteMany();
         await prisma.provider.deleteMany();
@@ -364,7 +365,7 @@ describe('Meter bindings (e2e)', () => {
 
             expect(accountOfAlice.status).toBe(404);
             expect(accountOfAlice.body.detail).toBe(missingAccount.body.detail);
-            expect(meterOfAlice.status).toBe(422);
+            expect(meterOfAlice.status).toBe(404);
             expect(meterOfAlice.body.code).toBe('METER_NOT_FOUND');
         });
     });
