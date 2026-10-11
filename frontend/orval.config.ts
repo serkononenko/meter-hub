@@ -18,6 +18,7 @@ const SERVICE_GATEWAY_PREFIX: Record<string, string> = {
   "household-service": "/api/household-service",
   "meter-service": "/api/meter-service",
   "reading-service": "/api/reading-service",
+  "provider-service": "/api/provider-service",
 };
 
 function serviceConfig(name: string) {
@@ -61,4 +62,5 @@ export default defineConfig({
   household: serviceConfig("household-service"),
   meter: serviceConfig("meter-service"),
   reading: serviceConfig("reading-service"),
+  provider: serviceConfig("provider-service"),
 });
