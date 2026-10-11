@@ -1,4 +1,4 @@
-import {describe, expect, it} from 'vitest';
+import {describe, expect, it, vi} from 'vitest';
 import type {EachMessagePayload, KafkaMessage} from 'kafkajs';
 import {ConsumerLoop} from './consumer-loop.js';
 import {DEFAULT_RETRY_POLICY, RetryPolicy} from './consumer-options.js';
@@ -184,6 +184,22 @@ describe('ConsumerLoop', () => {
         expect(loop.dlq).toHaveLength(1);
         expect(loop.dlq[0].headers.reason).toBe('missing-eventId-or-value');
         expect(loop.dlq[0].headers.attempts).toBe('1');
+        expect(loop.dlq[0].headers.exceptionClass).toBe('MalformedMessage');
+        expect(loop.store.size).toBe(0);
+    });
+
+    it('sends a non-UUID eventId straight to DLQ without touching the dedup store (K1)', async () => {
+        const loop = new TestableConsumerLoop(DEFAULT_RETRY_POLICY);
+        const handler = vi.fn(() => Promise.resolve());
+        loop.handler = handler;
+
+        await loop.handleMessage(TOPIC, payload('not-a-uuid', VALID_EVENT));
+
+        expect(handler).not.toHaveBeenCalled();
+        expect(loop.dlq).toHaveLength(1);
+        expect(loop.dlq[0].value).toBe(JSON.stringify(VALID_EVENT));
+        expect(loop.dlq[0].headers.attempts).toBe('1');
+        expect(loop.dlq[0].headers.reason).toBe('invalid-eventId');
         expect(loop.dlq[0].headers.exceptionClass).toBe('MalformedMessage');
         expect(loop.store.size).toBe(0);
     });

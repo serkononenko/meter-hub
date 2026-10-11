@@ -113,6 +113,14 @@ export class ConsumerLoop implements OnModuleInit, OnModuleDestroy {
             await this.deadLetter(topic, 'missing-eventId-or-value', 1, 'MalformedMessage', message.value?.toString() ?? null);
             return;
         }
+        if (!UUID_PATTERN.test(eventId)) {
+            // The dedup column is a uuid: a non-UUID id would throw P2007 from
+            // the insert below — outside the retry/DLQ path, crashing kafkajs
+            // into a restart loop on the same offset (backlog K1). Retrying
+            // cannot fix it, so it is malformed like a missing id.
+            await this.deadLetter(topic, 'invalid-eventId', 1, 'MalformedMessage', message.value.toString());
+            return;
+        }
 
         // Dedup first (spec 5 §8): record the eventId before processing. The
         // primary-key insert is the check-and-claim in one statement — a
@@ -225,6 +233,8 @@ export class ConsumerLoop implements OnModuleInit, OnModuleDestroy {
         return new Promise((resolve) => setTimeout(resolve, ms));
     }
 }
+
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 function errorText(error: unknown): string {
     return error instanceof Error ? error.message : String(error);

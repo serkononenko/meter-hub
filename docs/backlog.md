@@ -8,7 +8,7 @@ Honest list of what the MVP does not do yet. Each item is a deliberate scope cut
 | **Accepted** | Deliberate cut with a defined revisit trigger; no phase assigned yet |
 | **Resolved** | No longer true; kept for the record |
 
-Last reviewed: 2026-10-04 (K5: added K — async backbone)
+Last reviewed: 2026-10-11 (K1 resolved)
 
 ---
 
@@ -45,9 +45,7 @@ All frontend items (F1) resolved — see Resolved section.
 
 ## K — Async backbone
 
-| ID | Limitation | Impact | Resolution path | Phase | Status |
-|---|---|---|---|---|---|
-| K1 | Consumer dedup insert requires a UUID `eventId` — a message with a malformed (non-UUID) `eventId` header passes the loop's "has eventId" check but throws `PrismaClientKnownRequestError P2007` on the dedup insert, which is outside the retry/DLQ path: kafkajs crashes and restarts the consumer, blocking the partition indefinitely (found in K5 e2e work, 2026-10-04) | One crafted bad header can halt a consumer group; manual offset seek is the only unblock | Catch store-level validation failures in the dedup step and route them to the DLQ like other unclaimable messages (or validate UUID format in the loop's malformed-message gate) | — | Open — unscheduled |
+All async-backbone items (K1) are resolved — see the Resolved section.
 
 ---
 
@@ -55,6 +53,7 @@ All frontend items (F1) resolved — see Resolved section.
 
 | ID | Was | Resolved | Evidence |
 |---|---|---|---|
+| K1 | Consumer dedup insert requires a UUID `eventId` — a non-UUID `eventId` header threw `P2007` from the dedup insert, outside the retry/DLQ path, so kafkajs crashed and restarted the consumer on the same offset, blocking the partition (found in K5 e2e work, 2026-10-04) | 2026-10-11 | `ConsumerLoop.handleMessage` validates `eventId` against a UUID pattern in the malformed-message gate, before the dedup insert; invalid ids go straight to the DLQ (`reason: invalid-eventId`, `MalformedMessage`, raw value preserved) and the partition keeps flowing. Covered by a unit test in `consumer-loop.spec.ts` (handler not invoked, dedup store untouched) |
 | O5 | CI runs tests only — no image publishing, no environments | 2026-09-26 | Images published to ghcr.io on green `main` (`linux/amd64`, tagged `main`/`latest`/SHA); Portainer pull-based deploy documented in [deploy-portainer.md](deploy-portainer.md) |
 | O6 | Reading source enum unresolved — clients could not assume what `source` values exist | 2026-09-26 | Contract pins `source` to `MANUAL` for the MVP (`contracts/openapi/services/reading-service/openapi.yaml`); `DEVICE` arrives with Phase 6 |
 | C1 | No pagination metadata — history endpoints took `limit`/`offset` and returned a bare array, no total count, no links | 2026-09-27 | Offset-based `ReadingPage` envelope `{items, total, limit, offset}` in the reading contract; server clamps and echoes paging values; frontend and e2e updated (`ReadingPage` in `contracts/openapi/services/reading-service/openapi.yaml`) |
