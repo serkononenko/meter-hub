@@ -103,6 +103,7 @@ services:
       HOUSEHOLD_SERVICE_URL: http://household-service:8082
       METER_SERVICE_URL: http://meter-service:8083
       READING_SERVICE_URL: http://reading-service:8084
+      PROVIDER_SERVICE_URL: http://provider-service:8086
       OTLP_TRACING_ENDPOINT: http://jaeger:4318/v1/traces
       RATE_LIMIT_ENABLED: ${RATE_LIMIT_ENABLED:-true}
       RATE_LIMIT_CAPACITY: ${RATE_LIMIT_CAPACITY:-60}
@@ -135,6 +136,8 @@ services:
       meter-service:
         condition: service_healthy
       reading-service:
+        condition: service_healthy
+      provider-service:
         condition: service_healthy
 
   identity-service:

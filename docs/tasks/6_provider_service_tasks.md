@@ -196,15 +196,36 @@ P1.3 Scaffolding
 
 ## Epic P6 — Gateway, Compose & observability
 
-- [ ] Gateway routes for the four public prefixes; `/api/v1/internal/**` stays `denyAll`
-      with a test for the new internal path; confirm no route collision with
-      `/api/v1/meters/**`.
-- [ ] Compose + Portainer entries: port 8086, liveness healthcheck, `depends_on` postgres
-      and kafka `service_healthy`, env wiring (`HOUSEHOLD_SERVICE_URL`, `METER_SERVICE_URL`,
-      Kafka brokers); `docs/ports.md` row.
-- [ ] Prometheus scrape target, Grafana overview rows (requests, outbox lag), Loki/Promtail
-      pick-up, Jaeger service appears with the async leg linked.
-- [ ] CI: tests + e2e wiring, image published to ghcr.io like the other services.
+> Landed 2026-10-11, verified against the running Compose stack.
+
+- [x] Gateway route `provider` (`/api/provider-service/**`, StripPrefix=2,
+      `PROVIDER_SERVICE_URL` in both compose files, gateway `depends_on` provider-service
+      `service_healthy`); `denyAll` on `/api/provider-service/api/v1/internal/**` placed
+      before `anyRequest().authenticated()`. Live through the gateway: anonymous → 401,
+      user token → 200, internal path with user token → 403. New gateway test
+      `internalPathsOfEveryServiceAreNeverProxied` covers every service's internal paths
+      (401 anonymous / 403 authenticated, no downstream stub hits); mutation check —
+      removing the provider deny matcher fails the test.
+- [x] Compose + Portainer entries: port 8086, liveness healthcheck, `depends_on`
+      postgres/household/kafka/meter `service_healthy`, env wiring
+      (`HOUSEHOLD_SERVICE_URL`, `METER_SERVICE_URL`, `KAFKA_BROKERS`, OTEL env);
+      `docs/ports.md` row landed back in P2.
+- [x] Prometheus job `provider-service` — target `provider-service:8086/metrics` is up
+      (`up == 1`); all four `provider_outbox_*` series present. Grafana overview
+      dashboard regex/titles/thresholds extended to provider; async-backbone gained
+      the "Outbox relay (provider-service)" row (unpublished stat, publish rate, error
+      rates). Loki/Promtail pick logs up by container like the other services; the
+      Jaeger leg is env-only (`OTEL_SERVICE_NAME` + OTLP endpoint) and appears when
+      the tracing stack runs.
+- [x] CI: `nestjs-tests` matrix includes provider-service with its own Postgres
+      databases + `prisma migrate deploy` + e2e step (landed in ffeee79 + P3–P5);
+      publish workflow builds the `meter-hub-provider-service` image. Not yet observed
+      green on GitHub Actions — verified with the next push.
+
+Detour: the dev volume's Grafana admin password differs from the compose default, so
+dashboard verification went through provisioning logs + the mounted dashboard files
+instead of the HTTP API (provisioning finished clean, `provider_outbox` present in the
+mounted async-backbone JSON).
 
 ## Epic P7 — Frontend
 

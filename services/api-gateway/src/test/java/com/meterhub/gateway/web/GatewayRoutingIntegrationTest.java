@@ -52,7 +52,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 class GatewayRoutingIntegrationTest {
 
     private static final List<String> SERVICES = List.of(
-        "identity-service", "household-service", "meter-service", "reading-service");
+        "identity-service", "household-service", "meter-service", "reading-service", "provider-service");
 
     /** Hits recorded by the stub; drained by each test. */
     static final ConcurrentLinkedQueue<Hit> HITS = new ConcurrentLinkedQueue<>();
@@ -124,6 +124,24 @@ class GatewayRoutingIntegrationTest {
         assertThat(HITS).isEmpty();
     }
 
+    @Test
+    void internalPathsOfEveryServiceAreNeverProxied() {
+        for (String service : List.of("identity-service", "household-service", "provider-service")) {
+            String internal = "/api/" + service + "/api/v1/internal/ping";
+
+            EntityExchangeResult<byte[]> anonymous = client.get().uri(internal).exchange().returnResult(byte[].class);
+            EntityExchangeResult<byte[]> authenticated = client.get().uri(internal)
+                .headers(headers -> headers.setBearerAuth(signedToken()))
+                .exchange()
+                .returnResult(byte[].class);
+
+            assertThat(anonymous.getStatus().value()).as("%s anonymous", service).isEqualTo(401);
+            assertThat(authenticated.getStatus().value()).as("%s authenticated", service).isEqualTo(403);
+        }
+
+        assertThat(HITS).isEmpty();
+    }
+
     private String signedToken() {
         JwtClaimsSet claims = JwtClaimsSet.builder()
             .issuer("identity-service")
@@ -190,7 +208,8 @@ class GatewayRoutingIntegrationTest {
                     "IDENTITY_SERVICE_URL", base,
                     "HOUSEHOLD_SERVICE_URL", base,
                     "METER_SERVICE_URL", base,
-                    "READING_SERVICE_URL", base
+                    "READING_SERVICE_URL", base,
+                    "PROVIDER_SERVICE_URL", base
                 )));
             } catch (Exception e) {
                 throw new IllegalStateException("Failed to start routing stub", e);

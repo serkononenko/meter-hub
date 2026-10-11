@@ -60,6 +60,12 @@ spring:
                 - Path=/api/reading-service/**
               filters:
                 - StripPrefix=2
+            - id: provider
+              uri: ${PROVIDER_SERVICE_URL:http://localhost:8086}
+              predicates:
+                - Path=/api/provider-service/**
+              filters:
+                - StripPrefix=2
 
 logging:
   # Structured single-line format per conventions §14: timestamp, level,

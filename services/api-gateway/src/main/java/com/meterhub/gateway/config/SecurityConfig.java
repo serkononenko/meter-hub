@@ -71,6 +71,8 @@ public class SecurityConfig {
                 // Household's internal access verdict (A3) — same rule as the
                 // revocation feed: service-to-service only, never proxied
                 .requestMatchers("/api/household-service/api/v1/internal/**").denyAll()
+                // Provider's internal window listing (spec 6) — same rule
+                .requestMatchers("/api/provider-service/api/v1/internal/**").denyAll()
                 .anyRequest().authenticated()
             )
             .oauth2ResourceServer(oauth2 -> oauth2

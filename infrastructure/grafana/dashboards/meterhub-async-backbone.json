@@ -256,12 +256,135 @@
     },
     {
       "type": "row",
-      "title": "Consumer (events-demo, consumer_messages_* series)",
+      "title": "Outbox relay (provider-service)",
       "gridPos": {
         "h": 1,
         "w": 24,
         "x": 0,
         "y": 18
+      },
+      "id": 15
+    },
+    {
+      "type": "stat",
+      "title": "Provider outbox unpublished backlog",
+      "gridPos": {
+        "h": 6,
+        "w": 6,
+        "x": 0,
+        "y": 19
+      },
+      "id": 16,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "meterhub-prometheus"
+      },
+      "targets": [
+        {
+          "expr": "provider_outbox_unpublished"
+        }
+      ],
+      "fieldConfig": {
+        "default": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 10
+              },
+              {
+                "color": "red",
+                "value": 100
+              }
+            ]
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Provider relay publish rate (events/s)",
+      "gridPos": {
+        "h": 8,
+        "w": 9,
+        "x": 6,
+        "y": 19
+      },
+      "id": 17,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "meterhub-prometheus"
+      },
+      "targets": [
+        {
+          "expr": "rate(provider_outbox_published_total[5m])",
+          "legendFormat": "published"
+        }
+      ],
+      "fieldConfig": {
+        "default": {
+          "unit": "ops",
+          "custom": {
+            "fillOpacity": 10,
+            "lineWidth": 2
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Provider relay errors (errors/s)",
+      "gridPos": {
+        "h": 8,
+        "w": 9,
+        "x": 15,
+        "y": 19
+      },
+      "id": 18,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "meterhub-prometheus"
+      },
+      "targets": [
+        {
+          "expr": "rate(provider_outbox_publish_errors_total[5m])",
+          "legendFormat": "publish errors"
+        },
+        {
+          "expr": "rate(provider_outbox_round_errors_total[5m])",
+          "legendFormat": "round errors"
+        }
+      ],
+      "fieldConfig": {
+        "default": {
+          "unit": "ops",
+          "custom": {
+            "fillOpacity": 30,
+            "lineWidth": 2
+          },
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "red"
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "type": "row",
+      "title": "Consumer (events-demo, consumer_messages_* series)",
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 27
       },
       "id": 9
     },
@@ -273,7 +396,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 19
+        "y": 28
       },
       "id": 10,
       "datasource": {
@@ -313,7 +436,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 19
+        "y": 28
       },
       "id": 11,
       "datasource": {
@@ -352,7 +475,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 27
+        "y": 36
       },
       "id": 12
     },
@@ -364,7 +487,7 @@
         "h": 6,
         "w": 12,
         "x": 0,
-        "y": 28
+        "y": 37
       },
       "id": 13,
       "datasource": {
@@ -405,7 +528,7 @@
         "h": 6,
         "w": 12,
         "x": 12,
-        "y": 28
+        "y": 37
       },
       "id": 14,
       "datasource": {

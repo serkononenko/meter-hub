@@ -7,7 +7,7 @@
 # Two metric dialects (task 10.4):
 # - Spring services (gateway, identity, household): Micrometer at
 #   /actuator/prometheus — http_server_requests_seconds{*}
-# - NestJS services (meter, reading): prom-client at /metrics —
+# - NestJS services (meter, reading, provider): prom-client at /metrics —
 #   http_requests_total, http_request_duration_seconds
 global:
   scrape_interval: 15s
@@ -44,6 +44,11 @@ scrape_configs:
     metrics_path: /metrics
     static_configs:
       - targets: ['events-demo:8085']
+
+  - job_name: provider-service
+    metrics_path: /metrics
+    static_configs:
+      - targets: ['provider-service:8086']
 
   # Kafka lag exporter (spec 5 §10): kafka_consumergroup_lag,
   # kafka_consumergroup_current_offset, kafka_brokers, per-topic partitions.
