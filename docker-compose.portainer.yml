@@ -146,6 +146,8 @@ services:
       DB_USERNAME: ${IDENTITY_DB_USER}
       DB_PASSWORD: ${IDENTITY_DB_PASSWORD}
       OTLP_TRACING_ENDPOINT: http://jaeger:4318/v1/traces
+      # System administrators by user ID (spec 6 §5.3); empty = none
+      IDENTITY_ADMIN_USER_IDS: ${IDENTITY_ADMIN_USER_IDS:-}
     secrets:
       - identity.jwt.private-key
       - identity.jwt.public-key

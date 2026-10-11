@@ -34,7 +34,6 @@ import java.util.UUID;
 @Component
 public class JwtAccessTokenIssuer implements AccessTokenIssuer {
 
-    /** Claim name read by Provider Service's guard; see spec 6 §5.2. */
     static final String ROLES_CLAIM = "roles";
 
     private final JwtEncoder jwtEncoder;
@@ -67,8 +66,7 @@ public class JwtAccessTokenIssuer implements AccessTokenIssuer {
     }
 
     private static List<String> rolesClaim(Set<SystemRole> roles) {
-        // Enum order (USER first) for a stable token shape, matching /users/me;
-        // USER is always present.
+        // enum order keeps the token shape stable and matches /users/me
         return roles.stream().sorted().map(Enum::name).toList();
     }
 

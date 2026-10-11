@@ -49,18 +49,20 @@ S1.3 Token issuance
 
 ## Epic S2 — Identity: deployment-configured admins
 
-- [ ] `IDENTITY_ADMIN_USER_IDS` (comma-separated UUIDs, empty = no admins) bound in
-      identity's configuration; malformed entries fail startup loudly rather than being
-      skipped (a typo must not silently mean "no admin").
-- [ ] Startup reconciliation in one transaction: listed users → `ADMIN`, any other
+- [x] `IDENTITY_ADMIN_USER_IDS` (comma-separated UUIDs, empty = no admins) bound in
+      identity's configuration (`AdminProperties`, `identity.admin.user-ids`); malformed entries fail startup loudly rather than being
+      skipped (a typo must not silently mean "no admin"). (Live: `<uuid>,not-a-uuid` → `APPLICATION FAILED TO START … Failed to bind properties under 'identity.admin.user-ids'`.)
+- [x] Startup reconciliation (`AdminReconciliationService`, run by an `ApplicationRunner` after migrations) in one transaction: listed users → `ADMIN`, any other
       `ADMIN` → `USER`; each change logged with the user ID; an ID with no matching user is
       logged and ignored.
-- [ ] Tests (real Postgres, like the existing integration tests): promote, demote, unknown
+- [x] Tests (`AdminReconciliationIntegrationTest`, 9 cases, real Postgres; full identity suite 71/71): promote, demote, unknown
       ID ignored, idempotent re-run, malformed value fails startup; registering with a
       would-be admin's email confers nothing.
-- [ ] Env plumbing: `.env.example`, `stack.env.example`, `docker-compose.yml`,
+- [x] Env plumbing: `.env.example`, `stack.env.example`, `docker-compose.yml`,
       `docker-compose.portainer.yml`; `docs/deploy-portainer.md` explains the procedure
       (register → read ID from `/users/me` → add to env → restart identity).
+- Live (2026-10-11, Compose, through the gateway): registered user → rebuilt identity with their ID listed → log shows `Promoted user …`, login returns `[USER, ADMIN]`; restarted with the list empty → `Demoted user …`, next refresh returns `[USER]`; malformed value → service refuses to start with the binding error. Demotion, like promotion, reaches the user at their next refresh — an already-issued token keeps `ADMIN` until it expires.
+- Detour: one refresh call right after a demotion restart returned a body without `user` in my first script run; two clean reruns of the identical scenario returned 200 with the right roles. Not reproduced and not explained — most likely a request racing the freshly recreated container, but that is a guess, not a finding.
 
 ## Epic S3 — Frontend: read the role
 

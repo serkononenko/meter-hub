@@ -9,7 +9,9 @@ import com.meterhub.identity.ports.outbound.UserRepository;
 import org.jooq.DSLContext;
 import org.springframework.stereotype.Repository;
 
+import java.time.OffsetDateTime;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 @Repository
@@ -47,6 +49,23 @@ public class UserRepositoryAdapter implements UserRepository {
         return dsl.selectFrom(Tables.USERS)
             .where(Tables.USERS.USERNAME.equalIgnoreCase(username))
             .fetchOptional(this::convert);
+    }
+
+    @Override
+    public Set<UUID> findIdsByRole(SystemRole role) {
+        return Set.copyOf(dsl.select(Tables.USERS.ID)
+            .from(Tables.USERS)
+            .where(Tables.USERS.ROLE.eq(role.name()))
+            .fetch(Tables.USERS.ID));
+    }
+
+    @Override
+    public boolean updateRole(UUID userId, SystemRole role) {
+        return dsl.update(Tables.USERS)
+            .set(Tables.USERS.ROLE, role.name())
+            .set(Tables.USERS.UPDATED_AT, OffsetDateTime.now())
+            .where(Tables.USERS.ID.eq(userId))
+            .execute() > 0;
     }
 
     private UsersRecord convert(User user) {

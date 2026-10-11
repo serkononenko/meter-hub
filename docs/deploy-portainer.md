@@ -121,6 +121,26 @@ Portainer's container console or `docker exec`.
 Portainer's container list replaces most of the CLI here: logs,
 console access, and per-container restart are all in the UI.
 
+## 4a. Granting admin (optional)
+
+System administrators manage the global provider catalog and nothing else
+(they get no access to any household's data). They are declared in the stack
+env by **user ID**, never by email — registration does not verify email, so
+an address-based rule would let anyone claim admin by registering it first.
+
+1. Register the account in the web app and sign in.
+2. Read your user ID: `GET /api/identity/api/v1/users/me` with your access
+   token (the `id` field), or from the sign-in response.
+3. Add it to the stack env — comma-separated for several admins:
+   `IDENTITY_ADMIN_USER_IDS=<uuid>[,<uuid>...]`
+4. Redeploy / restart `identity-service`. On startup it reconciles the
+   list: listed users become `ADMIN`, any other `ADMIN` is demoted. A listed
+   ID with no matching user is logged and ignored; a malformed entry stops
+   the service from starting (check the container log).
+5. The user's next access token carries the role — immediately after signing
+   in again, or within one access-token lifetime (15 min) via refresh.
+   Demotion takes effect the same way.
+
 ## 5. Updating
 
 Images are rebuilt by CI (`publish.yml`) on every green `main` push.

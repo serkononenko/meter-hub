@@ -1,10 +1,6 @@
 package com.meterhub.identity.domain.model;
 
-/**
- * Platform-level role of an account. Deliberately unrelated to household
- * membership roles (OWNER/MEMBER/VIEWER), which Household Service owns and
- * resolves per request — a system role grants nothing inside a household.
- */
+/** Platform-level role; unrelated to household membership roles, which Household Service resolves per request. */
 public enum SystemRole {
     USER,
     ADMIN

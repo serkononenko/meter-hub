@@ -15,12 +15,7 @@ public record User(
     OffsetDateTime createdAt,
     OffsetDateTime updatedAt
 ) {
-    /**
-     * The roles carried in the access token's {@code roles} claim. A single
-     * stored role expands to a set: every account is a USER, and ADMIN is
-     * additive — so adding a role later is not a breaking change for readers
-     * of the claim.
-     */
+    /** Every account is a USER and ADMIN is additive, so the token claim is a set. */
     public Set<SystemRole> systemRoles() {
         Set<SystemRole> roles = EnumSet.of(SystemRole.USER);
         roles.add(role);

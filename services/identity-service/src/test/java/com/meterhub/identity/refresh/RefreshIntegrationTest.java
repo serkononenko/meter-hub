@@ -88,8 +88,6 @@ class RefreshIntegrationTest {
         assertThat(rolesClaim(JsonPath.read(loginBody, "$.accessToken"))).containsExactly("USER");
         assertThat((List<String>) JsonPath.read(loginBody, "$.user.roles")).containsExactly("USER");
 
-        // Promotion happens out of band (deployment config); the already-issued
-        // access token stays as it was, the next one reflects the change.
         dsl.update(Users.USERS).set(Users.USERS.ROLE, "ADMIN").execute();
         String refreshBody = bodyOf(refresh(JsonPath.read(loginBody, "$.refreshToken")));
 

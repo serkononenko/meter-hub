@@ -15,7 +15,6 @@ class UserTest {
 
     @Test
     void adminIsAdditiveSoEveryAdminIsAlsoAUser() {
-        // Enum order (USER, ADMIN) is what both the token claim and /users/me emit.
         assertThat(List.copyOf(userWith(SystemRole.ADMIN).systemRoles()))
             .containsExactly(SystemRole.USER, SystemRole.ADMIN);
     }
