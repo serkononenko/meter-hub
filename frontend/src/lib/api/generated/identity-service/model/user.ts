@@ -3,8 +3,9 @@
  * Do not edit manually.
  * MeterHub Identity Service API
  * Identity Service HTTP API. Covers user registration, authentication, and token management.
- * OpenAPI spec version: 1.0.0
+ * OpenAPI spec version: 1.1.0
  */
+import type { SystemRole } from './systemRole';
 import type { UserStatus } from './userStatus';
 
 export interface User {
@@ -13,6 +14,11 @@ export interface User {
   email: string;
   username: string;
   status: UserStatus;
+  /**
+     * System roles of the user (platform-level; not household roles). Every account has `USER`; `ADMIN` is granted by deployment configuration and manages the global provider catalog only. Values are unique and sorted. (`uniqueItems` is deliberately not declared: it makes the Java generator emit a Set with a Jackson 2 annotation this service's Jackson 3 build does not have.)
+     * @minItems 1
+     */
+  roles: SystemRole[];
   /** RFC 3339 timestamp in UTC. Must use the Z suffix. */
   createdAt: string;
   /** RFC 3339 timestamp in UTC. Must use the Z suffix. */

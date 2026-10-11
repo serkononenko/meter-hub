@@ -70,6 +70,7 @@ class CurrentUserIntegrationTest {
             .contains("\"email\":\"jane.doe@example.com\"")
             .contains("\"username\":\"jane.doe\"")
             .contains("\"status\":\"ACTIVE\"")
+            .contains("\"roles\":[\"USER\"]")
             .contains("\"id\":\"" + JsonPath.read(loginBody, "$.user.id") + "\"")
             .doesNotContain("\"password\"");
     }

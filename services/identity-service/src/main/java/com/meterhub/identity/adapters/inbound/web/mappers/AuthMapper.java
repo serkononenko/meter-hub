@@ -8,6 +8,7 @@ import com.meterhub.identity.adapters.inbound.web.dto.RegisterRequestDto;
 import com.meterhub.identity.adapters.inbound.web.dto.UserDto;
 import com.meterhub.identity.domain.model.AccountStatus;
 import com.meterhub.identity.domain.model.User;
+import com.meterhub.identity.adapters.inbound.web.dto.SystemRoleDto;
 import com.meterhub.identity.ports.model.CreateUserCommand;
 import com.meterhub.identity.ports.model.LoginCommand;
 import com.meterhub.identity.ports.model.LoginResult;
@@ -40,6 +41,10 @@ public final class AuthMapper {
             user.email(),
             user.username(),
             toStatusDto(user.status()),
+            user.systemRoles().stream()
+                .sorted()
+                .map(role -> SystemRoleDto.fromValue(role.name()))
+                .toList(),
             user.createdAt()
         );
         dto.setUpdatedAt(user.updatedAt());

@@ -3,7 +3,7 @@
  * Do not edit manually.
  * MeterHub Identity Service API
  * Identity Service HTTP API. Covers user registration, authentication, and token management.
- * OpenAPI spec version: 1.0.0
+ * OpenAPI spec version: 1.1.0
  */
 import type { LoginResponseTokenType } from './loginResponseTokenType';
 import type { User } from './user';

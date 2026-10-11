@@ -6,6 +6,7 @@ import com.meterhub.identity.domain.exception.InvalidRefreshTokenException;
 import com.meterhub.identity.domain.model.AccountStatus;
 import com.meterhub.identity.domain.model.RefreshToken;
 import com.meterhub.identity.domain.model.RevokedAccessToken;
+import com.meterhub.identity.domain.model.SystemRole;
 import com.meterhub.identity.domain.model.User;
 import com.meterhub.identity.ports.model.LoginCommand;
 import com.meterhub.identity.ports.model.LoginResult;
@@ -33,6 +34,7 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -93,7 +95,7 @@ class AuthServiceTest {
         User user = activeUser();
         when(userRepository.findByEmail(EMAIL)).thenReturn(Optional.of(user));
         when(passwordEncoder.matches(PASSWORD, PASSWORD_HASH)).thenReturn(true);
-        when(accessTokenIssuer.issue(USER_ID)).thenReturn(new com.meterhub.identity.ports.model.IssuedToken("jwt-value", UUID.randomUUID(), 900L));
+        when(accessTokenIssuer.issue(eq(USER_ID), any())).thenReturn(new com.meterhub.identity.ports.model.IssuedToken("jwt-value", UUID.randomUUID(), 900L));
         when(refreshTokenRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
         LoginResult result = authService.login(new LoginCommand(EMAIL, PASSWORD));
@@ -108,7 +110,7 @@ class AuthServiceTest {
     void loginStoresOnlyTheHashOfTheIssuedRefreshToken() {
         when(userRepository.findByEmail(EMAIL)).thenReturn(Optional.of(activeUser()));
         when(passwordEncoder.matches(PASSWORD, PASSWORD_HASH)).thenReturn(true);
-        when(accessTokenIssuer.issue(USER_ID)).thenReturn(new com.meterhub.identity.ports.model.IssuedToken("jwt-value", UUID.randomUUID(), 900L));
+        when(accessTokenIssuer.issue(eq(USER_ID), any())).thenReturn(new com.meterhub.identity.ports.model.IssuedToken("jwt-value", UUID.randomUUID(), 900L));
         when(refreshTokenRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
         LoginResult result = authService.login(new LoginCommand(EMAIL, PASSWORD));
@@ -151,7 +153,7 @@ class AuthServiceTest {
 
         assertThatThrownBy(() -> authService.login(new LoginCommand(EMAIL, PASSWORD)))
             .isInstanceOf(InvalidCredentialsException.class);
-        verify(accessTokenIssuer, never()).issue(any());
+        verify(accessTokenIssuer, never()).issue(any(), any());
     }
 
     @Test
@@ -162,7 +164,7 @@ class AuthServiceTest {
 
         assertThatThrownBy(() -> authService.login(new LoginCommand(EMAIL, PASSWORD)))
             .isInstanceOf(InvalidCredentialsException.class);
-        verify(accessTokenIssuer, never()).issue(any());
+        verify(accessTokenIssuer, never()).issue(any(), any());
     }
 
     @Test
@@ -171,7 +173,7 @@ class AuthServiceTest {
         RefreshToken stored = storedToken(rawToken, null);
         when(refreshTokenRepository.findByTokenHash(sha256Hex(rawToken))).thenReturn(Optional.of(stored));
         when(userRepository.findById(USER_ID)).thenReturn(Optional.of(activeUser()));
-        when(accessTokenIssuer.issue(USER_ID)).thenReturn(new com.meterhub.identity.ports.model.IssuedToken("new-jwt", UUID.randomUUID(), 900L));
+        when(accessTokenIssuer.issue(eq(USER_ID), any())).thenReturn(new com.meterhub.identity.ports.model.IssuedToken("new-jwt", UUID.randomUUID(), 900L));
         when(refreshTokenRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
         LoginResult result = authService.refresh(new RefreshCommand(rawToken));
@@ -182,12 +184,38 @@ class AuthServiceTest {
     }
 
     @Test
+    void loginIssuesTheUsersSystemRolesIntoTheAccessToken() {
+        when(userRepository.findByEmail(EMAIL)).thenReturn(Optional.of(userWithRole(AccountStatus.ACTIVE, SystemRole.ADMIN)));
+        when(passwordEncoder.matches(PASSWORD, PASSWORD_HASH)).thenReturn(true);
+        when(accessTokenIssuer.issue(eq(USER_ID), any())).thenReturn(new com.meterhub.identity.ports.model.IssuedToken("jwt-value", UUID.randomUUID(), 900L));
+        when(refreshTokenRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+        authService.login(new LoginCommand(EMAIL, PASSWORD));
+
+        verify(accessTokenIssuer).issue(USER_ID, java.util.EnumSet.of(SystemRole.USER, SystemRole.ADMIN));
+    }
+
+    @Test
+    void refreshReloadsTheUserSoARoleChangeReachesTheNextToken() {
+        String rawToken = "raw-refresh-token";
+        when(refreshTokenRepository.findByTokenHash(sha256Hex(rawToken))).thenReturn(Optional.of(storedToken(rawToken, null)));
+        // The user was USER when the refresh token was minted and is ADMIN now.
+        when(userRepository.findById(USER_ID)).thenReturn(Optional.of(userWithRole(AccountStatus.ACTIVE, SystemRole.ADMIN)));
+        when(accessTokenIssuer.issue(eq(USER_ID), any())).thenReturn(new com.meterhub.identity.ports.model.IssuedToken("new-jwt", UUID.randomUUID(), 900L));
+        when(refreshTokenRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+        authService.refresh(new RefreshCommand(rawToken));
+
+        verify(accessTokenIssuer).issue(USER_ID, java.util.EnumSet.of(SystemRole.USER, SystemRole.ADMIN));
+    }
+
+    @Test
     void refreshRejectsUnknownToken() {
         when(refreshTokenRepository.findByTokenHash(any())).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> authService.refresh(new RefreshCommand("unknown-token")))
             .isInstanceOf(InvalidRefreshTokenException.class);
-        verify(accessTokenIssuer, never()).issue(any());
+        verify(accessTokenIssuer, never()).issue(any(), any());
     }
 
     @Test
@@ -221,7 +249,7 @@ class AuthServiceTest {
 
         assertThatThrownBy(() -> authService.refresh(new RefreshCommand(rawToken)))
             .isInstanceOf(InvalidRefreshTokenException.class);
-        verify(accessTokenIssuer, never()).issue(any());
+        verify(accessTokenIssuer, never()).issue(any(), any());
     }
 
     @Test
@@ -268,12 +296,17 @@ class AuthServiceTest {
     }
 
     private User activeUser(AccountStatus status) {
+        return userWithRole(status, SystemRole.USER);
+    }
+
+    private User userWithRole(AccountStatus status, SystemRole role) {
         return new User(
             USER_ID,
             EMAIL,
             "jane.doe",
             PASSWORD_HASH,
             status,
+            role,
             OffsetDateTime.now().minusDays(1),
             OffsetDateTime.now().minusDays(1)
         );

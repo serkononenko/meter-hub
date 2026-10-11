@@ -2,7 +2,7 @@ openapi: 3.0.3
 info:
   title: MeterHub Identity Service API
   description: Identity Service HTTP API. Covers user registration, authentication, and token management.
-  version: 1.0.0
+  version: 1.1.0
 
 tags:
   - name: Auth
@@ -46,6 +46,7 @@ paths:
                 email: jane.doe@example.com
                 username: jane.doe
                 status: ACTIVE
+                roles: [USER]
                 createdAt: '2026-08-27T08:30:00Z'
         '400':
           $ref: '../../openapi.yaml#/components/responses/BadRequest'
@@ -120,6 +121,7 @@ paths:
                   email: jane.doe@example.com
                   username: jane.doe
                   status: ACTIVE
+                  roles: [USER]
                   createdAt: '2026-08-27T08:30:00Z'
         '400':
           $ref: '../../openapi.yaml#/components/responses/BadRequest'
@@ -185,6 +187,7 @@ paths:
                   email: jane.doe@example.com
                   username: jane.doe
                   status: ACTIVE
+                  roles: [USER]
                   createdAt: '2026-08-27T08:30:00Z'
         '400':
           $ref: '../../openapi.yaml#/components/responses/BadRequest'
@@ -318,6 +321,7 @@ paths:
                 email: jane.doe@example.com
                 username: jane.doe
                 status: ACTIVE
+                roles: [USER]
                 createdAt: '2026-08-27T08:30:00Z'
         '401':
           description: No access token was supplied, or it is invalid or expired.
@@ -356,9 +360,22 @@ components:
       type: http
       scheme: bearer
       bearerFormat: JWT
-      description: Access token issued by POST /api/v1/auth/login or /api/v1/auth/refresh.
+      description: >-
+        Access token issued by POST /api/v1/auth/login or /api/v1/auth/refresh.
+        Besides the standard claims (`iss`, `sub`, `aud`, `iat`, `exp`, `jti`)
+        it carries a `roles` claim: the user's system roles as a string array
+        (`["USER"]` or `["USER","ADMIN"]`), always present. System roles are
+        platform-level and unrelated to household membership roles
+        (OWNER/MEMBER/VIEWER), which Household Service resolves per request.
+        A role change reaches the user's next issued token — at the latest one
+        access-token lifetime after the change.
 
   schemas:
+    SystemRole:
+      type: string
+      enum: [USER, ADMIN]
+      description: Platform-level role. Distinct from household membership roles.
+
     RegisterRequest:
       type: object
       additionalProperties: false
@@ -467,7 +484,7 @@ components:
     User:
       type: object
       additionalProperties: false
-      required: [id, email, username, status, createdAt]
+      required: [id, email, username, status, roles, createdAt]
       properties:
         id:
           type: string
@@ -482,6 +499,19 @@ components:
         status:
           type: string
           enum: [ACTIVE, DISABLED, LOCKED]
+        roles:
+          type: array
+          description: >-
+            System roles of the user (platform-level; not household roles).
+            Every account has `USER`; `ADMIN` is granted by deployment
+            configuration and manages the global provider catalog only.
+            Values are unique and sorted. (`uniqueItems` is deliberately not
+            declared: it makes the Java generator emit a Set with a Jackson 2
+            annotation this service's Jackson 3 build does not have.)
+          items:
+            $ref: '#/components/schemas/SystemRole'
+          minItems: 1
+          example: [USER]
         createdAt:
           type: string
           format: date-time

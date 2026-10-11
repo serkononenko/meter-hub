@@ -3,7 +3,7 @@
  * Do not edit manually.
  * MeterHub Identity Service API
  * Identity Service HTTP API. Covers user registration, authentication, and token management.
- * OpenAPI spec version: 1.0.0
+ * OpenAPI spec version: 1.1.0
  */
 
 export * from './healthStatus';
@@ -18,6 +18,7 @@ export * from './problemErrorsItem';
 export * from './refreshRequest';
 export * from './registerRequest';
 export * from './revocationBatch';
+export * from './systemRole';
 export * from './timestamp';
 export * from './user';
 export * from './userStatus';

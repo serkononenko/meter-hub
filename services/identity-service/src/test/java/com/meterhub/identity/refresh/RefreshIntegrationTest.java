@@ -25,6 +25,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.OffsetDateTime;
 import java.util.HexFormat;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -78,6 +79,26 @@ class RefreshIntegrationTest {
             .doesNotContain("\"password\"");
 
         verifyJwt(newAccess);
+    }
+
+    @Test
+    void accessTokenCarriesRolesAndARoleChangeReachesTheNextRefresh() throws Exception {
+        register("jane.doe@example.com", "jane.doe", "correct-horse-battery");
+        String loginBody = bodyOf(login("jane.doe@example.com", "correct-horse-battery"));
+        assertThat(rolesClaim(JsonPath.read(loginBody, "$.accessToken"))).containsExactly("USER");
+        assertThat((List<String>) JsonPath.read(loginBody, "$.user.roles")).containsExactly("USER");
+
+        // Promotion happens out of band (deployment config); the already-issued
+        // access token stays as it was, the next one reflects the change.
+        dsl.update(Users.USERS).set(Users.USERS.ROLE, "ADMIN").execute();
+        String refreshBody = bodyOf(refresh(JsonPath.read(loginBody, "$.refreshToken")));
+
+        assertThat(rolesClaim(JsonPath.read(refreshBody, "$.accessToken"))).containsExactly("USER", "ADMIN");
+        assertThat((List<String>) JsonPath.read(refreshBody, "$.user.roles")).containsExactly("USER", "ADMIN");
+    }
+
+    private static List<String> rolesClaim(String token) throws Exception {
+        return SignedJWT.parse(token).getJWTClaimsSet().getStringListClaim("roles");
     }
 
     @Test

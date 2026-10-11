@@ -29,24 +29,23 @@ Service reality this builds on (verified 2026-10-11):
 ## Epic S1 — Identity: role model & token claim
 
 S1.1 Contract (`contracts/openapi/services/identity-service/openapi.yaml`)
-- [ ] `User` schema gains `roles` (array of `USER` | `ADMIN`, always present); example updated.
-- [ ] Document the `roles` access-token claim next to the existing token description.
-- [ ] Redocly lint clean; regenerate the Orval client (frontend) and any other generated consumers.
+- [x] `User` schema gains `roles` (array of `USER` | `ADMIN`, always present); examples updated; `SystemRole` schema added; contract bumped to 1.1.0. (Detour: `uniqueItems: true` was dropped — the Java generator turns it into a `Set` plus a Jackson 2 `@JsonDeserialize` import this service's Jackson 3 build doesn't have. Uniqueness is guaranteed server-side by `User.systemRoles()` (an `EnumSet`), emitted in enum order, and noted in the schema description.)
+- [x] Document the `roles` access-token claim next to the existing token description (on the `bearerAuth` security scheme).
+- [x] Redocly lint: the same 4 errors / 2 warnings as before the change (pre-existing: `security-defined`, `no-empty-servers`, `info-license`, `operation-4xx-response`), none introduced; Orval client regenerated for identity only (`systemRole.ts` added, `user.ts` gains `roles`), `tsc --noEmit` clean. Gateway and identity both build from this contract; gateway tests green (nothing there deserializes `User`). Note: regenerating also rewrites the committed meter/reading clients because their 1.1.0 contracts are newer than the committed output — that drift predates this work, so those files were left out of S1 and stay stale.
 
 S1.2 Migration & domain (`db/migration/users/`)
-- [ ] New Flyway migration: `users.role VARCHAR(20) NOT NULL DEFAULT 'USER'` +
+- [x] New Flyway migration (`V20261011120000__add_user_role.sql`, sorts after the existing users migrations): `users.role VARCHAR(20) NOT NULL DEFAULT 'USER'` +
       `CHECK (role IN ('USER','ADMIN'))`; existing rows become `USER`. (jOOQ DDLDatabase
       note from R1.2/D1: keep anything H2 can't parse inside `/*[ignore]*/`.)
-- [ ] `SystemRole` domain enum, named and documented apart from household `MembershipRole`;
+- [x] `SystemRole` domain enum, named and documented apart from household `MembershipRole`;
       `User` carries it; repository maps it.
 
 S1.3 Token issuance
-- [ ] `AccessTokenIssuer.issue` takes the user's roles (not just the subject); the issuer
+- [x] `AccessTokenIssuer.issue` takes the user's roles (not just the subject); the issuer
       writes the `roles` claim (`["USER"]` / `["USER","ADMIN"]`). Both `issueTokens` paths
       (login, refresh) pass the freshly loaded user's roles.
-- [ ] `GET /api/v1/users/me` returns `roles`.
-- [ ] Unit tests: claim contents per role; refresh after a role change returns the new
-      claim; account-not-ACTIVE refresh still rejected.
+- [x] `GET /api/v1/users/me` returns `roles` (and the login/refresh/register bodies carry `user.roles`).
+- [x] Tests: `UserTest` (role expansion), `AuthServiceTest` (login issues the user's roles, refresh reloads the user so a role change reaches the next token, not-ACTIVE refresh still rejected), `RefreshIntegrationTest` (decoded `roles` claim, USER → promoted → next refresh carries `[USER, ADMIN]`), `CurrentUserIntegrationTest` (`roles` on `/users/me`). Identity suite green. **Live (2026-10-11, through the gateway on Compose):** new user → token claim and `/users/me` both `[USER]`; promoted in the DB → refresh token carries `[USER, ADMIN]`, the pre-promotion token is unchanged until it expires.
 
 ## Epic S2 — Identity: deployment-configured admins
 

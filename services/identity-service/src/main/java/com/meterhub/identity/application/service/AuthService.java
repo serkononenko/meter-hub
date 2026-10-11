@@ -118,7 +118,7 @@ public class AuthService implements LoginUseCase, RefreshUseCase, LogoutUseCase 
     }
 
     private LoginResult issueTokens(User user) {
-        IssuedToken access = accessTokenIssuer.issue(user.id());
+        IssuedToken access = accessTokenIssuer.issue(user.id(), user.systemRoles());
         String rawRefreshToken = generateRawToken();
         OffsetDateTime now = OffsetDateTime.now();
         refreshTokenRepository.save(new RefreshToken(

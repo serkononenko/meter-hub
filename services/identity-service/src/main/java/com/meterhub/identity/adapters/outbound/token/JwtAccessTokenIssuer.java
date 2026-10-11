@@ -1,6 +1,7 @@
 package com.meterhub.identity.adapters.outbound.token;
 
 import com.meterhub.identity.config.JwtProperties;
+import com.meterhub.identity.domain.model.SystemRole;
 import com.meterhub.identity.ports.model.IssuedToken;
 import com.meterhub.identity.ports.outbound.AccessTokenIssuer;
 import org.springframework.security.oauth2.jose.jws.SignatureAlgorithm;
@@ -19,18 +20,22 @@ import com.nimbusds.jose.jwk.source.ImmutableJWKSet;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 
 /**
  * Signs short-lived RS256 access tokens with Nimbus (Spring Security OAuth2
  * JOSE). Claims follow the MeterHub security contract: iss, sub, aud, exp,
- * iat, jti — jti makes tokens individually revocable (logout records it in
+ * iat, jti, plus {@code roles} (the user's system roles, always present) — jti makes tokens individually revocable (logout records it in
  * {@code revoked_access_tokens}; the gateway's cache rejects it). Downstream
  * services validate the small stable set and ignore claims they don't need.
  */
 @Component
 public class JwtAccessTokenIssuer implements AccessTokenIssuer {
+
+    /** Claim name read by Provider Service's guard; see spec 6 §5.2. */
+    static final String ROLES_CLAIM = "roles";
 
     private final JwtEncoder jwtEncoder;
     private final JwtProperties properties;
@@ -41,7 +46,7 @@ public class JwtAccessTokenIssuer implements AccessTokenIssuer {
     }
 
     @Override
-    public IssuedToken issue(UUID subject) {
+    public IssuedToken issue(UUID subject, Set<SystemRole> roles) {
         Instant now = Instant.now();
         Instant expiresAt = now.plus(properties.accessTokenTtl());
         UUID jti = UUID.randomUUID();
@@ -53,11 +58,18 @@ public class JwtAccessTokenIssuer implements AccessTokenIssuer {
             .issuedAt(now)
             .expiresAt(expiresAt)
             .id(jti.toString())
+            .claim(ROLES_CLAIM, rolesClaim(roles))
             .build();
         JwsHeader jwsHeader = JwsHeader.with(SignatureAlgorithm.RS256).build();
         String token = jwtEncoder.encode(JwtEncoderParameters.from(jwsHeader, claims)).getTokenValue();
 
         return new IssuedToken(token, jti, properties.accessTokenTtl().toSeconds());
+    }
+
+    private static List<String> rolesClaim(Set<SystemRole> roles) {
+        // Enum order (USER first) for a stable token shape, matching /users/me;
+        // USER is always present.
+        return roles.stream().sorted().map(Enum::name).toList();
     }
 
     private NimbusJwtEncoder buildJwtEncoder(RsaKeyMaterial keyMaterial) {

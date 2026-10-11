@@ -1,6 +1,7 @@
 package com.meterhub.identity.adapters.outbound.persistence;
 
 import com.meterhub.identity.domain.model.AccountStatus;
+import com.meterhub.identity.domain.model.SystemRole;
 import com.meterhub.identity.domain.model.User;
 import com.meterhub.identity.jooq.Tables;
 import com.meterhub.identity.jooq.tables.records.UsersRecord;
@@ -55,6 +56,7 @@ public class UserRepositoryAdapter implements UserRepository {
         record.setUsername(user.username());
         record.setPasswordHash(user.passwordHash());
         record.setStatus(user.status().name());
+        record.setRole(user.role().name());
         record.setCreatedAt(user.createdAt());
         record.setUpdatedAt(user.updatedAt());
         return record;
@@ -67,6 +69,7 @@ public class UserRepositoryAdapter implements UserRepository {
             .username(record.getUsername())
             .passwordHash(record.getPasswordHash())
             .status(AccountStatus.valueOf(record.getStatus()))
+            .role(SystemRole.valueOf(record.getRole()))
             .createdAt(record.getCreatedAt())
             .updatedAt(record.getUpdatedAt())
             .build();

@@ -1,6 +1,8 @@
 package com.meterhub.identity.domain.model;
 
 import java.time.OffsetDateTime;
+import java.util.EnumSet;
+import java.util.Set;
 import java.util.UUID;
 
 public record User(
@@ -9,9 +11,22 @@ public record User(
     String username,
     String passwordHash,
     AccountStatus status,
+    SystemRole role,
     OffsetDateTime createdAt,
     OffsetDateTime updatedAt
 ) {
+    /**
+     * The roles carried in the access token's {@code roles} claim. A single
+     * stored role expands to a set: every account is a USER, and ADMIN is
+     * additive — so adding a role later is not a breaking change for readers
+     * of the claim.
+     */
+    public Set<SystemRole> systemRoles() {
+        Set<SystemRole> roles = EnumSet.of(SystemRole.USER);
+        roles.add(role);
+        return roles;
+    }
+
     public static Builder builder() {
         return new Builder();
     }
@@ -22,6 +37,7 @@ public record User(
         private String username;
         private String passwordHash;
         private AccountStatus status;
+        private SystemRole role = SystemRole.USER;
         private OffsetDateTime createdAt;
         private OffsetDateTime updatedAt;
 
@@ -50,6 +66,11 @@ public record User(
             return this;
         }
 
+        public Builder role(SystemRole role) {
+            this.role = role;
+            return this;
+        }
+
         public Builder createdAt(OffsetDateTime createdAt) {
             this.createdAt = createdAt;
             return this;
@@ -61,7 +82,7 @@ public record User(
         }
 
         public User build() {
-            return new User(id, email, username, passwordHash, status, createdAt, updatedAt);
+            return new User(id, email, username, passwordHash, status, role, createdAt, updatedAt);
         }
     }
 }

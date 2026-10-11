@@ -3,6 +3,7 @@ package com.meterhub.identity.application.service;
 import com.meterhub.identity.domain.exception.DuplicateIdentityException;
 import com.meterhub.identity.domain.exception.InvalidAccessTokenException;
 import com.meterhub.identity.domain.model.AccountStatus;
+import com.meterhub.identity.domain.model.SystemRole;
 import com.meterhub.identity.domain.model.User;
 import com.meterhub.identity.ports.model.CreateUserCommand;
 import com.meterhub.identity.ports.outbound.UserRepository;
@@ -128,6 +129,7 @@ class UserServiceTest {
             USERNAME,
             PASSWORD_HASH,
             AccountStatus.ACTIVE,
+            SystemRole.USER,
             null,
             null
         );
