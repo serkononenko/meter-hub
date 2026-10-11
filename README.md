@@ -49,7 +49,7 @@ Later iterations may introduce Kafka, Notification Service, Provider Service, De
 > `events-demo` is a demo Kafka consumer proving the backbone end to end: it subscribes to
 > `meter.reading.created`, dedups on `eventId` in its own database, retries with bounded backoff and
 > dead-letters poison messages to `meter.reading.created.dlq` (policy in conventions §15.1). It is
-> explicitly a demo — Phase 3+ real consumers replace it.
+> explicitly a demo — Phase 4+ real consumers replace it.
 
 ### Async backbone (Kafka) — dev-mode notes
 

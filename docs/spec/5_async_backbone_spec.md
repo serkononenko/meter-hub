@@ -33,7 +33,7 @@ no cluster, no schema registry, file-based configuration committed to the repo.
   processing is idempotent even across consumer restarts and redeliveries.
 - A message that repeatedly fails processing ends in a dead-letter topic instead of
   blocking the partition, and its arrival is observable (metric + dashboard row).
-- Consumer lag per group is scraped and graphed, so the demo (and Phase 3+ consumers)
+- Consumer lag per group is scraped and graphed, so the demo (and Phase 4+ consumers)
   can be watched falling behind.
 - Trace context survives produce → consume: the event carries `traceparent` and the
   consumer starts a linked span, so Jaeger shows the async continuation of the
@@ -43,11 +43,11 @@ no cluster, no schema registry, file-based configuration committed to the repo.
 
 ## 3. Non-Goals
 
-- Real consumers with domain behavior (Reminders = Phase 3, Notifications = Phase 4) —
+- Real consumers with domain behavior (Reminders = Phase 4, Notifications = Phase 5) —
   the demo consumer exists only to prove the backbone.
 - Multi-broker Kafka, replication factors > 1, Kafka Raft migrations, TLS/SASL on the
   internal listener — dev-grade single node; hardening rides Phase 1's A1 service
-  trust model and Phase 7 scale-out work.
+  trust model and Phase 8 scale-out work.
 - Schema registry and Avro/Protobuf — event schemas are versioned JSON Schema files
   plus generated TypeScript types (same generated-client philosophy as the OpenAPI
   contracts).
@@ -173,12 +173,12 @@ ownership (no fake domain coupling), it lives in a small dedicated Compose servi
   consumer mid-batch, replay from earliest offset).
 - Traces and metrics like every other service, so lag and span continuity work for it
   from day one.
-- It is explicitly a demo: Phase 3+ consumers replace it; nothing else depends on it.
+- It is explicitly a demo: Phase 4+ consumers replace it; nothing else depends on it.
 
 ## 9. Retry and dead-letter policy
 
 Documented policy, implemented in the shared consumer scaffolding the demo uses
-(extracted so Phase 3+ consumers inherit it):
+(extracted so Phase 4+ consumers inherit it):
 
 - In-flight failure → retry in-process with bounded exponential backoff
   (config: attempts, base delay) — dev-grade; no retry *topics* round-trips unless a
@@ -215,7 +215,7 @@ Documented policy, implemented in the shared consumer scaffolding the demo uses
    replicating a pattern, not designing a framework.
 3. **JSON Schema + generated types over schema registry** — keeps the
    contract-first, generated-client workflow the repo already uses for OpenAPI; a
-   registry is Phase 7+ scale-out territory.
+   registry is Phase 8+ scale-out territory.
 4. **Demo consumer is a separate Compose service** — avoids inventing a fake reason
    for meter/household-service to consume; the point is proving the backbone, and the
    service boundary rule (conventions §16) stays untouched.

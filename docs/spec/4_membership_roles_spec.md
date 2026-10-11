@@ -31,7 +31,7 @@ user *belongs* to it.
 ### Non-goals
 
 - Email/SMS/Telegram delivery of invites (invite links are shared out of
-  band — copy-paste; delivery channels are Phase 3).
+  band — copy-paste; delivery channels are Phase 5).
 - Fine-grained per-meter permissions.
 - Role changes for existing members beyond removal + re-invite (an upgrade
   path exists, but is not required this phase).

@@ -14,10 +14,18 @@ Status of the platform when this roadmap was written (2026-09-26):
 Phases are sequenced so each one is shippable on its own and keeps the
 platform running end to end. The PRD (§15) sketched Reminders →
 Notifications → Providers → Devices → distributed experiments; this
-roadmap keeps that order but **pulls the async backbone (Kafka, outbox)
-forward** — Reminders and Notifications both want event-driven delivery,
-so the backbone is built once, before the features that depend on it,
-rather than retrofitted twice.
+roadmap changes that order in two ways:
+
+- **The async backbone (Kafka, outbox) is pulled forward** — Reminders and
+  Notifications both want event-driven delivery, so the backbone is built
+  once, before the features that depend on it, rather than retrofitted
+  twice.
+- **Provider Service is split: a thin core goes first.** A reminder is a
+  provider requirement ("submit between the 20th and the last day"), so
+  the provider/account/window model precedes Reminders, and the provider
+  *integrations* (adapters, submission) stay later. The order is
+  Provider core → Reminders → Notifications → Provider integrations →
+  Devices.
 
 ---
 
@@ -57,7 +65,7 @@ no new services.
 - **Alerting.** Alertmanager + rules on the existing Prometheus (scrape
   target down, sustained 5xx, readiness flapping) and Loki alerts (error
   spikes); notification path (Telegram is the natural first channel —
-  reuse it in Phase 3). This closes the last unchecked item in
+  reuse it in Phase 5). This closes the last unchecked item in
   `1_metrics_observability_tasks.md` besides per-service dashboards.
 - **Backups.** Scheduled `pg_dump` per database to a host volume; document
   restore. The Compose volume is currently disposable by design.
@@ -110,27 +118,65 @@ in the DLQ, and the lag dashboard shows the consumer group.
 
 ---
 
-## Phase 3 — Reminders
+## Phase 3 — Provider Service (core)
 
-The first feature phase (PRD §15 Phase 2). Builds directly on the event
-backbone.
+Reminders are driven by what a provider requires, not by a per-meter
+preference: each provider wants readings inside a window (e.g. "between
+the 20th and the last day of the month"). The rule therefore lives with
+the provider, and Meter Service never learns provider specifics
+(`docs/service-boundaries.md` §7). This phase builds the **thin core** of
+Provider Service — no integrations yet — so Reminders consume a real
+model instead of inventing and later migrating one.
 
-- **Reading schedules** per meter or provider cycle (e.g. "electricity
-  read by the 5th monthly") — new bounded context, new service or a
-  schedule extension of an existing one (decide by boundary, per
-  `docs/service-boundaries.md`).
-- **Background scheduler** evaluating schedules and emitting reminder-due
-  events.
-- **Reminder state machine** — due → sent → acknowledged / overdue;
-  delivery tracking per reminder.
-- **UI** — schedule management screens, upcoming-reminders view.
+- **Provider Service** (next port in the 8085+ block, own `provider-db`)
+  owning `Provider`, `ProviderAccount` and the meter→account binding —
+  the boundary already documented in `docs/service-boundaries.md` §7.
+- **Submission-window rule** on the provider/account: window start and
+  end (day-of-month or "last day"), timezone, cycle (monthly first;
+  quarterly/annual as data, not code). Calendar edge cases (short months,
+  business days) are decided in the spec.
+- **Manual providers are first-class** — a provider with no integration,
+  where the user submits readings themself, is the case reminders exist
+  for.
+- **Binding with validity dates** — a meter can move to another provider
+  over time (supplier switch); bindings carry `validFrom`/`validTo`.
+- **Events** — `ProviderAccountLinked` / rule-changed events under
+  `contracts/events/`, published through the outbox, so Reminders can
+  react to rule changes.
+- **UI** — provider and account management, bind a meter to an account.
 
-**Done when:** a schedule produces a reminder event on time, state
-transitions are tracked, and the UI shows upcoming/overdue reminders.
+**Done when:** a household can define a provider account with a
+submission window, bind a meter to it, and the rule and binding changes
+appear as events on the backbone.
 
 ---
 
-## Phase 4 — Notifications (Notification Service)
+## Phase 4 — Reminders
+
+The first feature phase built on the event backbone (PRD §15 Phase 2),
+now driven by Phase 3 provider rules.
+
+- **Reminder generation** from the submission-window rule of each bound
+  meter's provider account — new bounded context, new service or a module
+  of Provider Service (decide by boundary, per
+  `docs/service-boundaries.md`).
+- **Background scheduler** evaluating rules and emitting reminder-due
+  events (lead times, e.g. 3 days before the window closes, on the last
+  day, then overdue).
+- **Reminder state machine** — due → sent → acknowledged / overdue;
+  delivery tracking per reminder.
+- **Automatic acknowledgement** — a `meter.reading.created` event for a
+  bound meter inside the window closes the reminder; nobody has to tap
+  "done".
+- **UI** — upcoming/overdue reminders per meter and provider.
+
+**Done when:** a provider rule produces a reminder event on time, a
+reading inside the window acknowledges it automatically, and the UI shows
+upcoming/overdue reminders.
+
+---
+
+## Phase 5 — Notifications (Notification Service)
 
 The first consumer of the backbone beyond demos (PRD §15 Phase 3).
 
@@ -148,24 +194,24 @@ respected, and a failed send retries without duplicating delivery.
 
 ---
 
-## Phase 5 — Provider Integrations (Provider Service)
+## Phase 6 — Provider Integrations
 
-- **Provider Service** owning `Provider`, `ProviderAccount`,
-  `ProviderIntegration` (boundary already documented in
-  `docs/service-boundaries.md` §7 — Meter Service must never learn
-  provider specifics).
+Extends the Phase 3 Provider Service; the model and boundary already
+exist, this phase adds the outbound side.
+
 - **Provider adapter abstraction** — first real provider, plus a
   configurable generic HTTP provider.
 - **Submission flow** — reading-confirmed events trigger submission;
   retry + failure handling with visible status per submission.
-- **UI** — provider account linking, submission status per reading.
+- **UI** — provider account credentials/linking, submission status per
+  reading.
 
 **Done when:** a reading can be submitted to a (test) provider account
 automatically, with retries and a visible audit trail.
 
 ---
 
-## Phase 6 — Device Automation (Device Service)
+## Phase 7 — Device Automation (Device Service)
 
 - **Device Service** — registration, `lastSeen` health, device→meter
   binding.
@@ -181,7 +227,7 @@ and a silent device raises an alert.
 
 ---
 
-## Phase 7 — Scale-out Experiments
+## Phase 8 — Scale-out Experiments
 
 Only when something above actually needs it — each item is deliberately
 optional:
