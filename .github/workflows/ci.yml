@@ -77,8 +77,33 @@ jobs:
       fail-fast: false
       matrix:
         service: [meter-service, reading-service, events-demo, provider-service]
+    # reading-service and provider-service run store/repository tests against
+    # real Postgres (statement-level atomicity can't be proven with a stub);
+    # the other services simply don't use it.
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: meterhub_admin
+          POSTGRES_PASSWORD: ci-postgres
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U meterhub_admin"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
     steps:
       - uses: actions/checkout@v4
+      - name: Create test databases and users (dev-default passwords)
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq postgresql-client
+          psql "postgres://meterhub_admin:ci-postgres@localhost:5432/postgres" \
+            -c "CREATE USER reading_user WITH PASSWORD 'reading_dev';" \
+            -c "CREATE USER provider_user WITH PASSWORD 'provider_dev';" \
+            -c "CREATE DATABASE reading_db OWNER reading_user;" \
+            -c "CREATE DATABASE provider_db OWNER provider_user;"
       - uses: actions/setup-node@v4
         with:
           node-version: 22 # matches local dev (README prerequisites)
@@ -87,6 +112,13 @@ jobs:
       - name: Install dependencies
         working-directory: services/${{ matrix.service }}
         run: npm ci
+      - name: Apply database migrations
+        # The Postgres-backed specs need the schema, not just an empty database.
+        if: matrix.service == 'reading-service' || matrix.service == 'provider-service'
+        working-directory: services/${{ matrix.service }}
+        env:
+          DATABASE_URL: ${{ matrix.service == 'reading-service' && 'postgresql://reading_user:reading_dev@localhost:5432/reading_db' || 'postgresql://provider_user:provider_dev@localhost:5432/provider_db' }}
+        run: npx prisma migrate deploy
       - name: Test ${{ matrix.service }}
         working-directory: services/${{ matrix.service }}
         run: npm test
