@@ -29,6 +29,8 @@ export interface ProviderFilter {
     householdId?: string;
     scope?: ProviderScope;
     includeArchived: boolean;
+    /** Admin listing without a household: private providers are discoverable for promotion. */
+    includeAllHouseholds?: boolean;
 }
 
 @Injectable()
@@ -91,7 +93,17 @@ export class ProviderRepository {
     }
 }
 
-function visibilityClause({householdId, scope}: ProviderFilter): Prisma.ProviderWhereInput {
+function visibilityClause({householdId, scope, includeAllHouseholds}: ProviderFilter): Prisma.ProviderWhereInput {
+    if (includeAllHouseholds) {
+        if (scope === ProviderScope.GLOBAL) {
+            return {householdId: null};
+        }
+        if (scope === ProviderScope.HOUSEHOLD) {
+            return {NOT: {householdId: null}};
+        }
+        return {};
+    }
+
     if (scope === ProviderScope.GLOBAL || !householdId) {
         return {householdId: null};
     }

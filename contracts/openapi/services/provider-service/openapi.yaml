@@ -81,9 +81,11 @@ paths:
       operationId: listProviders
       summary: List the providers visible to the caller
       description: >-
-        Without `householdId`, returns the global catalog. With `householdId`,
-        returns the catalog plus that household's private providers (the pick
-        list for creating an account) — any membership role suffices. `scope`
+        Without `householdId`, returns the global catalog — plus every
+        household's private providers when the caller holds the ADMIN system
+        role (the discovery list for promotion). With `householdId`, returns
+        the catalog plus that household's private providers (the pick list
+        for creating an account) — any membership role suffices. `scope`
         narrows either result.
       security:
         - bearerAuth: []

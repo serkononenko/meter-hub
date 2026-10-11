@@ -191,6 +191,20 @@ describe('Providers (e2e)', () => {
             expect(onlyPrivate.body.map((p: { name: string }) => p.name)).toEqual(['Alice private']);
         });
 
+        it('shows an admin every household\'s private providers without a household filter', async () => {
+            await createGlobal('Catalog One');
+            await createPrivate(ALICE, ALICE_HOUSEHOLD, 'Alice private');
+            await createPrivate(BOB, BOB_HOUSEHOLD, 'Bob private');
+
+            const adminList = await request(server).get('/api/v1/providers')
+                .set('Authorization', as(ADMIN, ['USER', 'ADMIN']));
+            const adminOnlyPrivate = await request(server).get('/api/v1/providers?scope=HOUSEHOLD')
+                .set('Authorization', as(ADMIN, ['USER', 'ADMIN']));
+
+            expect(adminList.body.map((p: { name: string }) => p.name)).toEqual(['Alice private', 'Bob private', 'Catalog One']);
+            expect(adminOnlyPrivate.body.map((p: { name: string }) => p.name)).toEqual(['Alice private', 'Bob private']);
+        });
+
         it('hides archived providers unless asked', async () => {
             const global = (await createGlobal('Old Co')).body;
             await request(server).patch(`/api/v1/providers/${global.id}`)

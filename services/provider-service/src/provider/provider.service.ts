@@ -3,7 +3,7 @@ import {plainToInstance} from 'class-transformer';
 import {randomUUID} from 'node:crypto';
 import {ProvidersApi} from '../generated/provider/api/index.js';
 import {ProviderScope} from '../generated/provider/models/index.js';
-import {assertAdmin} from '../auth/system-roles.js';
+import {ADMIN_ROLE, assertAdmin} from '../auth/system-roles.js';
 import {HouseholdAccessService} from '../household/household-access.service.js';
 import {ProviderAlreadyGlobalException} from '../exceptions/unprocessable.exception.js';
 import {ProviderNotFoundException, HouseholdNotFoundException} from '../exceptions/not-found.exception.js';
@@ -66,7 +66,12 @@ export class ProviderService extends ProvidersApi {
             await this.householdAccess.assertCanRead(household, user.userId);
         }
 
-        return this.repository.findVisible({householdId: household, scope, includeArchived: parseBooleanQuery(includeArchived)});
+        return this.repository.findVisible({
+            householdId: household,
+            scope,
+            includeArchived: parseBooleanQuery(includeArchived),
+            includeAllHouseholds: household === undefined && user.roles.includes(ADMIN_ROLE),
+        });
     }
 
     async getProvider(providerId: string, _correlationId?: string, request?: Request): Promise<Provider> {
