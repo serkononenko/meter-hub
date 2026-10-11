@@ -109,14 +109,17 @@ P1.3 Scaffolding
 
 ## Epic P2 — Window calculation (pure domain)
 
-- [ ] `windowFor(rule, cycleMonth)` and the rule validator, implemented as pure functions
-      (no Nest, no DB) per spec §7.
-- [ ] Table tests: 30/31-day months, leap and non-leap February, `DAY_OF_MONTH` 29–31
+- [x] `windowFor(rule, cycleMonth)` and the rule validator (`validateSubmissionRule`), implemented as pure functions
+      (no Nest, no DB) per spec §7, under `src/submission-window/`. Time zones use `Intl` only — no new dependency.
+- [x] Table tests (`submission-window.spec.ts`, `submission-rule.validator.spec.ts`; 49 cases): 30/31-day months, leap and non-leap February, `DAY_OF_MONTH` 29–31
       clamping, `LAST_DAY` with offsets, equal-day single-day window, wrapping window
       (open 25th, close 5th), closing-day-exclusive upper bound, DST zones on both
       transition dates, windows longer than the cycle rejected, unknown timezone rejected.
-- [ ] `currentAndNext(rule, at)` helper used by the API and (later) Reminders; tested at
+- [x] `currentAndNext(rule, at)` helper used by the API and (later) Reminders; tested at
       window boundaries (instant of `opensAt`, instant before/at `closesAt`).
+- Verified: 64/64 unit tests in the service, `tsc` and lint clean. The DST expectations (Kyiv spring/autumn, São Paulo's skipped midnight, Havana's repeated midnight) were cross-checked against the system `date` and Python `zoneinfo`, not just against the implementation. Three deliberate mutations — closing day exclusive, no day clamping, ignoring the time zone — each failed the suite.
+- Decisions the spec left open: (1) a day whose midnight is skipped starts at the instant the clocks jump; one whose midnight happens twice starts at the first occurrence. (2) The "window longer than the cycle" check became "consecutive windows must leave a gap": the validator computes every window across 24 months (a leap and a non-leap year) and rejects a rule where one window ends at or after the next opens. This is stricter than the spec's wording and also catches a clamping case the spec's example misses — opens 31st / closes 30th overlaps only in short months. A window closing the instant the next opens (e.g. opens the 1st, closes the last day) is therefore also rejected, since it would be open permanently.
+- Zone names: validation accepts what the runtime accepts, so a legacy alias like `Europe/Kiev` and any casing passes, while offsets (`+03:00`) are rejected. `Intl.supportedValuesOf` lists `Europe/Kiev` but not `Europe/Kyiv`, yet `Intl` itself accepts `Europe/Kyiv`; the validator relies on construction, not that list.
 
 ## Epic P3 — Providers (catalog & private)
 
