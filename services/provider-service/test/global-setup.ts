@@ -20,6 +20,7 @@ const {privateKey, publicKey: publicKeyPem} = generateKeyPairSync('rsa', {
 });
 
 let householdServer: Server;
+let meterServer: Server;
 
 beforeAll(async () => {
     const path = join(tmpdir(), `provider-service-e2e-${process.pid}.pem`);
@@ -31,11 +32,25 @@ beforeAll(async () => {
     householdServer = createServer(householdStubHandler);
     await new Promise<void>((resolve) => householdServer.listen(0, '127.0.0.1', resolve));
     process.env.HOUSEHOLD_SERVICE_URL = `http://127.0.0.1:${(householdServer.address() as { port: number }).port}`;
+
+    meterServer = createServer(meterStubHandler);
+    await new Promise<void>((resolve) => meterServer.listen(0, '127.0.0.1', resolve));
+    process.env.METER_SERVICE_URL = `http://127.0.0.1:${(meterServer.address() as { port: number }).port}`;
 }, 30_000);
 
 afterAll(async () => {
     await new Promise<void>((resolve) => householdServer?.close(() => resolve()));
+    await new Promise<void>((resolve) => meterServer?.close(() => resolve()));
 });
+
+export async function takeMeterDown(): Promise<void> {
+    await new Promise<void>((resolve) => meterServer.close(() => resolve()));
+}
+
+export async function bringMeterBack(): Promise<void> {
+    const port = Number(new URL(process.env.METER_SERVICE_URL!).port);
+    await new Promise<void>((resolve) => meterServer.listen(port, '127.0.0.1', resolve));
+}
 
 interface TokenClaims {
     subject?: string;
@@ -62,6 +77,61 @@ export function grantRole(householdId: string, subject: string, role: 'OWNER' | 
 
 export function revokeMembership(householdId: string, subject: string): void {
     delete ROLES[`${householdId}:${subject}`];
+}
+
+const METERS: Record<string, string> = {};
+
+export function registerMeter(meterId: string, householdId: string): string {
+    METERS[meterId] = householdId;
+    return meterId;
+}
+
+export function forgetMeters(): void {
+    for (const meterId of Object.keys(METERS)) {
+        delete METERS[meterId];
+    }
+}
+
+// Mirrors meter-service: a meter is visible to a caller who holds any role in its household.
+function meterStubHandler(request: IncomingMessage, response: ServerResponse): void {
+    const meterId = /^\/api\/v1\/meters\/([0-9a-f-]{36})$/.exec(request.url ?? '')?.[1];
+    const householdId = meterId ? METERS[meterId] : undefined;
+    const subject = subjectOf(request.headers.authorization);
+    const visible = householdId !== undefined && subject !== null && ROLES[`${householdId}:${subject}`] !== undefined;
+
+    if (!visible) {
+        response.writeHead(404, {'Content-Type': 'application/json'});
+        response.end(JSON.stringify({code: 'METER_NOT_FOUND', status: 404}));
+        return;
+    }
+
+    response.writeHead(200, {'Content-Type': 'application/json'});
+    response.end(JSON.stringify({
+        id: meterId,
+        householdId,
+        type: 'ELECTRICITY',
+        name: 'Test meter',
+        serialNumber: 'E2E-1',
+        unit: 'KWH',
+        status: 'ACTIVE',
+        createdAt: '2026-09-01T10:00:00Z',
+        updatedAt: '2026-09-01T10:00:00Z',
+    }));
+}
+
+function subjectOf(authorization: string | undefined): string | null {
+    const token = authorization?.replace(/^Bearer\s+/i, '');
+    const payload = token?.split('.')[1];
+
+    if (!payload) {
+        return null;
+    }
+
+    try {
+        return (JSON.parse(Buffer.from(payload, 'base64url').toString('utf8')) as { sub?: string }).sub ?? null;
+    } catch {
+        return null;
+    }
 }
 
 function householdStubHandler(request: IncomingMessage, response: ServerResponse): void {

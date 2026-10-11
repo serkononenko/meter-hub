@@ -4,6 +4,9 @@ export default () => ({
     database: {
         url: process.env.DATABASE_URL ?? 'postgresql://provider_user:provider_dev@localhost:5432/provider_db',
     },
+    meter: {
+        url: process.env.METER_SERVICE_URL ?? 'http://localhost:8083'
+    },
     household: {
         url: process.env.HOUSEHOLD_SERVICE_URL ?? 'http://localhost:8082'
     },

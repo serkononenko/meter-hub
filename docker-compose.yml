@@ -228,6 +228,7 @@ services:
     environment:
       <<: *identity-jwt-env
       DATABASE_URL: postgresql://${PROVIDER_DB_USER}:${PROVIDER_DB_PASSWORD}@postgres:5432/${PROVIDER_DB}
+      METER_SERVICE_URL: http://meter-service:8083
       HOUSEHOLD_SERVICE_URL: http://household-service:8082
       IDENTITY_JWT_PUBLIC_KEY_PATH: /run/secrets/identity.jwt.public-key
       OTEL_SERVICE_NAME: provider-service
@@ -248,6 +249,8 @@ services:
       postgres:
         condition: service_healthy
       household-service:
+        condition: service_healthy
+      meter-service:
         condition: service_healthy
 
   # Demo Kafka consumer proving the async backbone (spec 5 §8): subscribes

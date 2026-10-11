@@ -75,6 +75,11 @@ export function localCycleMonth(instant: Date, timeZone: string): CycleMonth {
     return {year, month};
 }
 
+export function localDateOf(instant: Date, timeZone: string): LocalDate {
+    const {year, month, day} = localParts(instant.getTime(), timeZone);
+    return {year, month, day};
+}
+
 export function isKnownTimeZone(timeZone: string): boolean {
     if (/^[+-]/.test(timeZone)) {
         return false;

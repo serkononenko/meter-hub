@@ -7,10 +7,12 @@ import {assertAdmin} from '../auth/system-roles.js';
 import {HouseholdAccessService} from '../household/household-access.service.js';
 import {ProviderAlreadyGlobalException} from '../exceptions/unprocessable.exception.js';
 import {ProviderNotFoundException, HouseholdNotFoundException} from '../exceptions/not-found.exception.js';
+import {RequestValidationException} from '../exceptions/request-validation.exception.js';
 import {requireValidRule} from '../submission-window/require-valid-rule.js';
 import {getAuthenticatedUser} from '../utils/get-authenticated-user.js';
 import {parseBooleanQuery} from '../utils/parse-boolean-query.js';
 import {validateCommand} from '../validation/validate-command.js';
+import {optionalUuid, requireUuid} from '../validation/require-uuid.js';
 import {CreateProviderCommand} from './commands/create-provider.command.js';
 import {UpdateProviderCommand} from './commands/update-provider.command.js';
 import {ProviderRepository} from './provider.repository.js';
@@ -54,16 +56,21 @@ export class ProviderService extends ProvidersApi {
         request?: Request,
     ): Promise<Provider[]> {
         const user = getAuthenticatedUser(request);
+        const household = optionalUuid(householdId, 'householdId');
 
-        if (householdId) {
-            await this.householdAccess.assertCanRead(householdId, user.userId);
+        if (scope !== undefined && !Object.values(ProviderScope).includes(scope)) {
+            throw new RequestValidationException([{property: 'scope', constraints: {isEnum: 'scope must be GLOBAL or HOUSEHOLD'}}]);
         }
 
-        return this.repository.findVisible({householdId, scope, includeArchived: parseBooleanQuery(includeArchived)});
+        if (household) {
+            await this.householdAccess.assertCanRead(household, user.userId);
+        }
+
+        return this.repository.findVisible({householdId: household, scope, includeArchived: parseBooleanQuery(includeArchived)});
     }
 
     async getProvider(providerId: string, _correlationId?: string, request?: Request): Promise<Provider> {
-        return this.visibleProvider(providerId, getAuthenticatedUser(request));
+        return this.visibleProvider(requireUuid(providerId, 'providerId'), getAuthenticatedUser(request));
     }
 
     async updateProvider(
@@ -76,7 +83,7 @@ export class ProviderService extends ProvidersApi {
         const command = plainToInstance(UpdateProviderCommand, payload);
         await validateCommand(command);
 
-        const provider = await this.visibleProvider(providerId, user);
+        const provider = await this.visibleProvider(requireUuid(providerId, 'providerId'), user);
         await this.assertCanManage(provider.householdId ?? null, user);
 
         return this.repository.update(provider.id, {
@@ -92,7 +99,7 @@ export class ProviderService extends ProvidersApi {
         const user = getAuthenticatedUser(request);
         assertAdmin(user);
 
-        const provider = await this.repository.findById(providerId);
+        const provider = await this.repository.findById(requireUuid(providerId, 'providerId'));
 
         if (!provider) {
             throw new ProviderNotFoundException();

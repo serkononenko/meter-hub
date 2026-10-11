@@ -145,19 +145,31 @@ P1.3 Scaffolding
 
 ## Epic P4 — Accounts & bindings
 
-- [ ] Accounts: create (rule copied from `defaultRule` when omitted, else
+- [x] Accounts: create (rule copied from `defaultRule` when omitted, else
       `422 INVALID_SUBMISSION_RULE`), list, get, patch (label, rule, archive, re-point
       `providerId` to a visible provider — `422 HOUSEHOLD_MISMATCH` otherwise), `version`
       bumped on rule/provider change.
-- [ ] `ACCOUNT_HAS_ACTIVE_BINDINGS` on archive; archived providers cannot be chosen for new
+- [x] `ACCOUNT_HAS_ACTIVE_BINDINGS` on archive; archived providers cannot be chosen for new
       accounts but keep serving existing ones.
-- [ ] Bindings: create with Meter Service validation through the forwarded bearer token
+- [x] Bindings: create with Meter Service validation through the forwarded bearer token
       (`422 METER_NOT_FOUND`, `503` fail-closed when unreachable), household match check,
       end via `validTo`, history queries.
-- [ ] Overlap protection: partial unique index for open-ended bindings **and** a
+- [x] Overlap protection: partial unique index for open-ended bindings **and** a
       transactional overlap check against closed ones (`409 METER_ALREADY_BOUND`).
-- [ ] Concurrency test against real Postgres (16 parallel binds of one meter → exactly one
+- [x] Concurrency test against real Postgres (16 parallel binds of one meter → exactly one
       winner), like the idempotency-store race test.
+- Verified: 64/64 e2e (23 providers + 21 accounts + 20 bindings) and 67/67 unit tests, `tsc`, lint, build. **Live through Compose:** with a real household and meter, provider-service created a provider and account, bound the real meter (its call to meter-service with the forwarded token succeeded), answered 409 on a second bind and 422 for an unknown meter; test data removed afterwards.
+- Race: 16 concurrent binds of one meter across four accounts give exactly one 201, fifteen `METER_ALREADY_BOUND` 409s and one open row. Checked three ways: with the advisory lock; with the lock removed; and with the lock *and* the application-level overlap check removed, leaving only the partial unique index (the unique violation is mapped to the same 409, 5 runs each). Without that mapping the index alone produced 500s in an earlier run — the mapping is what makes the index a usable backstop.
+- Five deliberate mutations each failed the suite: advisory lock removed, viewer allowed to bind, household mismatch unchecked, a foreign account readable by id, and the lock-and-precheck removal above.
+- Spec/contract changes made while building (please review — they are decisions, not generated noise):
+  - **`version` semantics pinned.** Account `version` bumps on any actual change (label, number, rule, provider, archiving) and *not* on a no-op request — a rule re-sent in a different key order compares equal. Binding `version` is 1 on create and 2 once ended. The contract text now says so; the old "rule or provider" wording would have left label changes invisible to a consumer using `version` to discard stale snapshots.
+  - **Supplier switch is `validTo` D-1 / new `validFrom` D.** `validTo` is the last day a binding applies, so ending on D and starting on D overlap; the contract now says so (the spec's "same day if needed" was ambiguous about this). Ending on the binding's own start day is allowed.
+  - New problem codes, all documented in the contract: `ACCOUNT_ARCHIVED`, `PROVIDER_ARCHIVED`, `BINDING_ALREADY_ENDED` (409), `INVALID_BINDING_PERIOD` (422), `METER_SERVICE_UNAVAILABLE` (503). `HOUSEHOLD_MISMATCH` now means the meter's household differs from the account's; a provider not visible to the household is `404 PROVIDER_NOT_FOUND` (so another household's private providers can't be probed).
+  - Archiving checks bindings *in effect today in the account's time zone*, not merely "open": a binding that ended yesterday no longer blocks it.
+  - Re-pointing an account to a different provider requires that provider to be visible and not archived; bindings are untouched.
+- Bugs found by the tests/live run and fixed: `meter.url` was never in the service config and the Compose files never passed `METER_SERVICE_URL` (provider-service also now waits for meter-service); `pg_advisory_xact_lock` returns `void`, which Prisma's raw query cannot deserialise; malformed path/query identifiers returned 500 or the wrong code (now `400 VALIDATION_ERROR`, including `scope`); the e2e files share tables, so they now run serially (`fileParallelism: false`) — in parallel they corrupted each other.
+- Gateway routes for provider-service do not exist yet, so the public path through the gateway returns 404 (P6). The live check above therefore called the service directly with a real gateway-issued token.
+- Not done here, by design: events (P5). The `version` numbers above are what the P5 snapshots will carry.
 
 ## Epic P5 — Submission-window API & events
 

@@ -56,6 +56,13 @@ export class ProviderRepository {
         return row ? toProvider(row) : null;
     }
 
+    async findVisibleToHousehold(id: string, householdId: string): Promise<Provider | null> {
+        const row = await this.prisma.provider.findFirst({
+            where: {id, OR: [{householdId: null}, {householdId}]},
+        });
+        return row ? toProvider(row) : null;
+    }
+
     async findVisible(filter: ProviderFilter): Promise<Provider[]> {
         const rows = await this.prisma.provider.findMany({
             where: {

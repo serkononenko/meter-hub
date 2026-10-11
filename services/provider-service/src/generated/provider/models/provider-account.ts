@@ -9,7 +9,7 @@ export interface ProviderAccount {
   accountNumber?: string | null;
   rule: SubmissionRule;
   /**
-   * Incremented on every change to the rule or provider.
+   * Incremented on every change to the account (label, number, rule, provider, archiving), so a consumer can discard a snapshot that is not newer than the one it holds.
    */
   version: number;
   archived: boolean;

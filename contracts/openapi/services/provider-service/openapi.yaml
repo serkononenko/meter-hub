@@ -248,9 +248,12 @@ paths:
       summary: Create the household's account with a provider
       description: >-
         Requires at least MEMBER in the household. The provider must be visible
-        to the household (global, or private to it). When `rule` is omitted the
-        provider's default window is copied; if the provider has none either,
-        the request is rejected with 422 INVALID_SUBMISSION_RULE.
+        to the household (global, or private to it); one that is not — or does
+        not exist — is reported as not found, so another household's private
+        providers cannot be probed. An archived provider cannot be chosen
+        (409 PROVIDER_ARCHIVED). When `rule` is omitted the provider's default
+        window is copied; if the provider has none either, the request is
+        rejected with 422 INVALID_SUBMISSION_RULE.
       security:
         - bearerAuth: []
       parameters:
@@ -380,8 +383,10 @@ paths:
         Requires at least MEMBER. Setting `providerId` re-points the account to
         another provider visible to the household, which is how a duplicate
         private provider is replaced by its catalog entry; bindings are
-        untouched. A change to the rule or provider bumps `version`. Archiving
-        an account that still has an open binding is rejected.
+        untouched, and the same visibility and archived rules apply as on
+        creation. Every actual change bumps `version`; a request that changes
+        nothing does not. Archiving an account that still has an open binding
+        is rejected.
       security:
         - bearerAuth: []
       parameters:
@@ -430,9 +435,11 @@ paths:
       description: >-
         Requires at least MEMBER in the account's household. The meter must
         exist and belong to that household (checked against Meter Service with
-        the caller's token). A meter has at most one binding at a time;
-        overlapping bindings are rejected. `validFrom` defaults to today in the
-        account's timezone.
+        the caller's token): a meter the caller cannot see is reported as
+        METER_NOT_FOUND, one that belongs to another household than the account
+        as HOUSEHOLD_MISMATCH. A meter has at most one binding at a time;
+        overlapping bindings are rejected, and an archived account cannot be
+        bound. `validFrom` defaults to today in the account's timezone.
       security:
         - bearerAuth: []
       parameters:
@@ -525,9 +532,10 @@ paths:
       operationId: endMeterBinding
       summary: End a binding
       description: >-
-        Sets `validTo`, which may not precede `validFrom`. Bindings are never
-        deleted; a supplier switch is ending one binding and creating another,
-        the same day if needed.
+        Sets `validTo`, the last day the binding applies, which may not precede
+        `validFrom`. Only an open binding can be ended. Bindings are never
+        deleted; a supplier switch on day D is ending the old binding with
+        `validTo` D-1 and creating the new one from D.
       security:
         - bearerAuth: []
       parameters:
@@ -564,6 +572,8 @@ paths:
           $ref: '#/components/responses/ForbiddenProblem'
         '404':
           $ref: '#/components/responses/NotFoundProblem'
+        '409':
+          $ref: '#/components/responses/ConflictProblem'
         '422':
           $ref: '#/components/responses/UnprocessableProblem'
         '503':
@@ -828,6 +838,33 @@ components:
                 code: ACCOUNT_HAS_ACTIVE_BINDINGS
                 detail: The account still has open meter bindings; end them before archiving it.
                 correlationId: 7d6f5f2c-0a49-4e10-8ef7-7c3d2b1f4a10
+            accountArchived:
+              summary: An archived account cannot be bound
+              value:
+                type: https://api.meterhub.local/problems/account-archived
+                title: Account archived
+                status: 409
+                code: ACCOUNT_ARCHIVED
+                detail: The account is archived and cannot be bound to a meter.
+                correlationId: 7d6f5f2c-0a49-4e10-8ef7-7c3d2b1f4a10
+            providerArchived:
+              summary: An archived provider cannot be chosen for an account
+              value:
+                type: https://api.meterhub.local/problems/provider-archived
+                title: Provider archived
+                status: 409
+                code: PROVIDER_ARCHIVED
+                detail: The provider is archived and cannot be chosen for an account.
+                correlationId: 7d6f5f2c-0a49-4e10-8ef7-7c3d2b1f4a10
+            bindingAlreadyEnded:
+              summary: Only an open binding can be ended
+              value:
+                type: https://api.meterhub.local/problems/binding-already-ended
+                title: Binding already ended
+                status: 409
+                code: BINDING_ALREADY_ENDED
+                detail: The binding has already been ended.
+                correlationId: 7d6f5f2c-0a49-4e10-8ef7-7c3d2b1f4a10
             providerAlreadyGlobal:
               summary: The provider is already in the global catalog
               value:
@@ -857,14 +894,23 @@ components:
                 code: INVALID_SUBMISSION_RULE
                 detail: The window is longer than one cycle.
                 correlationId: 7d6f5f2c-0a49-4e10-8ef7-7c3d2b1f4a10
+            invalidBindingPeriod:
+              summary: A binding cannot end before it starts
+              value:
+                type: https://api.meterhub.local/problems/invalid-binding-period
+                title: Invalid binding period
+                status: 422
+                code: INVALID_BINDING_PERIOD
+                detail: validTo 2026-01-01 precedes validFrom 2026-02-01.
+                correlationId: 7d6f5f2c-0a49-4e10-8ef7-7c3d2b1f4a10
             householdMismatch:
-              summary: The referenced objects belong to different households
+              summary: The meter and the account belong to different households
               value:
                 type: https://api.meterhub.local/problems/household-mismatch
                 title: Household mismatch
                 status: 422
                 code: HOUSEHOLD_MISMATCH
-                detail: The provider is not visible to the account's household.
+                detail: The meter belongs to a different household than the account.
                 correlationId: 7d6f5f2c-0a49-4e10-8ef7-7c3d2b1f4a10
             meterNotFound:
               summary: The meter is unknown or not in the account's household
@@ -894,6 +940,15 @@ components:
                 status: 503
                 code: HOUSEHOLD_SERVICE_UNAVAILABLE
                 detail: The household access check could not be completed.
+                correlationId: 7d6f5f2c-0a49-4e10-8ef7-7c3d2b1f4a10
+            meterServiceUnavailable:
+              summary: The meter could not be looked up
+              value:
+                type: https://api.meterhub.local/problems/meter-service-unavailable
+                title: Meter service unavailable
+                status: 503
+                code: METER_SERVICE_UNAVAILABLE
+                detail: The meter could not be verified; try again later.
                 correlationId: 7d6f5f2c-0a49-4e10-8ef7-7c3d2b1f4a10
 
   schemas:
@@ -1055,7 +1110,7 @@ components:
           $ref: '#/components/schemas/SubmissionRule'
         version:
           type: integer
-          description: Incremented on every change to the rule or provider.
+          description: Incremented on every change to the account (label, number, rule, provider, archiving), so a consumer can discard a snapshot that is not newer than the one it holds.
         archived:
           type: boolean
         createdAt:
@@ -1133,6 +1188,7 @@ components:
           description: Last day the binding applies; null while open-ended.
         version:
           type: integer
+          description: 1 when the meter is bound, incremented when the binding is ended.
         createdAt:
           type: string
           format: date-time
