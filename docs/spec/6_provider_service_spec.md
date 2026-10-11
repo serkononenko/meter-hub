@@ -6,8 +6,8 @@
 **Depends on:** Spec 4 (household access verdict), Spec 5 (outbox + event contracts)
 **Feeds:** Phase 4 Reminders (consumes the events and windows defined here), Phase 6 Provider Integrations (extends this service)
 
-Task breakdown: not yet written (follows once §13 decisions are confirmed).
-It will split this spec into two independently shippable epics:
+Task breakdown: [../tasks/6_provider_service_tasks.md](../tasks/6_provider_service_tasks.md).
+It splits this spec into two independently shippable epic groups:
 **system roles** (§5, identity-service only) first, then **Provider Service** (§4, §6–§10).
 
 ## 1. Overview
