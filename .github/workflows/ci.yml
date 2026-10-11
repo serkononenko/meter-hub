@@ -219,9 +219,12 @@ jobs:
       - name: Run the journey test
         # Glob (not a bare e2e/ dir arg): Node 22 resolves a directory as a
         # module and dies with MODULE_NOT_FOUND. Picks up journey + roles +
-        # async-backbone (which also reads .env DB passwords and runs
-        # `docker compose` / `docker exec` against the running stack).
-        run: node --test "e2e/*.test.mjs"
+        # async-backbone + providers (which also read .env DB passwords and
+        # run `docker compose` / `docker exec` against the running stack).
+        # Serial files: providers.e2e restarts identity-service to reconcile
+        # its admin declaration, and a concurrent suite's register/refresh
+        # would hit the restarting service (500s) — observed in CI.
+        run: node --test --test-concurrency=1 "e2e/*.test.mjs"
       - name: Container logs on failure
         if: failure()
         run: docker compose ps; docker compose logs --tail 100

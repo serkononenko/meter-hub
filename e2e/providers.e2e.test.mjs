@@ -126,28 +126,40 @@ function composeExec(args) {
 }
 
 /**
+ * Wait for identity-service readiness after a restart. The service is
+ * internal-only and the gateway would 401 the probe, so readiness is
+ * polled from inside the compose network (the grafana container has
+ * busybox wget) — same approach as the CI e2e job.
+ */
+async function awaitIdentityReady(deadlineMs = 120_000) {
+    const deadline = Date.now() + deadlineMs;
+    while (Date.now() < deadline) {
+        try {
+            composeExec('exec -T grafana wget -q -O /dev/null http://identity-service:8081/actuator/health/readiness');
+            return;
+        } catch {
+            // starting — keep waiting
+        }
+        await new Promise((resolve) => setTimeout(resolve, 2_000));
+    }
+    throw new Error('identity-service did not become ready after restart');
+}
+
+/**
  * Promote userId to ADMIN by declaring it and restarting identity-service —
  * the reconciliation runner promotes listed users on startup. Returns the
- * .env undo function; the caller must run it and restart again.
+ * .env undo function; the caller must run it and awaitIdentityReady() again.
  */
 async function becomeAdmin(userId) {
     const undo = addToDotEnv('IDENTITY_ADMIN_USER_IDS', userId);
     composeExec('up -d --force-recreate --no-deps identity-service');
-    // The service is internal-only and the gateway would 401 the probe, so
-    // readiness is polled from inside the compose network (the grafana
-    // container has busybox wget) — same approach as the CI e2e job.
-    const deadline = Date.now() + 120_000;
-    while (Date.now() < deadline) {
-        try {
-            composeExec('exec -T grafana wget -q -O /dev/null http://identity-service:8081/actuator/health/readiness');
-            return undo;
-        } catch {
-            // restarting — keep waiting
-        }
-        await new Promise((resolve) => setTimeout(resolve, 2_000));
+    try {
+        await awaitIdentityReady();
+    } catch (error) {
+        undo();
+        throw error;
     }
-    undo();
-    throw new Error('identity-service did not come back after admin reconciliation restart');
+    return undo;
 }
 
 /** End offset of partition 0 of a topic. */
@@ -452,7 +464,10 @@ test('admin curates the catalog; a household links its meters; Kafka carries the
     } finally {
         undoAdmin();
         // Reconcile the demotion immediately so later runs don't see a stale
-        // ADMIN; the declared list is back to its original content.
+        // ADMIN; the declared list is back to its original content. The wait
+        // matters: the other suites run after this file and would otherwise
+        // register users against a still-booting identity-service.
         composeExec('up -d --force-recreate --no-deps identity-service');
+        await awaitIdentityReady();
     }
 });

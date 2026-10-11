@@ -357,7 +357,7 @@ keeps both rows, an overlapping bind is rejected, and both provider events
 are observed on Kafka and validated against their v1 schemas:
 
 ```bash
-node --test e2e/
+node --test --test-concurrency=1 e2e/*.test.mjs
 ```
 
 Requires the Compose stack (or equivalent local services) to be up; override
