@@ -80,29 +80,32 @@ S1.3 Token issuance
 ## Epic P1 — Contract, events & scaffolding (provider-service)
 
 P1.1 OpenAPI (`contracts/openapi/services/provider-service/openapi.yaml`)
-- [ ] Paths per spec §6: `/providers` (+ `/{providerId}`, `/{providerId}/promote`),
+- [x] Paths per spec §6: `/providers` (+ `/{providerId}`, `/{providerId}/promote`),
       `/provider-accounts`, `/meter-bindings`, `/submission-windows`, and the internal
       `/internal/submission-windows` (Internal tag, `security: []`, gateway-`denyAll`
       note) — included only if D3 stands.
-- [ ] Schemas: `Provider` (with `scope`), `ProviderAccount`, `MeterBinding`,
+- [x] Schemas: `Provider` (with `scope`), `ProviderAccount`, `MeterBinding`,
       `SubmissionRule` / `DaySpec`, `SubmissionWindow`.
-- [ ] Problems and examples for every code in spec §10, including
+- [x] Problems and examples for every code in spec §10, including
       `FORBIDDEN_SYSTEM_ROLE`.
-- [ ] Redocly lint clean; generate the NestJS server stubs and the Orval frontend client.
+- [x] Redocly lint: only `no-empty-servers` and `info-license`, the same two the meter and reading contracts report. NestJS server stubs and the household client generated into `provider-service`. The Orval frontend client is **not** generated yet — it lands with P7 (frontend), when something uses it; `orval.config.ts` also needs the new service in its prefix map and the gateway route from P6.
 
 P1.2 Event contracts
-- [ ] `contracts/events/provider/account-changed.v1.schema.json` and
+- [x] `contracts/events/provider/account-changed.v1.schema.json` and
       `binding-changed.v1.schema.json` (spec §8 payloads, spec 5 envelope); types generated
-      via `contracts/events/generate.sh`.
+      via `contracts/events/generate.sh`. (The schemas are committed; the TypeScript types are not generated into `provider-service` yet — P5 needs them for the outbox, and `generate.sh` now takes a domain argument for it. Re-running it for reading-service produced no diff.)
 
 P1.3 Scaffolding
-- [ ] New NestJS service `services/provider-service` from the reading-service shape:
+- [x] New NestJS service `services/provider-service` from the reading-service shape:
       config, Prisma, health/liveness probe, `/metrics`, structured logging, correlation
       middleware, tracing, `.npmrc` (`legacy-peer-deps=true`, COPYed into Docker — see the
       npm/Prisma memory note), Dockerfile.
-- [ ] `provider_db` / `provider_user` in the Postgres init script; env vars in
+- [x] `provider_db` / `provider_user` in the Postgres init script; env vars in
       `.env.example`, `stack.env.example`.
-- [ ] Verify clean-lockfile install and that a DI failure is not a silent exit.
+- [x] Verify clean-lockfile install and that a DI failure is not a silent exit. (Lockfile regenerated from a wiped `node_modules`; `npm ci` dry-run clean. A Docker build from only the git-tracked files succeeds, so nothing outside the repo is needed. The container reaches `healthy`, `/health/ready` reports the database up, `/metrics` serves. No DI failure occurred.)
+- Landed alongside: Compose and Portainer entries (port 8086, liveness healthcheck, `depends_on` postgres + household), `docs/ports.md` row, README counts (six databases / six services / seven images), the CI NestJS test matrix, the e2e readiness check and `.env` password override, and the publish matrix. Gateway routes and Grafana/Prometheus wiring are P6.
+- Detours: the Postgres init script only runs on a fresh volume, so `provider_db` was created by hand in the running dev instance (same SQL as the script); a clean volume or Portainer redeploy needs `docker compose down -v` or the same manual step. Only the pieces P1 needs were copied from reading-service — no idempotency, scheduler, TypedSQL, outbox or meter client yet; each arrives with the task that uses it. The scaffold's generated Prisma client has no models yet (bootstrap migration is `SELECT 1`), exactly as reading-service started.
+- Verified: `nest build`, `oxlint` (no findings outside generated code), 15/15 unit tests.
 
 ## Epic P2 — Window calculation (pure domain)
 

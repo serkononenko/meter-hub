@@ -40,6 +40,8 @@ jobs:
             context: services/meter-service
           - name: reading-service
             context: services/reading-service
+          - name: provider-service
+            context: services/provider-service
           - name: web
             context: frontend
             build-args: GATEWAY_URL=http://api-gateway:8080

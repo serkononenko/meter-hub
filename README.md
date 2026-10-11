@@ -92,10 +92,11 @@ meter-hub/
 │   ├── household-service/
 │   ├── meter-service/
 │   ├── reading-service/
-│   └── events-demo/
+│   ├── events-demo/
+│   └── provider-service/
 ├── frontend/
 ├── infrastructure/
-│   └── postgres/          # init script creating the five databases
+│   └── postgres/          # init script creating the six databases
 ├── contracts/
 │   ├── openapi/           # root + per-service OpenAPI contracts
 │   └── events/
@@ -186,9 +187,9 @@ done
 docker compose up -d --build
 ```
 
-That single command brings up everything: PostgreSQL (with the five
+That single command brings up everything: PostgreSQL (with the six
 databases and users created by `infrastructure/postgres/init/`), the Kafka
-broker, all five app services, and the web application — and it applies
+broker, all six app services, and the web application — and it applies
 database migrations automatically (Flyway for the Spring services,
 `prisma migrate deploy` for the NestJS services, each on container start).
 The web app is then reachable at http://localhost:3000.
@@ -326,7 +327,7 @@ First fully green run: 2026-09-20
 (https://github.com/serkononenko/meter-hub/actions/runs/35507815666).
 
 A second workflow (`publish.yml`) runs on every green `main` push:
-it builds the six images (five services + web) and publishes them to
+it builds the seven images (six services + web) and publishes them to
 `ghcr.io` (`linux/amd64`, tagged `main`/`latest`/SHA), so deployment
 targets pull instead of building on-device — see
 [docs/deploy-portainer.md](docs/deploy-portainer.md).
@@ -362,7 +363,7 @@ has no node_modules of its own.
 
 ### 7. Reset the development database (one command)
 
-Wipes the PostgreSQL volume (all five databases, all data) and the Kafka
+Wipes the PostgreSQL volume (all six databases, all data) and the Kafka
 volume (all topics and offsets), recreating both from scratch:
 
 ```bash

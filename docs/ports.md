@@ -9,6 +9,7 @@
 | Meter Service     | meter-service     |          8083 |             - | HTTP     | Meter management                                                                                   |
 | Reading Service   | reading-service   |          8084 |             - | HTTP     | Reading management                                                                                 |
 | Events Demo       | events-demo       |          8085 |             - | HTTP     | Demo Kafka consumer (spec 5 §8); health/metrics only, Phase 4+ consumers replace it                |
+| Provider Service  | provider-service  |          8086 |             - | HTTP     | Provider catalog, accounts, bindings, submission windows                                           |
 | PostgreSQL        | postgres          |          5432 |          5432 | TCP      | Shared local instance; prod binds to loopback only                                                 |
 | Kafka Exporter    | kafka-exporter    |          9308 |             - | HTTP     | Consumer-group lag + broker metrics for Prometheus (spec 5 §10); internal only                     |
 | Prometheus        | prometheus        |          9090 |          9090 | HTTP     | Scrapes the services' metric endpoints                                                             |

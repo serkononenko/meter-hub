@@ -248,6 +248,33 @@ services:
       meter-service:
         condition: service_healthy
 
+  provider-service:
+    image: ghcr.io/serkononenko/meter-hub-provider-service:main
+    environment:
+      <<: *identity-jwt-env
+      DATABASE_URL: postgresql://${PROVIDER_DB_USER}:${PROVIDER_DB_PASSWORD}@postgres:5432/${PROVIDER_DB}
+      HOUSEHOLD_SERVICE_URL: http://household-service:8082
+      IDENTITY_JWT_PUBLIC_KEY_PATH: /run/secrets/identity.jwt.public-key
+      OTEL_SERVICE_NAME: provider-service
+      OTEL_EXPORTER_OTLP_TRACES_ENDPOINT: http://jaeger:4318/v1/traces
+    secrets:
+      - identity.jwt.public-key
+    expose:
+      - "8086"
+    networks:
+      - meter-hub
+    healthcheck:
+      test: [ "CMD", "wget", "-q", "--spider", "http://localhost:8086/health/live" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    depends_on:
+      postgres:
+        condition: service_healthy
+      household-service:
+        condition: service_healthy
+
   web:
     image: ghcr.io/serkononenko/meter-hub-web:main
     environment:

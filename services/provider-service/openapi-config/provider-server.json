@@ -1,0 +1,5 @@
+{
+  "enumPropertyNaming": "UPPERCASE",
+  "nestVersion": "12.0.1",
+  "fileNaming": "kebab-case"
+}
