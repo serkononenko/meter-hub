@@ -1,3 +1,5 @@
+import type {SystemRole} from "@/lib/api/generated/identity-service/model";
+
 /**
  * Session user shape shared between the auth context and the generated
  * identity-service User model (structural alias so client code does not
@@ -8,6 +10,7 @@ export interface SessionUser {
   email: string;
   username: string;
   status: "ACTIVE" | "DISABLED" | "LOCKED";
+  roles: SystemRole[];
   createdAt: string;
   updatedAt?: string;
 }

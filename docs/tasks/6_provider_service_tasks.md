@@ -66,10 +66,9 @@ S1.3 Token issuance
 
 ## Epic S3 — Frontend: read the role
 
-- [ ] Auth/user model exposes `roles` from `/users/me`; helper `isAdmin()`.
-- [ ] No UI yet beyond the helper (the catalog admin screen is P7) — keep S shippable
-      alone, with a unit test for the helper.
-- [ ] `tsc --noEmit`, eslint, `next build` clean.
+- [x] Auth/user model exposes `roles` from `/users/me` (the auth context already uses the generated `User`; the hand-written `SessionUser` shapes gained `roles`, and `session.ts` now re-exports the one in `session-user.ts` instead of keeping a duplicate); helper `isAdmin()` in `src/lib/auth/roles.ts`.
+- [x] No UI yet beyond the helper (the catalog admin screen is P7) — keeps S shippable alone. **Not done as written: no committed unit test** — the frontend has no test runner (no vitest/jest in `package.json`), and adding one is a project decision, not part of this task. `isAdmin` was checked with a throwaway script instead (ADMIN → true, USER-only / null / undefined → false). Add the test when a runner lands.
+- [x] `tsc --noEmit`, eslint, `next build` clean.
 
 ## Epic S4 — S verification & docs
 

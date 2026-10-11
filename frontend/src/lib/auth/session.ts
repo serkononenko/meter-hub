@@ -13,14 +13,8 @@ export interface TokenPair {
   expiresIn: number;
 }
 
-export interface SessionUser {
-  id: string;
-  email: string;
-  username: string;
-  status: "ACTIVE" | "DISABLED" | "LOCKED";
-  createdAt: string;
-  updatedAt?: string;
-}
+export type {SessionUser} from "@/lib/auth/session-user";
+import type {SessionUser} from "@/lib/auth/session-user";
 
 export interface LoginResponse {
   accessToken: string;
