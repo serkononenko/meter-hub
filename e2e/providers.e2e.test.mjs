@@ -106,9 +106,13 @@ function addToDotEnv(key, value) {
     const original = readFileSync(path, 'utf-8');
     const existing = original.match(new RegExp(`^${key}=(.*)$`, 'm'));
     if (existing) {
+        // An empty declared value (e.g. the CI .env from .env.example) must
+        // not grow a leading comma — a malformed list element fails Spring
+        // binding and identity-service never starts.
+        const joined = existing[1].trim() ? `${existing[1]},${value}` : value;
         const updated = original.replace(
             new RegExp(`^${key}=.*$`, 'm'),
-            `${key}=${existing[1]},${value}`,
+            `${key}=${joined}`,
         );
         writeFileSync(path, updated);
     } else {
