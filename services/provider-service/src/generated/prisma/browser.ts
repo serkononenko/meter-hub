@@ -17,4 +17,19 @@ import * as Prisma from './internal/prismaNamespaceBrowser.js'
 export { Prisma }
 export * as $Enums from './enums.js'
 export * from './enums.js';
-
+/**
+ * Model Provider
+ * householdId null = global catalog entry managed by system administrators;
+ * set = private to that household.
+ */
+export type Provider = Prisma.ProviderModel
+/**
+ * Model ProviderAccount
+ * 
+ */
+export type ProviderAccount = Prisma.ProviderAccountModel
+/**
+ * Model MeterBinding
+ * 
+ */
+export type MeterBinding = Prisma.MeterBindingModel

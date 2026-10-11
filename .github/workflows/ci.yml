@@ -122,6 +122,14 @@ jobs:
       - name: Test ${{ matrix.service }}
         working-directory: services/${{ matrix.service }}
         run: npm test
+      - name: E2E tests ${{ matrix.service }}
+        # The HTTP-level authorization matrix runs against real Postgres with
+        # stand-ins for the household/meter services (test/global-setup.ts).
+        if: matrix.service == 'provider-service'
+        working-directory: services/${{ matrix.service }}
+        env:
+          DATABASE_URL: postgresql://provider_user:provider_dev@localhost:5432/provider_db
+        run: npm run test:e2e
 
   e2e-journey:
     name: e2e journey (Docker Compose)

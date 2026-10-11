@@ -54,6 +54,10 @@ describe('validateSubmissionRule', () => {
         );
     });
 
+    it.each(['Europe/Kyiv', 'UTC', 'America/Sao_Paulo'])('accepts the time zone "%s" and keeps it as given', (timezone) => {
+        expect(validateSubmissionRule({...valid, timezone})).toEqual({rule: {...valid, timezone}});
+    });
+
     it('rejects a missing or non-string time zone', () => {
         expect(problemsOf({...valid, timezone: undefined})).toHaveLength(1);
         expect(problemsOf({...valid, timezone: 3})).toHaveLength(1);

@@ -6,6 +6,7 @@ import {AuthModule} from './auth/auth.module.js';
 import {DatabaseModule} from './database/database.module.js';
 import {CorrelationIdMiddleware} from './middlewares/correlation.middleware.js';
 import {HealthModule} from './health/health.module.js';
+import {ProviderModule} from './provider/provider.module.js';
 import {CommonExceptionFilter} from './filters/common-exception.filter.js';
 import {UnauthorizedExceptionFilter} from "./filters/unauthorized-exception.filter.js";
 import {RequestValidationExceptionFilter} from "./filters/request-validation-exception.filter.js";
@@ -30,6 +31,7 @@ import {RequestLoggingMiddleware} from './logging/request-logging.middleware.js'
         DatabaseModule,
         AuthModule,
         HealthModule,
+        ProviderModule,
     ],
     providers: [
         {

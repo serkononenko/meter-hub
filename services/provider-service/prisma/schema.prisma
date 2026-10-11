@@ -6,3 +6,62 @@ generator client {
 datasource db {
   provider = "postgresql"
 }
+
+/// householdId null = global catalog entry managed by system administrators;
+/// set = private to that household.
+model Provider {
+  id          String            @id @db.Uuid
+  householdId String?           @map("household_id") @db.Uuid
+  name        String            @db.VarChar(200)
+  notes       String?
+  defaultRule Json?             @map("default_rule")
+  archivedAt  DateTime?         @map("archived_at") @db.Timestamptz(6)
+  createdAt   DateTime          @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime          @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  createdBy   String            @map("created_by") @db.Uuid
+  updatedBy   String            @map("updated_by") @db.Uuid
+  accounts    ProviderAccount[]
+
+  @@index([householdId])
+  @@map("providers")
+}
+
+model ProviderAccount {
+  id            String         @id @db.Uuid
+  providerId    String         @map("provider_id") @db.Uuid
+  householdId   String         @map("household_id") @db.Uuid
+  label         String         @db.VarChar(200)
+  accountNumber String?        @map("account_number") @db.VarChar(100)
+  rule          Json
+  version       Int            @default(1)
+  archivedAt    DateTime?      @map("archived_at") @db.Timestamptz(6)
+  createdAt     DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt     DateTime       @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  createdBy     String         @map("created_by") @db.Uuid
+  updatedBy     String         @map("updated_by") @db.Uuid
+  provider      Provider       @relation(fields: [providerId], references: [id])
+  bindings      MeterBinding[]
+
+  @@index([householdId])
+  @@index([providerId])
+  @@map("provider_accounts")
+}
+
+model MeterBinding {
+  id          String          @id @db.Uuid
+  accountId   String          @map("account_id") @db.Uuid
+  householdId String          @map("household_id") @db.Uuid
+  meterId     String          @map("meter_id") @db.Uuid
+  validFrom   DateTime        @map("valid_from") @db.Date
+  validTo     DateTime?       @map("valid_to") @db.Date
+  version     Int             @default(1)
+  createdAt   DateTime        @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime        @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  createdBy   String          @map("created_by") @db.Uuid
+  updatedBy   String          @map("updated_by") @db.Uuid
+  account     ProviderAccount @relation(fields: [accountId], references: [id])
+
+  @@index([accountId])
+  @@index([meterId, validFrom])
+  @@map("meter_bindings")
+}
