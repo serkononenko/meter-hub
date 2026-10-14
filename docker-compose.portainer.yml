@@ -303,6 +303,7 @@ services:
       - --storage.tsdb.retention.time=7d
     volumes:
       - ${REPO_DIR:-/opt/meter-hub}/infrastructure/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ${REPO_DIR:-/opt/meter-hub}/infrastructure/prometheus/rules:/etc/prometheus/rules:ro
       - ${REPO_DIR:-/opt/meter-hub}/infrastructure/prometheus/data:/prometheus
     expose:
       - "9090"
@@ -328,6 +329,28 @@ services:
     depends_on:
       kafka:
         condition: service_healthy
+
+  alertmanager:
+    image: prom/alertmanager:v0.29.0
+    entrypoint: ["/bin/sh", "/etc/alertmanager/entrypoint.sh"]
+    environment:
+      ALERTMANAGER_TELEGRAM_BOT_TOKEN: ${ALERTMANAGER_TELEGRAM_BOT_TOKEN:-}
+      ALERTMANAGER_TELEGRAM_CHAT_ID: ${ALERTMANAGER_TELEGRAM_CHAT_ID:-}
+    volumes:
+      - ${REPO_DIR:-/opt/meter-hub}/infrastructure/alertmanager/entrypoint.sh:/etc/alertmanager/entrypoint.sh:ro
+      - ${REPO_DIR:-/opt/meter-hub}/infrastructure/alertmanager/alertmanager.yml.tmpl:/etc/alertmanager/alertmanager.yml.tmpl:ro
+      - ${REPO_DIR:-/opt/meter-hub}/infrastructure/alertmanager/telegram.tmpl:/etc/alertmanager/telegram.tmpl:ro
+      - ${REPO_DIR:-/opt/meter-hub}/infrastructure/alertmanager/data:/alertmanager
+    expose:
+      - "9093"
+    networks:
+      - meter-hub
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:9093/-/healthy"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
 
   grafana:
     image: grafana/grafana:12.2.1

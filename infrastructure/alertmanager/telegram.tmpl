@@ -1,0 +1,7 @@
+{{ define "meterhub.telegram" -}}
+{{ if eq .Status "firing" }}🔥{{ else }}✅{{ end }} <b>{{ .Status | toUpper }}</b> — {{ .CommonLabels.alertname }} ({{ .CommonLabels.severity }})
+{{ range .Alerts -}}
+• <b>{{ .Labels.job }}</b>: {{ .Annotations.summary }}
+{{ if .Annotations.dashboard }}  <a href="{{ .Annotations.dashboard }}">dashboard</a>
+{{ end }}{{ end }}
+{{- end }}

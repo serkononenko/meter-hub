@@ -22,26 +22,25 @@ Reality this builds on (verified 2026-10-14):
 ## Epic A1 — Alertmanager and the notification path
 
 A1.1 Service
-- [ ] `infrastructure/alertmanager/alertmanager.yml.tmpl` and an entrypoint script that renders it
+- [x] `infrastructure/alertmanager/alertmanager.yml.tmpl` and an entrypoint script that renders it
       from `ALERTMANAGER_TELEGRAM_BOT_TOKEN` / `_CHAT_ID`; both set → `telegram` receiver, else an
       empty receiver and a log line.
-- [ ] Routing: group by `alertname`, `job`; `group_wait` 30s, `group_interval` 5m, `repeat_interval` 4h;
+- [x] Routing: group by `alertname`, `job`; `group_wait` 30s, `group_interval` 5m, `repeat_interval` 4h;
       critical-inhibits-warning per `job`; `send_resolved: true`.
-- [ ] Telegram message template (severity, alert, job, summary, dashboard link).
-- [ ] Compose service `alertmanager` (pinned image, healthcheck `/-/healthy`, 9093 internal; host port
+- [x] Telegram message template (severity, alert, job, summary, dashboard link).
+- [x] Compose service `alertmanager` (pinned image, healthcheck `/-/healthy`, 9093 internal; host port
       in dev only) in `docker-compose.yml` **and** `docker-compose.portainer.yml`.
 
 A1.2 Wiring
-- [ ] Prometheus `alerting:` block and `rule_files:`; mount `infrastructure/prometheus/rules/` in both
+- [x] Prometheus `alerting:` block and `rule_files:`; mount `infrastructure/prometheus/rules/` in both
       Compose files.
-- [ ] Grafana Alertmanager datasource provisioned.
-- [ ] Env placeholders in `.env.example` and `stack.env.example` (empty by default).
+- [x] Grafana Alertmanager datasource provisioned (file added; not yet seen loaded in a running Grafana).
+- [x] Env placeholders in `.env.example` and `stack.env.example` (empty by default).
 
 A1.3 Verification
-- [ ] Stack boots healthy with the Telegram vars unset; delivery-disabled log line present.
-- [ ] Rendered config validated with `amtool check-config`; template covered for both branches (vars
-      set / unset) by a script test.
-- [ ] Prometheus `/api/v1/alertmanagers` lists the instance as active.
+- [x] Stack boots healthy with the Telegram vars unset; delivery-disabled log line present.
+- [x] Rendered config validated with `amtool check-config` for both branches (vars set / unset). Detour: checked by hand in a throwaway container, not a committed script test — still worth adding.
+- [x] Prometheus `/api/v1/alertmanagers` lists the instance as active.
 
 ## Epic A2 — Prometheus rules
 

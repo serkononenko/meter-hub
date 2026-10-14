@@ -1,0 +1,12 @@
+# Alertmanager datasource: lets Grafana list firing alerts (spec 7 §4).
+apiVersion: 1
+
+datasources:
+  - name: Alertmanager
+    uid: meterhub-alertmanager
+    type: alertmanager
+    access: proxy
+    url: http://alertmanager:9093
+    editable: false
+    jsonData:
+      implementation: prometheus
