@@ -70,7 +70,7 @@ A3.1 Loki ruler
 - [x] Verification (2026-10-14): ruler loaded the rule (`health: ok`). A one-off burst of 15 synthetic ERROR lines went pending but dropped back under the threshold before `for: 5m` elapsed, so it correctly did not fire. A sustained ~9 ERROR lines/min from 10:26:45 fired `LogErrorSpike{service=reading-service}` in Alertmanager at ~10:33. The resolve after the lines stopped was not observed. Lines were synthetic (written to the container's stdout), not a real failure.
 
 A3.2 Dashboard
-- [x] Overview dashboard: "Alerts firing" stat and an active-alerts table (Prometheus `ALERTS`; Loki alerts are visible only in Alertmanager, noted in the panel description). Query checked against Prometheus; panels not viewed rendered in Grafana.
+- [x] Overview dashboard: "Alerts firing" stat and an active-alerts table (Prometheus `ALERTS`; Loki alerts are visible only in Alertmanager, noted in the panel description). Verified 2026-10-14 through the Grafana API: the dashboard serves panels 14–16 and both panel queries return a data frame via `/api/ds/query` (200). Not looked at in a browser, so visual layout is unchecked.
 
 A3.3 Telegram (needs the bot)
 - [x] Create the bot with @BotFather, find the chat ID, set the variables in `stack.env` /
@@ -83,3 +83,13 @@ A3.4 Docs and close-out
 - [x] Backlog O1 → Resolved with evidence; roadmap Phase 1.3 note updated; Phase 7 device alerts
       referenced as the next consumer.
 - [x] Portainer compose diffed against dev for parity: alertmanager service, Prometheus rules mount, Loki ruler mount all present; only path style (`${REPO_DIR}` binds) and state storage (bind dir vs named volume) differ. **Not run:** the Portainer stack was never started. Risk to check on first deploy: `infrastructure/alertmanager/data` is a bind mount, and Alertmanager runs as a non-root user, so the host directory may need to be writable (same situation as the existing Prometheus/Loki data dirs).
+
+## Baseline observation (2026-10-14, ~1h of idle local stack)
+
+Over the 3 hours before 11:16, the only alerts that were pending or firing were `TargetDown`, all during
+the drills and the earlier stopped-stack period (10:07–10:12, 10:13–10:15, 11:02–11:05). No alert
+fired spontaneously while the stack was healthy, including `TargetFlapping`, the error-rate alerts,
+`ConsumerLagGrowing` and `OutboxBacklog`. This is weak evidence only: the stack saw ~0.1 req/s per
+service of health/metrics scrapes and no user traffic, so the 5xx, latency and lag thresholds were
+never approached (p95 ≈ 5 ms, lag 0, outbox 0). Threshold tuning (A2.2) therefore stays open until
+there is real usage.
