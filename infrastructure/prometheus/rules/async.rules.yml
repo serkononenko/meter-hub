@@ -1,0 +1,54 @@
+# Async backbone alerts (spec 7 §6) over the kafka-exporter and outbox metrics.
+groups:
+  - name: async
+    rules:
+      - alert: KafkaBrokerDown
+        expr: kafka_brokers < 1
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Kafka has no brokers"
+          description: "kafka-exporter reports no brokers for 2 minutes."
+          dashboard: http://localhost:3001/d/meterhub-async-backbone
+
+      - alert: ConsumerLagGrowing
+        expr: |
+          sum by (consumergroup, topic) (kafka_consumergroup_lag) > 100
+          and delta(sum by (consumergroup, topic) (kafka_consumergroup_lag)[10m:1m]) >= 0
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "{{ $labels.consumergroup }} is falling behind on {{ $labels.topic }}"
+          description: "Lag is {{ $value }} messages and not decreasing."
+          dashboard: http://localhost:3001/d/meterhub-async-backbone
+
+      - alert: OutboxBacklog
+        expr: '{__name__=~"(reading|provider)_outbox_unpublished"} > 50'
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "{{ $labels.job }}: {{ $value }} outbox rows unpublished"
+          description: "The outbox relay is not keeping up or is stuck."
+          dashboard: http://localhost:3001/d/meterhub-async-backbone
+
+      - alert: OutboxPublishErrors
+        expr: 'rate({__name__=~"(reading|provider)_outbox_publish_errors_total"}[5m]) > 0'
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "{{ $labels.job }}: outbox publishing is failing"
+          description: "Publish errors have been occurring for 5 minutes."
+          dashboard: http://localhost:3001/d/meterhub-async-backbone
+
+      - alert: DeadLetteredMessages
+        expr: increase(consumer_dlq_messages_total[15m]) > 0
+        labels:
+          severity: warning
+        annotations:
+          summary: "{{ $labels.job }} dead-lettered {{ $value }} message(s)"
+          description: "A message exhausted its retries or was malformed; inspect the DLQ topic."
+          dashboard: http://localhost:3001/d/meterhub-async-backbone

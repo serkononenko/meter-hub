@@ -45,20 +45,20 @@ A1.3 Verification
 ## Epic A2 — Prometheus rules
 
 A2.1 Rule files (`infrastructure/prometheus/rules/`)
-- [ ] `platform.rules.yml`: `TargetDown`, `TargetFlapping`, `HighErrorRateSpring`, `HighErrorRateNest`,
+- [x] `platform.rules.yml`: `TargetDown`, `TargetFlapping`, `HighErrorRateSpring`, `HighErrorRateNest`,
       `HighLatencyP95` (minimum-rate guards so an idle service cannot divide by ~0).
-- [ ] `async.rules.yml`: `KafkaBrokerDown`, `ConsumerLagGrowing`, `OutboxBacklog`, `OutboxPublishErrors`,
+- [x] `async.rules.yml`: `KafkaBrokerDown`, `ConsumerLagGrowing`, `OutboxBacklog`, `OutboxPublishErrors`,
       `DeadLetteredMessages`.
-- [ ] Every alert has `severity`, `summary`, `description`, `dashboard` annotations.
+- [x] Every alert has `severity`, `summary`, `description`, `dashboard` annotations.
 
 A2.2 Tests and tuning
-- [ ] `promtool check rules` and `promtool test rules` fixtures for every alert (fires, does not fire,
+- [x] `promtool check rules` and `promtool test rules` fixtures for every alert (fires, does not fire,
       resolves); wired into CI so a broken rule fails the PR.
 - [ ] Thresholds and `for:` values reviewed against a day of real local traffic; final values recorded
-      in spec §6.
+      in spec §6. **Not done:** thresholds are still the spec's starting points; the stack has had no real traffic yet.
 
 A2.3 Verification
-- [ ] Stop `reading-service`: `TargetDown` pending → firing within ~3 min in Alertmanager; restart:
+- [ ] (Partly seen: with only Prometheus + Alertmanager running, all 8 `TargetDown` alerts went pending → firing and reached Alertmanager. The stop-one-service drill and resolve are still to do.) Stop `reading-service`: `TargetDown` pending → firing within ~3 min in Alertmanager; restart:
       resolves. Record the observed timings.
 
 ## Epic A3 — Loki alerts, Telegram and close-out

@@ -1,0 +1,63 @@
+# Platform alerts (spec 7 §6). `for:` durations ride out a normal container
+# restart; request-rate guards stop an idle service from alerting on a
+# handful of failed requests.
+groups:
+  - name: platform
+    rules:
+      - alert: TargetDown
+        expr: up == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "{{ $labels.job }} is unreachable"
+          description: "Prometheus could not scrape {{ $labels.instance }} for 2 minutes."
+          dashboard: http://localhost:3001/d/meterhub-overview
+
+      - alert: TargetFlapping
+        expr: changes(up[15m]) >= 4
+        labels:
+          severity: warning
+        annotations:
+          summary: "{{ $labels.job }} is flapping"
+          description: "{{ $labels.instance }} changed up/down state {{ $value }} times in 15 minutes (restart loop?)."
+          dashboard: http://localhost:3001/d/meterhub-overview
+
+      - alert: HighErrorRateSpring
+        expr: |
+          sum by (job) (rate(http_server_requests_seconds_count{outcome=~"SERVER_ERROR|SERVICE_UNAVAILABLE"}[5m]))
+            / sum by (job) (rate(http_server_requests_seconds_count[5m])) > 0.05
+          and sum by (job) (rate(http_server_requests_seconds_count[5m])) > 0.05
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "{{ $labels.job }}: {{ $value | humanizePercentage }} of requests fail with 5xx"
+          description: "5xx share has been above 5% for 5 minutes."
+          dashboard: http://localhost:3001/d/meterhub-overview
+
+      - alert: HighErrorRateNest
+        expr: |
+          sum by (job) (rate(http_requests_total{status=~"5.."}[5m]))
+            / sum by (job) (rate(http_requests_total[5m])) > 0.05
+          and sum by (job) (rate(http_requests_total[5m])) > 0.05
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "{{ $labels.job }}: {{ $value | humanizePercentage }} of requests fail with 5xx"
+          description: "5xx share has been above 5% for 5 minutes."
+          dashboard: http://localhost:3001/d/meterhub-overview
+
+      - alert: HighLatencyP95
+        expr: |
+          histogram_quantile(0.95, sum by (job, le) (rate(http_server_requests_seconds_bucket[5m]))) > 1
+          or
+          histogram_quantile(0.95, sum by (job, le) (rate(http_request_duration_seconds_bucket[5m]))) > 1
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "{{ $labels.job }}: p95 latency {{ $value | humanizeDuration }}"
+          description: "p95 request latency has been above 1s for 10 minutes."
+          dashboard: http://localhost:3001/d/meterhub-overview

@@ -70,6 +70,18 @@ jobs:
         working-directory: services/${{ matrix.service }}
         run: ./gradlew test
 
+  alert-rules:
+    name: Alert rules (promtool)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check and unit-test Prometheus rules
+        run: |
+          docker run --rm --entrypoint promtool -v "$PWD/infrastructure/prometheus":/w:ro prom/prometheus:v3.7.3 \
+            check rules /w/rules/platform.rules.yml /w/rules/async.rules.yml
+          docker run --rm --entrypoint promtool -v "$PWD/infrastructure/prometheus":/w:ro prom/prometheus:v3.7.3 \
+            test rules /w/tests/platform.test.yml /w/tests/async.test.yml
+
   nestjs-tests:
     name: NestJS tests — ${{ matrix.service }}
     runs-on: ubuntu-latest

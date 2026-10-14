@@ -1,0 +1,109 @@
+rule_files:
+  - ../rules/platform.rules.yml
+
+evaluation_interval: 15s
+
+tests:
+  - name: TargetDown fires after 2m and resolves
+    interval: 15s
+    input_series:
+      - series: 'up{job="reading-service", instance="reading-service:8084"}'
+        values: '1x4 0x16 1x10'
+    alert_rule_test:
+      - eval_time: 1m30s
+        alertname: TargetDown
+        exp_alerts: []
+      - eval_time: 4m
+        alertname: TargetDown
+        exp_alerts:
+          - exp_labels: {severity: critical, job: reading-service, instance: "reading-service:8084"}
+            exp_annotations:
+              summary: "reading-service is unreachable"
+              description: "Prometheus could not scrape reading-service:8084 for 2 minutes."
+              dashboard: http://localhost:3001/d/meterhub-overview
+      - eval_time: 7m
+        alertname: TargetDown
+        exp_alerts: []
+
+  - name: TargetFlapping fires on repeated state changes only
+    interval: 1m
+    input_series:
+      - series: 'up{job="meter-service", instance="meter-service:8083"}'
+        values: '1 0 1 0 1 1 1 1 1 1'
+      - series: 'up{job="steady", instance="steady:1"}'
+        values: '1 1 1 1 1 1 1 1 1 1'
+    alert_rule_test:
+      - eval_time: 5m
+        alertname: TargetFlapping
+        exp_alerts:
+          - exp_labels: {severity: warning, job: meter-service, instance: "meter-service:8083"}
+            exp_annotations:
+              summary: "meter-service is flapping"
+              description: "meter-service:8083 changed up/down state 4 times in 15 minutes (restart loop?)."
+              dashboard: http://localhost:3001/d/meterhub-overview
+
+  - name: HighErrorRateSpring needs both a high share and real traffic
+    interval: 1m
+    input_series:
+      # 1 req/s total, 10% 5xx → fires
+      - series: 'http_server_requests_seconds_count{job="api-gateway", outcome="SERVER_ERROR"}'
+        values: '0+6x15'
+      - series: 'http_server_requests_seconds_count{job="api-gateway", outcome="SUCCESS"}'
+        values: '0+54x15'
+      # 100% 5xx but ~0.003 req/s → guarded
+      - series: 'http_server_requests_seconds_count{job="identity-service", outcome="SERVER_ERROR"}'
+        values: '0+0.2x15'
+    alert_rule_test:
+      - eval_time: 3m
+        alertname: HighErrorRateSpring
+        exp_alerts: []
+      - eval_time: 12m
+        alertname: HighErrorRateSpring
+        exp_alerts:
+          - exp_labels: {severity: critical, job: api-gateway}
+            exp_annotations:
+              summary: "api-gateway: 10% of requests fail with 5xx"
+              description: "5xx share has been above 5% for 5 minutes."
+              dashboard: http://localhost:3001/d/meterhub-overview
+
+  - name: HighErrorRateNest fires on 5xx statuses
+    interval: 1m
+    input_series:
+      - series: 'http_requests_total{job="reading-service", status="500"}'
+        values: '0+12x15'
+      - series: 'http_requests_total{job="reading-service", status="200"}'
+        values: '0+48x15'
+    alert_rule_test:
+      - eval_time: 12m
+        alertname: HighErrorRateNest
+        exp_alerts:
+          - exp_labels: {severity: critical, job: reading-service}
+            exp_annotations:
+              summary: "reading-service: 20% of requests fail with 5xx"
+              description: "5xx share has been above 5% for 5 minutes."
+              dashboard: http://localhost:3001/d/meterhub-overview
+
+  - name: HighLatencyP95 fires on sustained slow requests
+    interval: 1m
+    input_series:
+      - series: 'http_request_duration_seconds_bucket{job="meter-service", le="1"}'
+        values: '0+0x20'
+      - series: 'http_request_duration_seconds_bucket{job="meter-service", le="5"}'
+        values: '0+60x20'
+      - series: 'http_request_duration_seconds_bucket{job="meter-service", le="+Inf"}'
+        values: '0+60x20'
+      - series: 'http_request_duration_seconds_bucket{job="fast", le="1"}'
+        values: '0+60x20'
+      - series: 'http_request_duration_seconds_bucket{job="fast", le="5"}'
+        values: '0+60x20'
+      - series: 'http_request_duration_seconds_bucket{job="fast", le="+Inf"}'
+        values: '0+60x20'
+    alert_rule_test:
+      - eval_time: 18m
+        alertname: HighLatencyP95
+        exp_alerts:
+          - exp_labels: {severity: warning, job: meter-service}
+            exp_annotations:
+              summary: "meter-service: p95 latency 4.8s"
+              description: "p95 request latency has been above 1s for 10 minutes."
+              dashboard: http://localhost:3001/d/meterhub-overview
