@@ -70,16 +70,16 @@ A3.1 Loki ruler
 - [x] Verification (2026-10-14): ruler loaded the rule (`health: ok`). A one-off burst of 15 synthetic ERROR lines went pending but dropped back under the threshold before `for: 5m` elapsed, so it correctly did not fire. A sustained ~9 ERROR lines/min from 10:26:45 fired `LogErrorSpike{service=reading-service}` in Alertmanager at ~10:33. The resolve after the lines stopped was not observed. Lines were synthetic (written to the container's stdout), not a real failure.
 
 A3.2 Dashboard
-- [ ] Alert-list panel on the overview dashboard; firing count stat.
+- [x] Overview dashboard: "Alerts firing" stat and an active-alerts table (Prometheus `ALERTS`; Loki alerts are visible only in Alertmanager, noted in the panel description). Query checked against Prometheus; panels not viewed rendered in Grafana.
 
 A3.3 Telegram (needs the bot)
-- [ ] Create the bot with @BotFather, find the chat ID, set the variables in `stack.env` /
+- [x] Create the bot with @BotFather, find the chat ID, set the variables in `stack.env` /
       Portainer. Never commit or paste the token.
-- [ ] Fire drill end to end: firing and resolved messages both arrive in Telegram.
+- [x] Fire drill end to end (2026-10-14): `TargetDown` for `reading-service` — FIRING message at ~11:03, RESOLVED at ~11:09 (`group_interval` batching), both confirmed received in Telegram by the user; Alertmanager reported 0 Telegram failures.
 
 A3.4 Docs and close-out
-- [ ] `docs/deploy-portainer.md`: bot creation, variables, how to silence.
-- [ ] `docs/ports.md`: 9093.
-- [ ] Backlog O1 → Resolved with evidence; roadmap Phase 1.3 note updated; Phase 7 device alerts
+- [x] `docs/deploy-portainer.md`: bot creation, variables, how to silence.
+- [x] `docs/ports.md`: 9093.
+- [x] Backlog O1 → Resolved with evidence; roadmap Phase 1.3 note updated; Phase 7 device alerts
       referenced as the next consumer.
-- [ ] Portainer compose diffed against dev for parity (alertmanager, rules mounts, Loki ruler).
+- [x] Portainer compose diffed against dev for parity: alertmanager service, Prometheus rules mount, Loki ruler mount all present; only path style (`${REPO_DIR}` binds) and state storage (bind dir vs named volume) differ. **Not run:** the Portainer stack was never started. Risk to check on first deploy: `infrastructure/alertmanager/data` is a bind mount, and Alertmanager runs as a non-root user, so the host directory may need to be writable (same situation as the existing Prometheus/Loki data dirs).

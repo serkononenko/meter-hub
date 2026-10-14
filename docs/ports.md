@@ -36,4 +36,5 @@
 > not from the host. See `docs/deploy-portainer.md`.
 
 | Kafka (host CLI)  | kafka             |          9092 |         29092 | TCP      | Broker; services use `kafka:9092` inside the network, host CLI 29092 |
+| Alertmanager      | alertmanager      |          9093 |          9093 | HTTP     | Alert routing to Telegram; dev publishes it, prod keeps it internal (spec 7)                        |
 | Redis             | —                 |          6379 |             - | TCP      | Planned                                  |

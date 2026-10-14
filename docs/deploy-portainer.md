@@ -121,6 +121,34 @@ Portainer's container console or `docker exec`.
 Portainer's container list replaces most of the CLI here: logs,
 console access, and per-container restart are all in the UI.
 
+## 4b. Alert notifications (optional)
+
+Alertmanager evaluates the rules in `infrastructure/prometheus/rules/` and
+`infrastructure/loki/rules/` and sends firing and resolved alerts to
+Telegram. Without credentials the stack still runs; alerts are then visible
+only inside Alertmanager (the `alertmanager` container logs
+`delivery disabled` at startup).
+
+1. In Telegram, message **@BotFather**, send `/newbot`, and keep the
+   **token** it returns.
+2. Send any message to the new bot (or add it to a group and message there).
+3. Open `https://api.telegram.org/bot<TOKEN>/getUpdates` and read
+   `chat.id` — group IDs are negative.
+4. Set `ALERTMANAGER_TELEGRAM_BOT_TOKEN` and `ALERTMANAGER_TELEGRAM_CHAT_ID`
+   in the stack env, then redeploy (or restart the `alertmanager` container).
+   The token is a secret: keep it out of the repo and out of chat.
+
+Notes:
+
+- Alertmanager has no host port in this deployment. To inspect or silence an
+  alert, use the container console (`wget -qO- localhost:9093/api/v2/alerts`)
+  or Grafana's Alertmanager datasource.
+- Messages link to Grafana dashboards at `http://localhost:3001/...`, which
+  does not resolve from a phone or from the LAN host; the alert text itself is
+  complete without the link.
+- A "resolved" message arrives up to ~5 minutes after recovery
+  (`group_interval`).
+
 ## 4a. Granting admin (optional)
 
 System administrators manage the global provider catalog and nothing else

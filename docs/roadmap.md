@@ -62,11 +62,12 @@ no new services.
 
 ### 1.3 Operations
 
-- **Alerting.** Alertmanager + rules on the existing Prometheus (scrape
+- **Alerting** *(landed 2026-10-14, spec 7)*. Alertmanager + rules on the existing Prometheus (scrape
   target down, sustained 5xx, readiness flapping) and Loki alerts (error
   spikes); notification path (Telegram is the natural first channel —
   reuse it in Phase 5). This closes the last unchecked item in
   `1_metrics_observability_tasks.md` besides per-service dashboards.
+  Phase 7 device-offline alerts and Phase 5 notifications reuse it.
 - **Backups.** Scheduled `pg_dump` per database to a host volume; document
   restore. The Compose volume is currently disposable by design.
 - **Soft delete / audit fields.** `updatedAt` + actor tracking where
