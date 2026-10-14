@@ -384,6 +384,7 @@ services:
     volumes:
       - ${REPO_DIR:-/opt/meter-hub}/infrastructure/loki/loki-config.yml:/etc/loki/loki-config.yml:ro
       - ${REPO_DIR:-/opt/meter-hub}/infrastructure/loki/data:/loki
+      - ${REPO_DIR:-/opt/meter-hub}/infrastructure/loki/rules/fake:/loki/rules/fake:ro
     expose:
       - "3100"
     networks:

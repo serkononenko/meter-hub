@@ -390,6 +390,7 @@ services:
     volumes:
       - ./infrastructure/loki/loki-config.yml:/etc/loki/loki-config.yml:ro
       - loki_data:/loki
+      - ./infrastructure/loki/rules/fake:/loki/rules/fake:ro
     expose:
       - "3100"
     networks:

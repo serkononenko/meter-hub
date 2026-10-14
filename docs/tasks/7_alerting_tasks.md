@@ -63,11 +63,11 @@ A2.3 Verification
 ## Epic A3 — Loki alerts, Telegram and close-out
 
 A3.1 Loki ruler
-- [ ] Enable `ruler` in `loki-config.yml` (storage under the rules directory, Alertmanager URL); mount
+- [x] Enable `ruler` in `loki-config.yml` (storage under the rules directory, Alertmanager URL); mount
       `infrastructure/loki/rules/fake/` in both Compose files.
-- [ ] `LogErrorSpike` rule (per-service error-level line count); check the exact field/label from the
+- [x] `LogErrorSpike` rule (per-service error-level line count); check the exact field/label from the
       existing promtail pipeline and the logs dashboard before writing the LogQL.
-- [ ] Verification: force an error burst, alert fires in Alertmanager.
+- [x] Verification (2026-10-14): ruler loaded the rule (`health: ok`). A one-off burst of 15 synthetic ERROR lines went pending but dropped back under the threshold before `for: 5m` elapsed, so it correctly did not fire. A sustained ~9 ERROR lines/min from 10:26:45 fired `LogErrorSpike{service=reading-service}` in Alertmanager at ~10:33. The resolve after the lines stopped was not observed. Lines were synthetic (written to the container's stdout), not a real failure.
 
 A3.2 Dashboard
 - [ ] Alert-list panel on the overview dashboard; firing count stat.

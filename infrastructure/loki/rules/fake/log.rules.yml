@@ -1,0 +1,14 @@
+# Log-based alerts (spec 7 §6). Services log JSON with an uppercase `level`.
+groups:
+  - name: logs
+    rules:
+      - alert: LogErrorSpike
+        expr: |
+          sum by (service) (count_over_time({service=~".+"} | json | level="ERROR" [5m])) > 10
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "{{ $labels.service }}: {{ $value }} error log lines in 5 minutes"
+          description: "Error-level log lines have stayed above 10 per 5 minutes for 5 minutes."
+          dashboard: http://localhost:3001/d/meterhub-logs
