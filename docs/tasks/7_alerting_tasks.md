@@ -58,8 +58,7 @@ A2.2 Tests and tuning
       in spec §6. **Not done:** thresholds are still the spec's starting points; the stack has had no real traffic yet.
 
 A2.3 Verification
-- [ ] (Partly seen: with only Prometheus + Alertmanager running, all 8 `TargetDown` alerts went pending → firing and reached Alertmanager. The stop-one-service drill and resolve are still to do.) Stop `reading-service`: `TargetDown` pending → firing within ~3 min in Alertmanager; restart:
-      resolves. Record the observed timings.
+- [x] Stop `reading-service` on the full dev stack (2026-10-14): stopped 10:12:45 → `TargetDown` pending, firing at ~10:15:00 (≈2m15s: `for: 2m` plus a scrape/eval interval), visible in Alertmanager; restarted 10:15:09 → resolved by 10:15:24. Only `reading-service` alerted. Detour: the `web` container could not bind host port 3000 (another container on this machine holds it), so it was left down — unrelated to alerting.
 
 ## Epic A3 — Loki alerts, Telegram and close-out
 
